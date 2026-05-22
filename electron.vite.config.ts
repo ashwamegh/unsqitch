@@ -21,6 +21,11 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
+    resolve: {
+      alias: {
+        '@shared': resolve('electron/shared')
+      }
+    },
     build: {
       rollupOptions: {
         input: {
