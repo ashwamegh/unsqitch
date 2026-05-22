@@ -1,10 +1,5 @@
-function App(): React.JSX.Element {
-  return (
-    <div>
-      <h1>UnSqitch</h1>
-      <p>Visual sqitch deployment manager</p>
-    </div>
-  )
-}
+import { AppLayout } from './components/layout/AppLayout';
 
-export default App
+export default function App() {
+  return <AppLayout />;
+}
