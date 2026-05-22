@@ -1,0 +1,25 @@
+appId: com.unsqitch.app
+productName: UnSqitch
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - "!out/renderer/**/*"
+asarUnpack:
+  - resources/**"
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  universalBuild: true
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+win:
+  target:
+    - nsis
+npmRebuild: true
