@@ -13,7 +13,8 @@
     "paths": {
       "@shared": ["./electron/shared"],
       "@shared/*": ["./electron/shared/*"],
-      "@renderer/*": ["./src/*"]
+      "@renderer/*": ["./src/*"],
+      "@/*": ["./src/*"]
     }
   }
 }
