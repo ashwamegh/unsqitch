@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { SqitchService } from '../../electron/services/sqitch.service';
 import { detectSqitchBinary } from '../../electron/services/binary-detector';
 
-describe.skipIf(!process.env.RUN_INTEGRATION, 'SqitchService integration', () => {
+describe.skipIf(!process.env.RUN_INTEGRATION)('SqitchService integration', () => {
   let sqitch: SqitchService;
   const projectPath = process.env.TEST_PROJECT_PATH || '/tmp/unsqitch-test-project';
 
