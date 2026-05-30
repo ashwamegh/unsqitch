@@ -9,7 +9,10 @@ export async function launchApp(): Promise<{ app: ElectronApplication; page: Pag
       VITE_DEV_SERVER_URL: '',
     },
   });
-  const page = await app.firstWindow();
+  const page = await app.firstWindow({ timeout: 30000 });
+  if (!page) {
+    throw new Error('Electron app failed to open a window — check if display is available');
+  }
   return { app, page };
 }
 
