@@ -1,0 +1,18 @@
+On database sqitch_test
+Deployed changes:
+  appschema - 2024-01-15T10:00:00Z - Test User <test@example.com>
+    Change: a1b2c3d4e5f6
+    Note: Add schema for test
+    Tags: @v1.0.0
+    Requires:
+    Conflicts:
+  users - 2024-01-15T10:30:00Z - Test User <test@example.com>
+    Change: f6e5d4c3b2a1
+    Note: Creates users table
+    Tags:
+    Requires: appschema
+    Conflicts:
+Undeployed changes:
+  orders
+Last deployed: 2024-01-15T10:30:00Z
+Engine: pg

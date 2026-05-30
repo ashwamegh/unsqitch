@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '@shared/ipc-types';
+import { IPC_CHANNELS, WatchEventPayload } from '@shared/ipc-types';
 
 const api = {
   // Project management
@@ -120,12 +120,25 @@ const api = {
   watchStop: (projectPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.WATCH_STOP, { projectPath }),
 
+  onWatchEvent: (callback: (event: WatchEventPayload) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: WatchEventPayload) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS.WATCH_EVENT, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.WATCH_EVENT, handler);
+  },
+
   // Settings
   settingsGet: (key: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET, { key }),
 
   settingsSet: (key: string, value: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, { key, value }),
+
+  // Editor integration
+  editorOpenFile: (filePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.EDITOR_OPEN_FILE, { filePath }),
+
+  editorDetect: () =>
+    ipcRenderer.invoke(IPC_CHANNELS.EDITOR_DETECT),
 };
 
 contextBridge.exposeInMainWorld('unsqitch', api);

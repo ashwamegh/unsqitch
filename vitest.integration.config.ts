@@ -1,17 +1,10 @@
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
+import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [react()],
   test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./tests/setup.ts'],
-    include: ['tests/integration/**/*.{test,spec}.{ts,tsx}'],
-    alias: {
-      '@shared': resolve(__dirname, 'electron/shared'),
-      '@': resolve(__dirname, 'src')
-    }
-  }
-})
+    environment: 'node',
+    include: ['tests/integration/**/*.test.ts'],
+    testTimeout: 60000,
+  },
+});

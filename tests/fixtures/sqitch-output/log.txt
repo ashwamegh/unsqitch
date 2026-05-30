@@ -1,0 +1,20 @@
+On database sqitch_test
+Change: appschema
+  ID: a1b2c3d4e5f6
+  Action: deploy
+  Committed by Test User <test@example.com>
+  Date: 2024-01-15T10:00:00Z
+  Note: Add schema for test
+  Tags: @v1.0.0
+  Requires:
+  Conflicts:
+
+Change: users
+  ID: f6e5d4c3b2a1
+  Action: deploy
+  Committed by Test User <test@example.com>
+  Date: 2024-01-15T10:30:00Z
+  Note: Creates users table
+  Tags:
+  Requires: appschema
+  Conflicts:

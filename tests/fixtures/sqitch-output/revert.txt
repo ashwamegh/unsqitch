@@ -1,0 +1,3 @@
+Reverting changes from db:pg://sqitch@localhost:54231/sqitch_test
+  - users     .. ok
+  - appschema .. ok

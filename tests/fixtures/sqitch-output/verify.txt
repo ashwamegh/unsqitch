@@ -1,0 +1,3 @@
+Verifying changes to db:pg://sqitch@localhost:54231/sqitch_test
+  * appschema .. ok
+  * users     .. ok

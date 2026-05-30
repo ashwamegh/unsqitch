@@ -21,7 +21,7 @@
     "build:linux": "electron-vite build && electron-builder --linux",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration": "RUN_INTEGRATION=1 vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

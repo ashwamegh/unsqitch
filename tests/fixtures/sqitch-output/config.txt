@@ -1,0 +1,5 @@
+core.engine=pg
+core.top_dir=.
+core.plan_file=sqitch.plan
+engine.pg.target=db:pg://localhost/sqitch_test
+engine.pg.client=psql

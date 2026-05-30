@@ -39,6 +39,7 @@ export const IPC_CHANNELS = {
   // File watching
   WATCH_START: 'watch:start',
   WATCH_STOP: 'watch:stop',
+  WATCH_EVENT: 'watch:event',  // main → renderer
 
   // Native dialogs (main → renderer request, main handles)
   DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',
@@ -52,6 +53,10 @@ export const IPC_CHANNELS = {
   // Settings
   SETTINGS_GET: 'settings:get',
   SETTINGS_SET: 'settings:set',
+
+  // Editor integration
+  EDITOR_OPEN_FILE: 'editor:openFile',
+  EDITOR_DETECT: 'editor:detect',
 } as const;
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS];
@@ -186,4 +191,24 @@ export interface SettingsSetRequest {
 export interface DialogOpenDirectoryResponse {
   canceled: boolean;
   path: string | null;
+}
+
+export interface EditorOpenFileRequest {
+  filePath: string;
+}
+
+export interface EditorOpenFileResponse {
+  editorName: string;
+}
+
+export interface EditorDetectResponse {
+  command: string | null;
+  name: string;
+}
+
+export interface WatchEventPayload {
+  projectPath: string;
+  type: 'plan' | 'script';
+  filePath: string;
+  action: 'change' | 'add' | 'unlink';
 }

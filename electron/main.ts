@@ -5,6 +5,7 @@ import { ProjectService } from './services/project.service';
 import { ConfigService } from './services/config.service';
 import { EngineService } from './services/engine.service';
 import { TargetService } from './services/target.service';
+import { FileWatcherService } from './services/file-watcher.service';
 import { detectSqitchBinary, checkSqitchVersion } from './services/binary-detector';
 import { IPC_CHANNELS } from './shared/ipc-types';
 import { parseStatusOutput } from '../src/lib/status-parser';
@@ -20,6 +21,7 @@ let projectService: ProjectService;
 let configService: ConfigService;
 let engineService: EngineService;
 let targetService: TargetService;
+let fileWatcherService: FileWatcherService;
 
 const DEFAULT_TIMEOUT = 5 * 60 * 1000;
 
@@ -28,7 +30,7 @@ function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -37,7 +39,7 @@ function createWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/renderer/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 }
 
@@ -93,6 +95,7 @@ function registerIpcHandlers() {
       path: request.path,
       engine: 'unknown',
     });
+    fileWatcherService.start(request.path);
     return { project: projectService.getProject(id) };
   });
 
@@ -101,6 +104,10 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC_CHANNELS.PROJECT_REMOVE, async (_event, request: { id: string }) => {
+    const project = projectService.getProject(request.id);
+    if (project) {
+      fileWatcherService.stop(project.path);
+    }
     projectService.removeProject(request.id);
     return { success: true };
   });
@@ -297,6 +304,16 @@ function registerIpcHandlers() {
     projectService.setSetting(request.key, request.value);
     return { success: true };
   });
+
+  ipcMain.handle(IPC_CHANNELS.WATCH_START, async (_event, request: { projectPath: string }) => {
+    fileWatcherService.start(request.projectPath);
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WATCH_STOP, async (_event, request: { projectPath: string }) => {
+    fileWatcherService.stop(request.projectPath);
+    return { success: true };
+  });
 }
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -317,6 +334,9 @@ if (!gotTheLock) {
     configService = new ConfigService(sqitchService);
     engineService = new EngineService(sqitchService);
     targetService = new TargetService(sqitchService);
+    fileWatcherService = new FileWatcherService((event) => {
+      mainWindow?.webContents.send(IPC_CHANNELS.WATCH_EVENT, event);
+    });
 
     registerIpcHandlers();
     createWindow();
@@ -333,4 +353,8 @@ if (!gotTheLock) {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  fileWatcherService?.stopAll();
 });

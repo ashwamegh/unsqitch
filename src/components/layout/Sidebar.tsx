@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { useNavigationStore, type Section } from '../../store/navigation';
 import { useProjectStore } from '../../store/project';
+import { AddChangeForm } from '../plan/AddChangeForm';
+import { SettingsDialog } from '../shared/SettingsDialog';
 
 const devSections: { id: Section; label: string }[] = [
   { id: 'plan', label: 'Plan' },
@@ -21,6 +24,8 @@ export function Sidebar() {
   const currentProject = useProjectStore((s) =>
     s.projects.find((p) => p.id === s.currentProjectId)
   );
+  const [addChangeOpen, setAddChangeOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   if (view === 'home') {
     return (
@@ -69,6 +74,14 @@ export function Sidebar() {
             {s.label}
           </button>
         ))}
+
+        <button
+          onClick={() => setAddChangeOpen(true)}
+          className="w-full text-left px-2 py-1.5 rounded text-sm bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
+        >
+          + Add Change
+        </button>
+        <AddChangeForm open={addChangeOpen} onClose={() => setAddChangeOpen(false)} />
       </div>
 
       <div className="p-3 border-t">
@@ -89,6 +102,13 @@ export function Sidebar() {
           )}
         </div>
       </div>
+      <button
+        onClick={() => setSettingsOpen(true)}
+        className="text-sm text-muted-foreground hover:text-foreground mt-2 mx-3 mb-2"
+      >
+        Settings
+      </button>
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   );
 }
