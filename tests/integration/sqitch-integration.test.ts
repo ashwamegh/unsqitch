@@ -18,7 +18,7 @@ describe.skipIf(!process.env.RUN_INTEGRATION)('SqitchService integration', () =>
   });
 
   it('runs sqitch status', async () => {
-    const result = await sqitch.status(projectPath, 'db:pg:sqitch@localhost:54231/sqitch_test', 10000);
+    const result = await sqitch.status(projectPath, 'db:pg://sqitch:sqitch@localhost:54231/sqitch_test', 10000);
     expect(result.exitCode).toBe(0);
   }, 30000);
 
