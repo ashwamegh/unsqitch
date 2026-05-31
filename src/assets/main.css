@@ -1,17 +1,176 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-background: #090a0f;
+  --color-foreground: #f1f3f9;
+
+  --color-card: #10121a;
+  --color-card-foreground: #f1f3f9;
+
+  --color-popover: #10121a;
+  --color-popover-foreground: #f1f3f9;
+
+  --color-primary: #5f5af6;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #171923;
+  --color-secondary-foreground: #f1f3f9;
+
+  --color-muted: #141620;
+  --color-muted-foreground: #848c9e;
+
+  --color-accent: #212435;
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive: #e04a4a;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: #1b1e2c;
+  --color-input: #141620;
+  --color-ring: #5f5af6;
+}
+
+html,
 body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
-  user-select: none;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: rgba(95, 90, 246, 0.25);
+  color: inherit;
+}
+
+input::selection,
+textarea::selection {
+  background-color: rgba(95, 90, 246, 0.35);
 }
 
 #root {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  margin-bottom: 80px;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted-foreground);
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  background: rgba(16, 18, 26, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+.glass-card {
+  background: rgba(23, 25, 35, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(27, 30, 44, 0.6);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background: rgba(23, 25, 35, 0.75);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -10px rgba(95, 90, 246, 0.2);
+}
+
+/* Light Theme Variables */
+.light {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+
+  --color-primary: #5f5af6;
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #0f172a;
+
+  --color-muted: #f8fafc;
+  --color-muted-foreground: #64748b;
+
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0f172a;
+
+  --color-border: #e2e8f0;
+  --color-input: #ffffff;
+  --color-ring: #5f5af6;
+}
+
+/* Light mode overrides for glassmorphic elements */
+.light .glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+.light .glass-card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.light .glass-card:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--color-primary);
+  box-shadow: 0 10px 25px -5px rgba(95, 90, 246, 0.15);
+}
+
+/* Dark theme variables for consistency */
+.dark {
+  --color-background: #090a0f;
+  --color-foreground: #f1f3f9;
+  --color-card: #10121a;
+  --color-card-foreground: #f1f3f9;
+  --color-popover: #10121a;
+  --color-popover-foreground: #f1f3f9;
+  --color-primary: #5f5af6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #171923;
+  --color-secondary-foreground: #f1f3f9;
+  --color-muted: #141620;
+  --color-muted-foreground: #848c9e;
+  --color-accent: #212435;
+  --color-accent-foreground: #ffffff;
+  --color-border: #1b1e2c;
+  --color-input: #141620;
+  --color-ring: #5f5af6;
 }

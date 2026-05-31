@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseLogOutput } from '../../src/lib/log-parser';
+import { describe, it, expect } from "vitest";
+import { parseLogOutput } from "../../src/lib/log-parser";
 
 const LOG_OUTPUT = `On database mydb
 Change: appschema
@@ -32,64 +32,64 @@ Change: users
   Requires: appschema
   Conflicts:`;
 
-describe('parseLogOutput', () => {
-  it('parses all log entries', () => {
+describe("parseLogOutput", () => {
+  it("parses all log entries", () => {
     const result = parseLogOutput(LOG_OUTPUT);
     expect(result).toHaveLength(3);
   });
 
-  it('parses deploy action', () => {
+  it("parses deploy action", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].change).toBe('appschema');
-    expect(result[0].action).toBe('deploy');
+    expect(result[0].change).toBe("appschema");
+    expect(result[0].action).toBe("deploy");
   });
 
-  it('parses revert action', () => {
+  it("parses revert action", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[2].change).toBe('users');
-    expect(result[2].action).toBe('revert');
+    expect(result[2].change).toBe("users");
+    expect(result[2].action).toBe("revert");
   });
 
-  it('parses change ID', () => {
+  it("parses change ID", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].changeId).toBe('abc123def456');
+    expect(result[0].changeId).toBe("abc123def456");
   });
 
-  it('parses committer', () => {
+  it("parses committer", () => {
     const result = parseLogOutput(LOG_OUTPUT);
     expect(result[0].committer).toEqual({
-      name: 'Marge',
-      email: 'marge@example.com',
+      name: "Marge",
+      email: "marge@example.com",
     });
   });
 
-  it('parses timestamp', () => {
+  it("parses timestamp", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].timestamp).toBe('2024-01-15T10:00:00Z');
+    expect(result[0].timestamp).toBe("2024-01-15T10:00:00Z");
   });
 
-  it('parses note', () => {
+  it("parses note", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].note).toBe('Add schema for all flipr objects');
+    expect(result[0].note).toBe("Add schema for all flipr objects");
   });
 
-  it('parses tags', () => {
+  it("parses tags", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].tags).toEqual(['v1.0.0']);
+    expect(result[0].tags).toEqual(["v1.0.0"]);
   });
 
-  it('parses empty tags', () => {
+  it("parses empty tags", () => {
     const result = parseLogOutput(LOG_OUTPUT);
     expect(result[1].tags).toEqual([]);
   });
 
-  it('parses requires', () => {
+  it("parses requires", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[1].requires).toEqual(['appschema']);
+    expect(result[1].requires).toEqual(["appschema"]);
   });
 
-  it('handles empty output', () => {
-    const result = parseLogOutput('');
+  it("handles empty output", () => {
+    const result = parseLogOutput("");
     expect(result).toEqual([]);
   });
 });

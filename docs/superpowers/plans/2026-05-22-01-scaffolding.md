@@ -13,6 +13,7 @@
 ### Task 1: Initialize electron-vite project
 
 **Files:**
+
 - Create: `package.json`
 - Create: `electron.vite.config.ts`
 - Create: `tsconfig.json`
@@ -57,6 +58,7 @@ git commit -m "chore: initialize electron-vite project with React+TS template"
 ### Task 2: Configure path aliases and TypeScript
 
 **Files:**
+
 - Modify: `tsconfig.node.json`
 - Modify: `tsconfig.web.json`
 - Modify: `electron.vite.config.ts`
@@ -109,30 +111,30 @@ In `tsconfig.web.json`, add to `compilerOptions`:
 In `electron.vite.config.ts`, add resolve alias for `@shared`:
 
 ```typescript
-import { resolve } from 'path';
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
-import react from '@vitejs/plugin-react';
+import { resolve } from "path";
+import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@shared': resolve('electron/shared')
-      }
-    }
+        "@shared": resolve("electron/shared"),
+      },
+    },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
   },
   renderer: {
     resolve: {
       alias: {
-        '@shared': resolve('electron/shared')
-      }
+        "@shared": resolve("electron/shared"),
+      },
     },
-    plugins: [react()]
-  }
+    plugins: [react()],
+  },
 });
 ```
 
@@ -141,7 +143,7 @@ export default defineConfig({
 Add a temporary import in `electron/main.ts`:
 
 ```typescript
-import type { IpcChannel } from '@shared/ipc-types';
+import type { IpcChannel } from "@shared/ipc-types";
 ```
 
 Run `npm run dev` — should compile without errors. Remove the temporary import after verifying.
@@ -158,6 +160,7 @@ git commit -m "chore: add @shared path alias for IPC types"
 ### Task 3: Install and configure Tailwind CSS v4 + shadcn/ui
 
 **Files:**
+
 - Modify: `package.json`
 - Create/Modify: `src/assets/main.css`
 - Create: `components.json`
@@ -173,11 +176,11 @@ npm install tailwindcss @tailwindcss/vite
 Add `@tailwindcss/vite` plugin to the renderer config in `electron.vite.config.ts`:
 
 ```typescript
-import tailwindcss from '@tailwindcss/vite';
+import tailwindcss from "@tailwindcss/vite";
 // ... existing imports
 
 // In renderer config:
-plugins: [react(), tailwindcss()]
+plugins: [react(), tailwindcss()];
 ```
 
 - [ ] **Step 3: Set up CSS entry point**
@@ -191,7 +194,7 @@ Replace contents of `src/assets/main.css` (or create it):
 Import it in `src/main.tsx`:
 
 ```typescript
-import './assets/main.css';
+import "./assets/main.css";
 ```
 
 - [ ] **Step 4: Initialize shadcn/ui**
@@ -222,6 +225,7 @@ git commit -m "chore: install Tailwind CSS v4 and shadcn/ui"
 ### Task 4: Install runtime dependencies
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Step 1: Install runtime deps**
@@ -264,27 +268,28 @@ git commit -m "chore: install zustand, better-sqlite3, xterm.js, chokidar, test 
 ### Task 5: Configure Vitest
 
 **Files:**
+
 - Create: `vitest.config.ts`
 - Modify: `package.json`
 
 - [ ] **Step 1: Create vitest.config.ts**
 
 ```typescript
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: ['./tests/setup.ts'],
-    include: ['tests/unit/**/*.{test,spec}.{ts,tsx}'],
+    setupFiles: ["./tests/setup.ts"],
+    include: ["tests/unit/**/*.{test,spec}.{ts,tsx}"],
     alias: {
-      '@shared': resolve(__dirname, 'electron/shared')
-    }
-  }
+      "@shared": resolve(__dirname, "electron/shared"),
+    },
+  },
 });
 ```
 
@@ -293,7 +298,7 @@ export default defineConfig({
 Create `tests/setup.ts`:
 
 ```typescript
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 ```
 
 - [ ] **Step 3: Create test directory structure**
@@ -316,10 +321,10 @@ mkdir -p tests/unit tests/fixtures tests/integration tests/e2e
 Create `tests/unit/scaffold.test.ts`:
 
 ```typescript
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 
-describe('scaffold', () => {
-  it('runs tests', () => {
+describe("scaffold", () => {
+  it("runs tests", () => {
     expect(1 + 1).toBe(2);
   });
 });
@@ -341,6 +346,7 @@ git commit -m "chore: configure Vitest with unit/integration/e2e structure"
 ### Task 6: Create project directory structure
 
 **Files:**
+
 - Create: directory structure as per spec
 
 - [ ] **Step 1: Create all directories**
@@ -375,7 +381,7 @@ Create `src/lib/sqitch-parser.ts`:
 ```typescript
 // sqitch stdout parser — implemented in Plan 2
 export function parseSqitchOutput(_output: string): never {
-  throw new Error('Not implemented');
+  throw new Error("Not implemented");
 }
 ```
 
@@ -384,7 +390,7 @@ Create `src/lib/plan-parser.ts`:
 ```typescript
 // sqitch.plan file parser — implemented in Plan 2
 export function parsePlanFile(_content: string): never {
-  throw new Error('Not implemented');
+  throw new Error("Not implemented");
 }
 ```
 
@@ -393,7 +399,7 @@ Create `src/hooks/useIpc.ts`:
 ```typescript
 // IPC hook — implemented in Plan 3
 export function useIpc() {
-  throw new Error('Not implemented');
+  throw new Error("Not implemented");
 }
 ```
 
@@ -409,6 +415,7 @@ git commit -m "chore: create project directory structure with placeholder module
 ### Task 7: Create electron-builder config and Docker Compose
 
 **Files:**
+
 - Create: `electron-builder.yml`
 - Create: `docker-compose.yml`
 
@@ -447,7 +454,7 @@ services:
   postgres:
     image: postgres:16
     ports:
-      - '54231:5432'
+      - "54231:5432"
     environment:
       POSTGRES_USER: sqitch
       POSTGRES_PASSWORD: sqitch
@@ -458,7 +465,7 @@ services:
   mysql:
     image: mysql:8
     ports:
-      - '33072:3306'
+      - "33072:3306"
     environment:
       MYSQL_ROOT_PASSWORD: sqitch
       MYSQL_DATABASE: sqitch_test
@@ -468,7 +475,7 @@ services:
   cockroach:
     image: cockroachdb/cockroach:latest
     ports:
-      - '36257:26257'
+      - "36257:26257"
     command: start-single-node --insecure
     volumes:
       - cockroachdata:/cockroach/cockroach-data
@@ -476,7 +483,7 @@ services:
   yugabyte:
     image: yugabytedb/yugabyte:latest
     ports:
-      - '54234:5433'
+      - "54234:5433"
     command: bin/yugabyted start --daemon=false
     volumes:
       - yugabytedata:/home/yugabyte/yb_data

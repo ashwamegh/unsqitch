@@ -1,6 +1,6 @@
-import { watch, FSWatcher } from 'chokidar';
-import path from 'path';
-import type { WatchEventPayload } from '../shared/ipc-types';
+import { watch, FSWatcher } from "chokidar";
+import path from "path";
+import type { WatchEventPayload } from "../shared/ipc-types";
 
 export class FileWatcherService {
   private watchers: Map<string, FSWatcher> = new Map();
@@ -14,10 +14,10 @@ export class FileWatcherService {
     if (this.watchers.has(projectPath)) return;
 
     const watchPaths = [
-      path.join(projectPath, 'sqitch.plan'),
-      path.join(projectPath, 'deploy'),
-      path.join(projectPath, 'revert'),
-      path.join(projectPath, 'verify'),
+      path.join(projectPath, "sqitch.plan"),
+      path.join(projectPath, "deploy"),
+      path.join(projectPath, "revert"),
+      path.join(projectPath, "verify"),
     ];
 
     const watcher = watch(watchPaths, {
@@ -26,23 +26,19 @@ export class FileWatcherService {
       awaitWriteFinish: {
         stabilityThreshold: 500,
       },
-      ignored: [
-        '**/.git/**',
-        '**/node_modules/**',
-        '**/*.tmp',
-      ],
+      ignored: ["**/.git/**", "**/node_modules/**", "**/*.tmp"],
     });
 
-    watcher.on('change', (filePath: string) => {
-      this.emitEvent(projectPath, filePath, 'change');
+    watcher.on("change", (filePath: string) => {
+      this.emitEvent(projectPath, filePath, "change");
     });
 
-    watcher.on('add', (filePath: string) => {
-      this.emitEvent(projectPath, filePath, 'add');
+    watcher.on("add", (filePath: string) => {
+      this.emitEvent(projectPath, filePath, "add");
     });
 
-    watcher.on('unlink', (filePath: string) => {
-      this.emitEvent(projectPath, filePath, 'unlink');
+    watcher.on("unlink", (filePath: string) => {
+      this.emitEvent(projectPath, filePath, "unlink");
     });
 
     this.watchers.set(projectPath, watcher);
@@ -63,8 +59,14 @@ export class FileWatcherService {
     this.watchers.clear();
   }
 
-  private emitEvent(projectPath: string, filePath: string, action: WatchEventPayload['action']): void {
-    const type: WatchEventPayload['type'] = filePath.endsWith('sqitch.plan') ? 'plan' : 'script';
+  private emitEvent(
+    projectPath: string,
+    filePath: string,
+    action: WatchEventPayload["action"],
+  ): void {
+    const type: WatchEventPayload["type"] = filePath.endsWith("sqitch.plan")
+      ? "plan"
+      : "script";
     this.onEvent({ projectPath, type, filePath, action });
   }
 }

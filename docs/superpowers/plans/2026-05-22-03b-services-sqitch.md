@@ -13,6 +13,7 @@
 ### Task 1: Create AppError type
 
 **Files:**
+
 - Create: `src/types/error.ts`
 - Modify: `src/types/index.ts`
 
@@ -22,17 +23,24 @@ Create `src/types/error.ts`:
 
 ```typescript
 export type ErrorType =
-  | 'sqitch_crash'
-  | 'db_connection'
-  | 'file_permission'
-  | 'binary_not_found'
-  | 'partial_deployment'
-  | 'command_timeout'
-  | 'unknown';
+  | "sqitch_crash"
+  | "db_connection"
+  | "file_permission"
+  | "binary_not_found"
+  | "partial_deployment"
+  | "command_timeout"
+  | "unknown";
 
 export interface ErrorAction {
   label: string;
-  action: 'retry' | 'revert' | 'view_log' | 'check_connection' | 'open_settings' | 'open_file_manager' | 'refresh';
+  action:
+    | "retry"
+    | "revert"
+    | "view_log"
+    | "check_connection"
+    | "open_settings"
+    | "open_file_manager"
+    | "refresh";
 }
 
 export interface AppError {
@@ -43,40 +51,40 @@ export interface AppError {
   actions: ErrorAction[];
 }
 
-export function createAppError(type: ErrorType, message: string, sqitchOutput?: string): AppError {
+export function createAppError(
+  type: ErrorType,
+  message: string,
+  sqitchOutput?: string,
+): AppError {
   const actionMap: Record<ErrorType, ErrorAction[]> = {
     sqitch_crash: [
-      { label: 'View Log', action: 'view_log' },
-      { label: 'Retry', action: 'retry' },
+      { label: "View Log", action: "view_log" },
+      { label: "Retry", action: "retry" },
     ],
     db_connection: [
-      { label: 'Check Connection', action: 'check_connection' },
-      { label: 'Retry', action: 'retry' },
+      { label: "Check Connection", action: "check_connection" },
+      { label: "Retry", action: "retry" },
     ],
     file_permission: [
-      { label: 'Open File Manager', action: 'open_file_manager' },
+      { label: "Open File Manager", action: "open_file_manager" },
     ],
-    binary_not_found: [
-      { label: 'Open Settings', action: 'open_settings' },
-    ],
+    binary_not_found: [{ label: "Open Settings", action: "open_settings" }],
     partial_deployment: [
-      { label: 'Deploy Remaining', action: 'retry' },
-      { label: 'Revert All', action: 'revert' },
+      { label: "Deploy Remaining", action: "retry" },
+      { label: "Revert All", action: "revert" },
     ],
     command_timeout: [
-      { label: 'Retry', action: 'retry' },
-      { label: 'Open Settings', action: 'open_settings' },
+      { label: "Retry", action: "retry" },
+      { label: "Open Settings", action: "open_settings" },
     ],
-    unknown: [
-      { label: 'Refresh', action: 'refresh' },
-    ],
+    unknown: [{ label: "Refresh", action: "refresh" }],
   };
 
   return {
     type,
     message,
     sqitchOutput,
-    recoverable: type !== 'binary_not_found',
+    recoverable: type !== "binary_not_found",
     actions: actionMap[type],
   };
 }
@@ -87,7 +95,7 @@ export function createAppError(type: ErrorType, message: string, sqitchOutput?: 
 Add to `src/types/index.ts`:
 
 ```typescript
-export * from './error';
+export * from "./error";
 ```
 
 - [ ] **Step 3: Commit**
@@ -102,6 +110,7 @@ git commit -m "feat: add AppError type with action mappings"
 ### Task 2: Implement SqitchService — TDD
 
 **Files:**
+
 - Create: `electron/services/sqitch.service.ts`
 - Create: `tests/unit/sqitch-service.test.ts`
 
@@ -110,26 +119,35 @@ git commit -m "feat: add AppError type with action mappings"
 Create `tests/unit/sqitch-service.test.ts`:
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SqitchService } from '../../electron/services/sqitch.service';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { SqitchService } from "../../electron/services/sqitch.service";
 
 // Mock child_process
-vi.mock('child_process', () => ({
+vi.mock("child_process", () => ({
   spawn: vi.fn(),
 }));
 
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
 
-function mockSpawn(success: boolean, stdout: string, stderr: string, exitCode = 0) {
+function mockSpawn(
+  success: boolean,
+  stdout: string,
+  stderr: string,
+  exitCode = 0,
+) {
   const child = {
-    stdout: { on: vi.fn((event: string, cb: (data: Buffer) => void) => {
-      if (event === 'data') setTimeout(() => cb(Buffer.from(stdout)), 10);
-    }) },
-    stderr: { on: vi.fn((event: string, cb: (data: Buffer) => void) => {
-      if (event === 'data') setTimeout(() => cb(Buffer.from(stderr)), 10);
-    }) },
+    stdout: {
+      on: vi.fn((event: string, cb: (data: Buffer) => void) => {
+        if (event === "data") setTimeout(() => cb(Buffer.from(stdout)), 10);
+      }),
+    },
+    stderr: {
+      on: vi.fn((event: string, cb: (data: Buffer) => void) => {
+        if (event === "data") setTimeout(() => cb(Buffer.from(stderr)), 10);
+      }),
+    },
     on: vi.fn((event: string, cb: (code: number) => void) => {
-      if (event === 'close') setTimeout(() => cb(exitCode), 20);
+      if (event === "close") setTimeout(() => cb(exitCode), 20);
     }),
     kill: vi.fn(),
   };
@@ -137,127 +155,146 @@ function mockSpawn(success: boolean, stdout: string, stderr: string, exitCode = 
   return child;
 }
 
-describe('SqitchService', () => {
+describe("SqitchService", () => {
   let service: SqitchService;
 
   beforeEach(() => {
-    service = new SqitchService('/usr/local/bin/sqitch');
+    service = new SqitchService("/usr/local/bin/sqitch");
     vi.clearAllMocks();
   });
 
-  it('detects binary path', () => {
-    expect(service.binaryPath).toBe('/usr/local/bin/sqitch');
+  it("detects binary path", () => {
+    expect(service.binaryPath).toBe("/usr/local/bin/sqitch");
   });
 
-  it('builds deploy command', async () => {
-    mockSpawn(true, 'Deploying changes to mydb\n  + appschema .. ok\n', '');
-    const result = await service.deploy('/project', 'mydb');
+  it("builds deploy command", async () => {
+    mockSpawn(true, "Deploying changes to mydb\n  + appschema .. ok\n", "");
+    const result = await service.deploy("/project", "mydb");
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['deploy', 'mydb', '--verify'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["deploy", "mydb", "--verify"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds deploy-to-change command', async () => {
-    mockSpawn(true, '', '');
-    await service.deploy('/project', 'mydb', 'users');
+  it("builds deploy-to-change command", async () => {
+    mockSpawn(true, "", "");
+    await service.deploy("/project", "mydb", "users");
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['deploy', 'mydb', '--to', 'users', '--verify'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["deploy", "mydb", "--to", "users", "--verify"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds revert command with -y flag', async () => {
-    mockSpawn(true, '', '');
-    await service.revert('/project', 'mydb', 'users');
+  it("builds revert command with -y flag", async () => {
+    mockSpawn(true, "", "");
+    await service.revert("/project", "mydb", "users");
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['revert', 'mydb', '--to', 'users', '-y'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["revert", "mydb", "--to", "users", "-y"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds revert-all command (no --to)', async () => {
-    mockSpawn(true, '', '');
-    await service.revert('/project', 'mydb');
+  it("builds revert-all command (no --to)", async () => {
+    mockSpawn(true, "", "");
+    await service.revert("/project", "mydb");
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['revert', 'mydb', '-y'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["revert", "mydb", "-y"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds verify command', async () => {
-    mockSpawn(true, '', '');
-    await service.verify('/project', 'mydb');
+  it("builds verify command", async () => {
+    mockSpawn(true, "", "");
+    await service.verify("/project", "mydb");
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['verify', 'mydb'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["verify", "mydb"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds status command with flags', async () => {
-    mockSpawn(true, '', '');
-    await service.status('/project', 'mydb');
+  it("builds status command with flags", async () => {
+    mockSpawn(true, "", "");
+    await service.status("/project", "mydb");
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['status', 'mydb', '--show-changes', '--show-tags', '--date-format', 'raw'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      [
+        "status",
+        "mydb",
+        "--show-changes",
+        "--show-tags",
+        "--date-format",
+        "raw",
+      ],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds log command', async () => {
-    mockSpawn(true, '', '');
-    await service.log('/project', 'mydb');
+  it("builds log command", async () => {
+    mockSpawn(true, "", "");
+    await service.log("/project", "mydb");
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['log', 'mydb'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["log", "mydb"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds add command', async () => {
-    mockSpawn(true, '', '');
-    await service.add('/project', 'users', 'Add users table', ['appschema'], []);
+  it("builds add command", async () => {
+    mockSpawn(true, "", "");
+    await service.add(
+      "/project",
+      "users",
+      "Add users table",
+      ["appschema"],
+      [],
+    );
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['add', 'users', '-n', 'Add users table', '-r', 'appschema'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["add", "users", "-n", "Add users table", "-r", "appschema"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('builds add command with conflicts', async () => {
-    mockSpawn(true, '', '');
-    await service.add('/project', 'new_auth', 'New auth', ['users'], ['legacy_auth']);
+  it("builds add command with conflicts", async () => {
+    mockSpawn(true, "", "");
+    await service.add(
+      "/project",
+      "new_auth",
+      "New auth",
+      ["users"],
+      ["legacy_auth"],
+    );
     expect(spawn).toHaveBeenCalledWith(
-      '/usr/local/bin/sqitch',
-      ['add', 'new_auth', '-n', 'New auth', '-r', 'users', '-x', 'legacy_auth'],
-      expect.objectContaining({ cwd: '/project' })
+      "/usr/local/bin/sqitch",
+      ["add", "new_auth", "-n", "New auth", "-r", "users", "-x", "legacy_auth"],
+      expect.objectContaining({ cwd: "/project" }),
     );
   });
 
-  it('returns stdout on success', async () => {
-    mockSpawn(true, 'Deploying changes to mydb\n  + appschema .. ok\n', '');
-    const result = await service.deploy('/project', 'mydb');
-    expect(result.stdout).toContain('Deploying changes');
+  it("returns stdout on success", async () => {
+    mockSpawn(true, "Deploying changes to mydb\n  + appschema .. ok\n", "");
+    const result = await service.deploy("/project", "mydb");
+    expect(result.stdout).toContain("Deploying changes");
   });
 
-  it('rejects on non-zero exit code', async () => {
-    mockSpawn(false, '', 'Error: deploy failed', 1);
-    await expect(service.deploy('/project', 'mydb')).rejects.toMatchObject({
+  it("rejects on non-zero exit code", async () => {
+    mockSpawn(false, "", "Error: deploy failed", 1);
+    await expect(service.deploy("/project", "mydb")).rejects.toMatchObject({
       exitCode: 1,
     });
   });
 
-  it('kills process on timeout', async () => {
-    const child = mockSpawn(true, '', '', 0);
+  it("kills process on timeout", async () => {
+    const child = mockSpawn(true, "", "", 0);
     // Override 'on' to never call close
     child.on = vi.fn();
-    const promise = service.deploy('/project', 'mydb', undefined, 100);
-    await expect(promise).rejects.toMatchObject({ type: 'command_timeout' });
+    const promise = service.deploy("/project", "mydb", undefined, 100);
+    await expect(promise).rejects.toMatchObject({ type: "command_timeout" });
     expect(child.kill).toHaveBeenCalled();
   }, 10000);
 });
@@ -276,8 +313,8 @@ Expected: FAIL — module not found
 Create `electron/services/sqitch.service.ts`:
 
 ```typescript
-import { spawn, ChildProcess } from 'child_process';
-import { createAppError, AppError } from '../../src/types/error';
+import { spawn, ChildProcess } from "child_process";
+import { createAppError, AppError } from "../../src/types/error";
 
 export interface SqitchResult {
   stdout: string;
@@ -306,21 +343,26 @@ export class SqitchService {
     this._binaryPath = path;
   }
 
-  private runCommand(args: string[], cwd: string, timeout?: number, streams?: StreamCallbacks): Promise<SqitchResult> {
+  private runCommand(
+    args: string[],
+    cwd: string,
+    timeout?: number,
+    streams?: StreamCallbacks,
+  ): Promise<SqitchResult> {
     return new Promise((resolve, reject) => {
       const child = spawn(this._binaryPath, args, { cwd });
       this.activeProcess = child;
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      child.stdout?.on('data', (data: Buffer) => {
+      child.stdout?.on("data", (data: Buffer) => {
         const chunk = data.toString();
         stdout += chunk;
         streams?.onStdout?.(chunk);
       });
 
-      child.stderr?.on('data', (data: Buffer) => {
+      child.stderr?.on("data", (data: Buffer) => {
         const chunk = data.toString();
         stderr += chunk;
         streams?.onStderr?.(chunk);
@@ -331,19 +373,32 @@ export class SqitchService {
         timeoutId = setTimeout(() => {
           child.kill();
           this.activeProcess = null;
-          reject(createAppError('command_timeout', `Command timed out after ${timeout}ms`));
+          reject(
+            createAppError(
+              "command_timeout",
+              `Command timed out after ${timeout}ms`,
+            ),
+          );
         }, timeout);
       }
 
-      child.on('close', (code: number) => {
+      child.on("close", (code: number) => {
         if (timeoutId) clearTimeout(timeoutId);
         this.activeProcess = null;
 
         if (code === 0) {
           resolve({ stdout, stderr, exitCode: code });
         } else {
-          const error: AppError & { exitCode: number; stdout: string; stderr: string } = {
-            ...createAppError('sqitch_crash', `sqitch exited with code ${code}`, stderr),
+          const error: AppError & {
+            exitCode: number;
+            stdout: string;
+            stderr: string;
+          } = {
+            ...createAppError(
+              "sqitch_crash",
+              `sqitch exited with code ${code}`,
+              stderr,
+            ),
             exitCode: code,
             stdout,
             stderr,
@@ -354,44 +409,105 @@ export class SqitchService {
     });
   }
 
-  async deploy(projectPath: string, target: string, toChange?: string, timeout?: number, streams?: StreamCallbacks): Promise<SqitchResult> {
-    const args = ['deploy', target, '--verify'];
-    if (toChange) args.push('--to', toChange);
+  async deploy(
+    projectPath: string,
+    target: string,
+    toChange?: string,
+    timeout?: number,
+    streams?: StreamCallbacks,
+  ): Promise<SqitchResult> {
+    const args = ["deploy", target, "--verify"];
+    if (toChange) args.push("--to", toChange);
     return this.runCommand(args, projectPath, timeout, streams);
   }
 
-  async revert(projectPath: string, target: string, toChange?: string, timeout?: number, streams?: StreamCallbacks): Promise<SqitchResult> {
-    const args = ['revert', target, '-y'];
-    if (toChange) args.push('--to', toChange);
+  async revert(
+    projectPath: string,
+    target: string,
+    toChange?: string,
+    timeout?: number,
+    streams?: StreamCallbacks,
+  ): Promise<SqitchResult> {
+    const args = ["revert", target, "-y"];
+    if (toChange) args.push("--to", toChange);
     return this.runCommand(args, projectPath, timeout, streams);
   }
 
-  async verify(projectPath: string, target: string, timeout?: number, streams?: StreamCallbacks): Promise<SqitchResult> {
-    return this.runCommand(['verify', target], projectPath, timeout, streams);
+  async verify(
+    projectPath: string,
+    target: string,
+    timeout?: number,
+    streams?: StreamCallbacks,
+  ): Promise<SqitchResult> {
+    return this.runCommand(["verify", target], projectPath, timeout, streams);
   }
 
-  async status(projectPath: string, target: string, timeout?: number): Promise<SqitchResult> {
-    return this.runCommand(['status', target, '--show-changes', '--show-tags', '--date-format', 'raw'], projectPath, timeout);
+  async status(
+    projectPath: string,
+    target: string,
+    timeout?: number,
+  ): Promise<SqitchResult> {
+    return this.runCommand(
+      [
+        "status",
+        target,
+        "--show-changes",
+        "--show-tags",
+        "--date-format",
+        "raw",
+      ],
+      projectPath,
+      timeout,
+    );
   }
 
-  async log(projectPath: string, target: string, timeout?: number): Promise<SqitchResult> {
-    return this.runCommand(['log', target], projectPath, timeout);
+  async log(
+    projectPath: string,
+    target: string,
+    timeout?: number,
+  ): Promise<SqitchResult> {
+    return this.runCommand(["log", target], projectPath, timeout);
   }
 
   async plan(projectPath: string, timeout?: number): Promise<SqitchResult> {
-    return this.runCommand(['plan'], projectPath, timeout);
+    return this.runCommand(["plan"], projectPath, timeout);
   }
 
-  async add(projectPath: string, name: string, note: string, requires: string[], conflicts: string[], timeout?: number): Promise<SqitchResult> {
-    const args = ['add', name, '-n', note];
-    for (const req of requires) args.push('-r', req);
-    for (const conf of conflicts) args.push('-x', conf);
+  async add(
+    projectPath: string,
+    name: string,
+    note: string,
+    requires: string[],
+    conflicts: string[],
+    timeout?: number,
+  ): Promise<SqitchResult> {
+    const args = ["add", name, "-n", note];
+    for (const req of requires) args.push("-r", req);
+    for (const conf of conflicts) args.push("-x", conf);
     return this.runCommand(args, projectPath, timeout);
   }
 
-  async init(directory: string, name: string, engine: string, uri: string, topDir: string, planFile: string, timeout?: number): Promise<SqitchResult> {
-    const args = ['init', name, '--engine', engine, '--uri', uri, '--top-dir', topDir];
-    if (planFile && planFile !== 'sqitch.plan') args.push('--plan-file', planFile);
+  async init(
+    directory: string,
+    name: string,
+    engine: string,
+    uri: string,
+    topDir: string,
+    planFile: string,
+    timeout?: number,
+  ): Promise<SqitchResult> {
+    const args = [
+      "init",
+      name,
+      "--engine",
+      engine,
+      "--uri",
+      uri,
+      "--top-dir",
+      topDir,
+    ];
+    if (planFile && planFile !== "sqitch.plan")
+      args.push("--plan-file", planFile);
     return this.runCommand(args, directory, timeout);
   }
 

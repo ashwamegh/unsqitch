@@ -13,6 +13,7 @@
 ### Task 1: Implement ProjectService with SQLite — TDD
 
 **Files:**
+
 - Create: `electron/services/project.service.ts`
 - Create: `tests/unit/project.service.test.ts`
 
@@ -21,12 +22,12 @@
 Create `tests/unit/project.service.test.ts`:
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ProjectService } from '../../electron/services/project.service';
-import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { ProjectService } from "../../electron/services/project.service";
+import Database from "better-sqlite3";
+import fs from "fs";
+import path from "path";
+import os from "os";
 
 const tmpDir = path.join(os.tmpdir(), `unsqitch-test-${Date.now()}`);
 
@@ -35,90 +36,92 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  const dbPath = path.join(tmpDir, 'app.db');
+  const dbPath = path.join(tmpDir, "app.db");
   if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
   fs.rmdirSync(tmpDir, { recursive: true });
 });
 
-describe('ProjectService', () => {
+describe("ProjectService", () => {
   function createService(): ProjectService {
-    return new ProjectService(path.join(tmpDir, 'app.db'));
+    return new ProjectService(path.join(tmpDir, "app.db"));
   }
 
-  it('initializes database with tables', () => {
+  it("initializes database with tables", () => {
     const service = createService();
-    const db = new Database(path.join(tmpDir, 'app.db'));
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{ name: string }>;
-    const tableNames = tables.map(t => t.name);
-    expect(tableNames).toContain('projects');
-    expect(tableNames).toContain('settings');
-    expect(tableNames).toContain('recent_commands');
-    expect(tableNames).toContain('target_labels');
+    const db = new Database(path.join(tmpDir, "app.db"));
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all() as Array<{ name: string }>;
+    const tableNames = tables.map((t) => t.name);
+    expect(tableNames).toContain("projects");
+    expect(tableNames).toContain("settings");
+    expect(tableNames).toContain("recent_commands");
+    expect(tableNames).toContain("target_labels");
     db.close();
   });
 
-  it('adds and retrieves a project', () => {
+  it("adds and retrieves a project", () => {
     const service = createService();
     const id = service.addProject({
-      name: 'my-app',
-      path: '/home/user/my-app',
-      engine: 'pg',
+      name: "my-app",
+      path: "/home/user/my-app",
+      engine: "pg",
     });
     expect(id).toBeTruthy();
     const project = service.getProject(id);
     expect(project).toMatchObject({
-      name: 'my-app',
-      path: '/home/user/my-app',
-      engine: 'pg',
+      name: "my-app",
+      path: "/home/user/my-app",
+      engine: "pg",
     });
   });
 
-  it('lists projects', () => {
+  it("lists projects", () => {
     const service = createService();
-    service.addProject({ name: 'app1', path: '/a', engine: 'pg' });
-    service.addProject({ name: 'app2', path: '/b', engine: 'mysql' });
+    service.addProject({ name: "app1", path: "/a", engine: "pg" });
+    service.addProject({ name: "app2", path: "/b", engine: "mysql" });
     const list = service.listProjects();
     expect(list).toHaveLength(2);
-    expect(list.map(p => p.name)).toEqual(['app1', 'app2']);
+    expect(list.map((p) => p.name)).toEqual(["app1", "app2"]);
   });
 
-  it('removes a project', () => {
+  it("removes a project", () => {
     const service = createService();
-    const id = service.addProject({ name: 'app1', path: '/a', engine: 'pg' });
+    const id = service.addProject({ name: "app1", path: "/a", engine: "pg" });
     service.removeProject(id);
     expect(service.listProjects()).toHaveLength(0);
   });
 
-  it('updates lastOpened on getProject', () => {
+  it("updates lastOpened on getProject", () => {
     const service = createService();
-    const id = service.addProject({ name: 'app1', path: '/a', engine: 'pg' });
+    const id = service.addProject({ name: "app1", path: "/a", engine: "pg" });
     const before = service.getProject(id)!;
     // lastOpened should be set
     expect(before.lastOpened).toBeTruthy();
   });
 
-  it('stores and retrieves settings', () => {
+  it("stores and retrieves settings", () => {
     const service = createService();
-    service.setSetting('sqitchPath', '/usr/local/bin/sqitch');
-    expect(service.getSetting('sqitchPath')).toBe('/usr/local/bin/sqitch');
+    service.setSetting("sqitchPath", "/usr/local/bin/sqitch");
+    expect(service.getSetting("sqitchPath")).toBe("/usr/local/bin/sqitch");
   });
 
-  it('returns undefined for missing setting', () => {
+  it("returns undefined for missing setting", () => {
     const service = createService();
-    expect(service.getSetting('nonexistent')).toBeUndefined();
+    expect(service.getSetting("nonexistent")).toBeUndefined();
   });
 
-  it('stores target labels', () => {
+  it("stores target labels", () => {
     const service = createService();
-    const id = service.addProject({ name: 'app', path: '/a', engine: 'pg' });
-    service.setTargetLabel(id, 'mydb', 'production');
-    expect(service.getTargetLabel(id, 'mydb')).toBe('production');
+    const id = service.addProject({ name: "app", path: "/a", engine: "pg" });
+    service.setTargetLabel(id, "mydb", "production");
+    expect(service.getTargetLabel(id, "mydb")).toBe("production");
   });
 
-  it('returns undefined for missing label', () => {
+  it("returns undefined for missing label", () => {
     const service = createService();
-    const id = service.addProject({ name: 'app', path: '/a', engine: 'pg' });
-    expect(service.getTargetLabel(id, 'mydb')).toBeUndefined();
+    const id = service.addProject({ name: "app", path: "/a", engine: "pg" });
+    expect(service.getTargetLabel(id, "mydb")).toBeUndefined();
   });
 });
 ```
@@ -136,11 +139,11 @@ Expected: FAIL — module not found
 Create `electron/services/project.service.ts`:
 
 ```typescript
-import Database from 'better-sqlite3';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
-import { randomUUID } from 'crypto';
+import Database from "better-sqlite3";
+import path from "path";
+import os from "os";
+import fs from "fs";
+import { randomUUID } from "crypto";
 
 export interface ProjectRecord {
   id: string;
@@ -156,13 +159,14 @@ export class ProjectService {
   private db: Database.Database;
 
   constructor(dbPath?: string) {
-    const resolvedPath = dbPath || path.join(os.homedir(), '.unsqitch', 'app.db');
+    const resolvedPath =
+      dbPath || path.join(os.homedir(), ".unsqitch", "app.db");
     const dir = path.dirname(resolvedPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     this.db = new Database(resolvedPath);
-    this.db.pragma('journal_mode = WAL');
+    this.db.pragma("journal_mode = WAL");
     this.initialize();
   }
 
@@ -208,48 +212,66 @@ export class ProjectService {
   addProject(input: { name: string; path: string; engine: string }): string {
     const id = randomUUID();
     const now = new Date().toISOString();
-    this.db.prepare(
-      'INSERT INTO projects (id, name, path, engine, lastOpened, changeCount) VALUES (?, ?, ?, ?, ?, 0)'
-    ).run(id, input.name, input.path, input.engine, now);
+    this.db
+      .prepare(
+        "INSERT INTO projects (id, name, path, engine, lastOpened, changeCount) VALUES (?, ?, ?, ?, ?, 0)",
+      )
+      .run(id, input.name, input.path, input.engine, now);
     return id;
   }
 
   getProject(id: string): ProjectRecord | undefined {
-    const row = this.db.prepare('SELECT * FROM projects WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+    const row = this.db
+      .prepare("SELECT * FROM projects WHERE id = ?")
+      .get(id) as Record<string, unknown> | undefined;
     if (!row) return undefined;
     // Update lastOpened
-    this.db.prepare('UPDATE projects SET lastOpened = ? WHERE id = ?').run(new Date().toISOString(), id);
+    this.db
+      .prepare("UPDATE projects SET lastOpened = ? WHERE id = ?")
+      .run(new Date().toISOString(), id);
     return row as unknown as ProjectRecord;
   }
 
   listProjects(): ProjectRecord[] {
-    return this.db.prepare('SELECT * FROM projects ORDER BY lastOpened DESC').all() as unknown as ProjectRecord[];
+    return this.db
+      .prepare("SELECT * FROM projects ORDER BY lastOpened DESC")
+      .all() as unknown as ProjectRecord[];
   }
 
   removeProject(id: string): void {
-    this.db.prepare('DELETE FROM target_labels WHERE projectId = ?').run(id);
-    this.db.prepare('DELETE FROM recent_commands WHERE projectId = ?').run(id);
-    this.db.prepare('DELETE FROM projects WHERE id = ?').run(id);
+    this.db.prepare("DELETE FROM target_labels WHERE projectId = ?").run(id);
+    this.db.prepare("DELETE FROM recent_commands WHERE projectId = ?").run(id);
+    this.db.prepare("DELETE FROM projects WHERE id = ?").run(id);
   }
 
   getSetting(key: string): string | undefined {
-    const row = this.db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as Record<string, string> | undefined;
+    const row = this.db
+      .prepare("SELECT value FROM settings WHERE key = ?")
+      .get(key) as Record<string, string> | undefined;
     return row?.value;
   }
 
   setSetting(key: string, value: string): void {
-    this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+    this.db
+      .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)")
+      .run(key, value);
   }
 
   getTargetLabel(projectId: string, targetName: string): string | undefined {
-    const row = this.db.prepare('SELECT label FROM target_labels WHERE projectId = ? AND targetName = ?').get(projectId, targetName) as Record<string, string> | undefined;
+    const row = this.db
+      .prepare(
+        "SELECT label FROM target_labels WHERE projectId = ? AND targetName = ?",
+      )
+      .get(projectId, targetName) as Record<string, string> | undefined;
     return row?.label;
   }
 
   setTargetLabel(projectId: string, targetName: string, label: string): void {
-    this.db.prepare(
-      'INSERT OR REPLACE INTO target_labels (projectId, targetName, label) VALUES (?, ?, ?)'
-    ).run(projectId, targetName, label);
+    this.db
+      .prepare(
+        "INSERT OR REPLACE INTO target_labels (projectId, targetName, label) VALUES (?, ?, ?)",
+      )
+      .run(projectId, targetName, label);
   }
 
   close(): void {
@@ -278,6 +300,7 @@ git commit -m "feat: implement ProjectService with SQLite storage"
 ### Task 2: Implement ConfigService, EngineService, TargetService
 
 **Files:**
+
 - Create: `electron/services/config.service.ts`
 - Create: `electron/services/engine.service.ts`
 - Create: `electron/services/target.service.ts`
@@ -299,24 +322,27 @@ public runCommand(args: string[], cwd: string, timeout?: number, streams?: Strea
 Create `electron/services/config.service.ts`:
 
 ```typescript
-import { SqitchService } from './sqitch.service';
-import { parseConfigList } from '../../src/lib/config-parser';
-import type { ConfigEntry } from '../../src/types/config';
+import { SqitchService } from "./sqitch.service";
+import { parseConfigList } from "../../src/lib/config-parser";
+import type { ConfigEntry } from "../../src/types/config";
 
 export class ConfigService {
   constructor(private sqitch: SqitchService) {}
 
   async list(projectPath: string): Promise<ConfigEntry[]> {
-    const result = await this.sqitch.runCommand(['config', '--list'], projectPath);
+    const result = await this.sqitch.runCommand(
+      ["config", "--list"],
+      projectPath,
+    );
     return parseConfigList(result.stdout);
   }
 
   async set(projectPath: string, key: string, value: string): Promise<void> {
-    await this.sqitch.runCommand(['config', key, value], projectPath);
+    await this.sqitch.runCommand(["config", key, value], projectPath);
   }
 
   async unset(projectPath: string, key: string): Promise<void> {
-    await this.sqitch.runCommand(['config', '--unset', key], projectPath);
+    await this.sqitch.runCommand(["config", "--unset", key], projectPath);
   }
 }
 ```
@@ -326,7 +352,7 @@ export class ConfigService {
 Create `electron/services/engine.service.ts`:
 
 ```typescript
-import { SqitchService } from './sqitch.service';
+import { SqitchService } from "./sqitch.service";
 
 export interface EngineInfo {
   name: string;
@@ -338,24 +364,32 @@ export interface EngineInfo {
 export class EngineService {
   constructor(private sqitch: SqitchService) {}
 
-  async add(projectPath: string, name: string, uri: string, client?: string): Promise<void> {
-    const args = ['engine', 'add', name, '--target', uri];
-    if (client) args.push('--client', client);
+  async add(
+    projectPath: string,
+    name: string,
+    uri: string,
+    client?: string,
+  ): Promise<void> {
+    const args = ["engine", "add", name, "--target", uri];
+    if (client) args.push("--client", client);
     await this.sqitch.runCommand(args, projectPath);
   }
 
   async remove(projectPath: string, name: string): Promise<void> {
-    await this.sqitch.runCommand(['engine', 'remove', name], projectPath);
+    await this.sqitch.runCommand(["engine", "remove", name], projectPath);
   }
 
   async list(projectPath: string): Promise<EngineInfo[]> {
-    const result = await this.sqitch.runCommand(['engine', 'list'], projectPath);
+    const result = await this.sqitch.runCommand(
+      ["engine", "list"],
+      projectPath,
+    );
     return this.parseEngineList(result.stdout);
   }
 
   private parseEngineList(output: string): EngineInfo[] {
     const engines: EngineInfo[] = [];
-    const lines = output.split('\n');
+    const lines = output.split("\n");
     for (const line of lines) {
       const match = line.match(/^(\S+)\s+(\S+)(?:\s+(.+))?$/);
       if (match) {
@@ -375,7 +409,7 @@ export class EngineService {
 Create `electron/services/target.service.ts`:
 
 ```typescript
-import { SqitchService } from './sqitch.service';
+import { SqitchService } from "./sqitch.service";
 
 export interface TargetInfo {
   name: string;
@@ -386,21 +420,27 @@ export class TargetService {
   constructor(private sqitch: SqitchService) {}
 
   async add(projectPath: string, name: string, uri: string): Promise<void> {
-    await this.sqitch.runCommand(['target', 'add', name, '--uri', uri], projectPath);
+    await this.sqitch.runCommand(
+      ["target", "add", name, "--uri", uri],
+      projectPath,
+    );
   }
 
   async remove(projectPath: string, name: string): Promise<void> {
-    await this.sqitch.runCommand(['target', 'remove', name], projectPath);
+    await this.sqitch.runCommand(["target", "remove", name], projectPath);
   }
 
   async list(projectPath: string): Promise<TargetInfo[]> {
-    const result = await this.sqitch.runCommand(['target', 'list'], projectPath);
+    const result = await this.sqitch.runCommand(
+      ["target", "list"],
+      projectPath,
+    );
     return this.parseTargetList(result.stdout);
   }
 
   private parseTargetList(output: string): TargetInfo[] {
     const targets: TargetInfo[] = [];
-    const lines = output.split('\n');
+    const lines = output.split("\n");
     for (const line of lines) {
       const match = line.match(/^(\S+)\s+(\S+)$/);
       if (match) {
@@ -417,88 +457,109 @@ export class TargetService {
 Create `tests/unit/delegate-services.test.ts`:
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { ConfigService } from '../../electron/services/config.service';
-import { EngineService } from '../../electron/services/engine.service';
-import { TargetService } from '../../electron/services/target.service';
-import type { SqitchService } from '../../electron/services/sqitch.service';
+import { describe, it, expect, vi } from "vitest";
+import { ConfigService } from "../../electron/services/config.service";
+import { EngineService } from "../../electron/services/engine.service";
+import { TargetService } from "../../electron/services/target.service";
+import type { SqitchService } from "../../electron/services/sqitch.service";
 
-function mockSqitch(stdout: string, stderr = '') {
+function mockSqitch(stdout: string, stderr = "") {
   return {
     runCommand: vi.fn().mockResolvedValue({ stdout, stderr, exitCode: 0 }),
   } as unknown as SqitchService;
 }
 
-describe('ConfigService', () => {
-  it('lists config entries', async () => {
-    const sqitch = mockSqitch('core.engine=pg\nengine.pg.client=psql\n');
+describe("ConfigService", () => {
+  it("lists config entries", async () => {
+    const sqitch = mockSqitch("core.engine=pg\nengine.pg.client=psql\n");
     const service = new ConfigService(sqitch);
-    const entries = await service.list('/project');
+    const entries = await service.list("/project");
     expect(entries).toHaveLength(2);
-    expect(entries[0]).toEqual({ section: 'core', key: 'engine', value: 'pg' });
+    expect(entries[0]).toEqual({ section: "core", key: "engine", value: "pg" });
   });
 
-  it('sets a config value', async () => {
-    const sqitch = mockSqitch('');
+  it("sets a config value", async () => {
+    const sqitch = mockSqitch("");
     const service = new ConfigService(sqitch);
-    await service.set('/project', 'core.engine', 'pg');
-    expect(sqitch.runCommand).toHaveBeenCalledWith(['config', 'core.engine', 'pg'], '/project');
-  });
-
-  it('unsets a config value', async () => {
-    const sqitch = mockSqitch('');
-    const service = new ConfigService(sqitch);
-    await service.unset('/project', 'core.engine');
-    expect(sqitch.runCommand).toHaveBeenCalledWith(['config', '--unset', 'core.engine'], '/project');
-  });
-});
-
-describe('EngineService', () => {
-  it('adds an engine', async () => {
-    const sqitch = mockSqitch('');
-    const service = new EngineService(sqitch);
-    await service.add('/project', 'pg', 'db:pg://localhost/mydb', 'psql');
+    await service.set("/project", "core.engine", "pg");
     expect(sqitch.runCommand).toHaveBeenCalledWith(
-      ['engine', 'add', 'pg', '--target', 'db:pg://localhost/mydb', '--client', 'psql'],
-      '/project'
+      ["config", "core.engine", "pg"],
+      "/project",
     );
   });
 
-  it('removes an engine', async () => {
-    const sqitch = mockSqitch('');
-    const service = new EngineService(sqitch);
-    await service.remove('/project', 'pg');
-    expect(sqitch.runCommand).toHaveBeenCalledWith(['engine', 'remove', 'pg'], '/project');
+  it("unsets a config value", async () => {
+    const sqitch = mockSqitch("");
+    const service = new ConfigService(sqitch);
+    await service.unset("/project", "core.engine");
+    expect(sqitch.runCommand).toHaveBeenCalledWith(
+      ["config", "--unset", "core.engine"],
+      "/project",
+    );
   });
 });
 
-describe('TargetService', () => {
-  it('adds a target', async () => {
-    const sqitch = mockSqitch('');
-    const service = new TargetService(sqitch);
-    await service.add('/project', 'mydb', 'db:pg://localhost/mydb');
+describe("EngineService", () => {
+  it("adds an engine", async () => {
+    const sqitch = mockSqitch("");
+    const service = new EngineService(sqitch);
+    await service.add("/project", "pg", "db:pg://localhost/mydb", "psql");
     expect(sqitch.runCommand).toHaveBeenCalledWith(
-      ['target', 'add', 'mydb', '--uri', 'db:pg://localhost/mydb'],
-      '/project'
+      [
+        "engine",
+        "add",
+        "pg",
+        "--target",
+        "db:pg://localhost/mydb",
+        "--client",
+        "psql",
+      ],
+      "/project",
     );
   });
 
-  it('removes a target', async () => {
-    const sqitch = mockSqitch('');
+  it("removes an engine", async () => {
+    const sqitch = mockSqitch("");
+    const service = new EngineService(sqitch);
+    await service.remove("/project", "pg");
+    expect(sqitch.runCommand).toHaveBeenCalledWith(
+      ["engine", "remove", "pg"],
+      "/project",
+    );
+  });
+});
+
+describe("TargetService", () => {
+  it("adds a target", async () => {
+    const sqitch = mockSqitch("");
     const service = new TargetService(sqitch);
-    await service.remove('/project', 'mydb');
-    expect(sqitch.runCommand).toHaveBeenCalledWith(['target', 'remove', 'mydb'], '/project');
+    await service.add("/project", "mydb", "db:pg://localhost/mydb");
+    expect(sqitch.runCommand).toHaveBeenCalledWith(
+      ["target", "add", "mydb", "--uri", "db:pg://localhost/mydb"],
+      "/project",
+    );
+  });
+
+  it("removes a target", async () => {
+    const sqitch = mockSqitch("");
+    const service = new TargetService(sqitch);
+    await service.remove("/project", "mydb");
+    expect(sqitch.runCommand).toHaveBeenCalledWith(
+      ["target", "remove", "mydb"],
+      "/project",
+    );
   });
 });
 ```
 
 - [ ] **Step 6: Run tests — verify they pass**```bash
-npx vitest run tests/unit/delegate-services.test.ts
-```
+      npx vitest run tests/unit/delegate-services.test.ts
+
+````
 
 Expected: All tests PASS
 
 - [ ] **Step 7: Commit**```bash
 git add electron/services/config.service.ts electron/services/engine.service.ts electron/services/target.service.ts tests/unit/delegate-services.test.ts
 git commit -m "feat: implement ConfigService, EngineService, TargetService"
-```
+````

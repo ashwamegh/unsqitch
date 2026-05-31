@@ -1,8 +1,19 @@
-import { useProjectStore } from '../store/project';
-import { useIpc } from './useIpc';
+import { useProjectStore } from "../store/project";
+import { useIpc } from "./useIpc";
 
 export function useProject() {
-  const { currentProjectId, projects, status, plan, isRunning, statusStale, setStatus, setPlan, setRunning, setLastStatusRefresh } = useProjectStore();
+  const {
+    currentProjectId,
+    projects,
+    status,
+    plan,
+    isRunning,
+    statusStale,
+    setStatus,
+    setPlan,
+    setRunning,
+    setLastStatusRefresh,
+  } = useProjectStore();
   const project = projects.find((p) => p.id === currentProjectId) ?? null;
   const ipc = useIpc();
 
@@ -19,5 +30,14 @@ export function useProject() {
     setPlan(result as any);
   };
 
-  return { project, status, plan, isRunning, statusStale, refreshStatus, refreshPlan, setRunning };
+  return {
+    project,
+    status,
+    plan,
+    isRunning,
+    statusStale,
+    refreshStatus,
+    refreshPlan,
+    setRunning,
+  };
 }

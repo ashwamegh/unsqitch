@@ -19,16 +19,17 @@
 ### Task 2: Create TerminalPanel component
 
 **Files:**
+
 - Create: `src/components/terminal/TerminalPanel.tsx`
 
 - [ ] **Step 1: Create TerminalPanel**
 
 ```tsx
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import '@xterm/xterm/css/xterm.css';
-import { useIpc } from '../../hooks/useIpc';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import "@xterm/xterm/css/xterm.css";
+import { useIpc } from "../../hooks/useIpc";
 
 export function TerminalPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -38,10 +39,10 @@ export function TerminalPanel() {
   const [height, setHeight] = useState(200);
   const ipc = useIpc();
 
-  const writeLine = useCallback((data: string, type: 'stdout' | 'stderr') => {
+  const writeLine = useCallback((data: string, type: "stdout" | "stderr") => {
     if (!xtermRef.current) return;
-    const prefix = type === 'stderr' ? '\x1b[31m' : '';
-    const suffix = type === 'stderr' ? '\x1b[0m' : '';
+    const prefix = type === "stderr" ? "\x1b[31m" : "";
+    const suffix = type === "stderr" ? "\x1b[0m" : "";
     xtermRef.current.writeln(`${prefix}${data}${suffix}`);
   }, []);
 
@@ -51,7 +52,7 @@ export function TerminalPanel() {
     const xterm = new Terminal({
       scrollback: 10000,
       fontSize: 13,
-      fontFamily: 'Menlo, Monaco, Consolas, monospace',
+      fontFamily: "Menlo, Monaco, Consolas, monospace",
       cursorBlink: false,
       disableStdin: true,
     });
@@ -79,7 +80,7 @@ export function TerminalPanel() {
   useEffect(() => {
     const unsubStream = ipc.onSqitchStream((event) => {
       setIsOpen(true);
-      const lines = event.data.split('\n');
+      const lines = event.data.split("\n");
       for (const line of lines) {
         if (line.trim()) writeLine(line, event.type);
       }
@@ -87,13 +88,13 @@ export function TerminalPanel() {
 
     const unsubComplete = ipc.onSqitchComplete(() => {
       if (xtermRef.current) {
-        xtermRef.current.writeln('\x1b[32m--- Command completed ---\x1b[0m');
+        xtermRef.current.writeln("\x1b[32m--- Command completed ---\x1b[0m");
       }
     });
 
     const unsubError = ipc.onSqitchError((event) => {
       setIsOpen(true);
-      writeLine(`ERROR: ${event.error}`, 'stderr');
+      writeLine(`ERROR: ${event.error}`, "stderr");
     });
 
     return () => {
@@ -111,29 +112,38 @@ export function TerminalPanel() {
     setIsOpen(!isOpen);
   };
 
-  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startHeight = height;
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = height;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const delta = startY - moveEvent.clientY;
-      const newHeight = Math.max(150, Math.min(window.innerHeight * 0.5, startHeight + delta));
-      setHeight(newHeight);
-    };
+      const onMouseMove = (moveEvent: MouseEvent) => {
+        const delta = startY - moveEvent.clientY;
+        const newHeight = Math.max(
+          150,
+          Math.min(window.innerHeight * 0.5, startHeight + delta),
+        );
+        setHeight(newHeight);
+      };
 
-    const onMouseUp = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      fitRef.current?.fit();
-    };
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        fitRef.current?.fit();
+      };
 
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }, [height]);
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [height],
+  );
 
   return (
-    <div className="border-t bg-background flex flex-col" style={{ height: isOpen ? height : 32 }}>
+    <div
+      className="border-t bg-background flex flex-col"
+      style={{ height: isOpen ? height : 32 }}
+    >
       <div
         className="flex items-center justify-between px-3 py-1 bg-muted/50 cursor-pointer select-none border-b"
         onClick={handleToggle}
@@ -142,13 +152,18 @@ export function TerminalPanel() {
         <div className="flex gap-2">
           {isOpen && (
             <button
-              onClick={(e) => { e.stopPropagation(); handleClear(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClear();
+              }}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               Clear
             </button>
           )}
-          <span className="text-xs text-muted-foreground">{isOpen ? '▼' : '▲'}</span>
+          <span className="text-xs text-muted-foreground">
+            {isOpen ? "▼" : "▲"}
+          </span>
         </div>
       </div>
 
@@ -160,7 +175,11 @@ export function TerminalPanel() {
         />
       )}
 
-      <div ref={terminalRef} className="flex-1 overflow-hidden px-1" style={{ display: isOpen ? 'block' : 'none' }} />
+      <div
+        ref={terminalRef}
+        className="flex-1 overflow-hidden px-1"
+        style={{ display: isOpen ? "block" : "none" }}
+      />
     </div>
   );
 }
@@ -177,13 +196,14 @@ git add src/ && git commit -m "feat: implement TerminalPanel with xterm.js strea
 ### Task 3: Create ProgressUI component
 
 **Files:**
+
 - Create: `src/components/progress/ProgressUI.tsx`
 
 - [ ] **Step 1: Create ProgressUI**
 
 ```tsx
-import { useProjectStore } from '../../store/project';
-import { useIpc } from '../../hooks/useIpc';
+import { useProjectStore } from "../../store/project";
+import { useIpc } from "../../hooks/useIpc";
 
 export function ProgressUI() {
   const { events, isRunning } = useProjectStore();
@@ -191,16 +211,18 @@ export function ProgressUI() {
 
   if (events.length === 0 && !isRunning) return null;
 
-  const completed = events.filter((e) => e.status === 'ok' || e.status === 'not_ok' || e.status === 'failed').length;
+  const completed = events.filter(
+    (e) => e.status === "ok" || e.status === "not_ok" || e.status === "failed",
+  ).length;
   const total = events.length || 1;
   const progress = (completed / total) * 100;
-  const hasFailed = events.some((e) => e.status === 'failed');
+  const hasFailed = events.some((e) => e.status === "failed");
 
   return (
     <div className="border-b bg-muted/30 p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium">
-          {isRunning ? 'Running...' : hasFailed ? 'Failed' : 'Completed'}
+          {isRunning ? "Running..." : hasFailed ? "Failed" : "Completed"}
         </span>
         <span className="text-xs text-muted-foreground">
           {completed}/{total} changes
@@ -209,7 +231,7 @@ export function ProgressUI() {
 
       <div className="w-full bg-muted rounded-full h-2 mb-2">
         <div
-          className={`h-2 rounded-full transition-all ${hasFailed ? 'bg-destructive' : 'bg-primary'}`}
+          className={`h-2 rounded-full transition-all ${hasFailed ? "bg-destructive" : "bg-primary"}`}
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -218,10 +240,18 @@ export function ProgressUI() {
         {events.map((event, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
             <span>
-              {event.status === 'ok' ? '✔' : event.status === 'failed' ? '✕' : event.status === 'not_ok' ? '✕' : '⟳'}
+              {event.status === "ok"
+                ? "✔"
+                : event.status === "failed"
+                  ? "✕"
+                  : event.status === "not_ok"
+                    ? "✕"
+                    : "⟳"}
             </span>
             <span className="font-mono">{event.change}</span>
-            {event.target && <span className="text-muted-foreground">→ {event.target}</span>}
+            {event.target && (
+              <span className="text-muted-foreground">→ {event.target}</span>
+            )}
           </div>
         ))}
       </div>
@@ -247,17 +277,19 @@ export function ProgressUI() {
 Update `src/pages/ProjectPage/ProjectPage.tsx` to include both components:
 
 ```tsx
-import { ProgressUI } from '../../components/progress/ProgressUI';
-import { TerminalPanel } from '../../components/terminal/TerminalPanel';
+import { ProgressUI } from "../../components/progress/ProgressUI";
+import { TerminalPanel } from "../../components/terminal/TerminalPanel";
 // ... inside the return, wrap content:
 <div className="flex-1 flex flex-col overflow-hidden">
   <div className="flex-1 p-6 overflow-y-auto">
-    <h2 className="text-xl font-semibold mb-4 capitalize">{section ?? 'Select a section'}</h2>
+    <h2 className="text-xl font-semibold mb-4 capitalize">
+      {section ?? "Select a section"}
+    </h2>
     {renderSection()}
   </div>
   <ProgressUI />
   <TerminalPanel />
-</div>
+</div>;
 ```
 
 - [ ] **Step 3: Commit**

@@ -3,63 +3,63 @@
 // Sqitch commands
 export const IPC_CHANNELS = {
   // Project management
-  PROJECT_OPEN: 'project:open',
-  PROJECT_LIST: 'project:list',
-  PROJECT_REMOVE: 'project:remove',
-  PROJECT_GET: 'project:get',
+  PROJECT_OPEN: "project:open",
+  PROJECT_LIST: "project:list",
+  PROJECT_REMOVE: "project:remove",
+  PROJECT_GET: "project:get",
 
   // Sqitch operations
-  SQITCH_DEPLOY: 'sqitch:deploy',
-  SQITCH_REVERT: 'sqitch:revert',
-  SQITCH_VERIFY: 'sqitch:verify',
-  SQITCH_STATUS: 'sqitch:status',
-  SQITCH_LOG: 'sqitch:log',
-  SQITCH_PLAN: 'sqitch:plan',
-  SQITCH_ADD: 'sqitch:add',
-  SQITCH_INIT: 'sqitch:init',
+  SQITCH_DEPLOY: "sqitch:deploy",
+  SQITCH_REVERT: "sqitch:revert",
+  SQITCH_VERIFY: "sqitch:verify",
+  SQITCH_STATUS: "sqitch:status",
+  SQITCH_LOG: "sqitch:log",
+  SQITCH_PLAN: "sqitch:plan",
+  SQITCH_ADD: "sqitch:add",
+  SQITCH_INIT: "sqitch:init",
 
   // Engine/Target/Config
-  ENGINE_ADD: 'engine:add',
-  ENGINE_REMOVE: 'engine:remove',
-  ENGINE_LIST: 'engine:list',
-  TARGET_ADD: 'target:add',
-  TARGET_REMOVE: 'target:remove',
-  TARGET_LIST: 'target:list',
-  TARGET_GET_LABEL: 'target:getLabel',
-  TARGET_SET_LABEL: 'target:setLabel',
-  CONFIG_LIST: 'config:list',
-  CONFIG_SET: 'config:set',
-  CONFIG_UNSET: 'config:unset',
+  ENGINE_ADD: "engine:add",
+  ENGINE_REMOVE: "engine:remove",
+  ENGINE_LIST: "engine:list",
+  TARGET_ADD: "target:add",
+  TARGET_REMOVE: "target:remove",
+  TARGET_LIST: "target:list",
+  TARGET_GET_LABEL: "target:getLabel",
+  TARGET_SET_LABEL: "target:setLabel",
+  CONFIG_LIST: "config:list",
+  CONFIG_SET: "config:set",
+  CONFIG_UNSET: "config:unset",
 
   // Sqitch binary
-  SQITCH_DETECT: 'sqitch:detect',
-  SQITCH_VERSION: 'sqitch:version',
-  SQITCH_CANCEL: 'sqitch:cancel',
+  SQITCH_DETECT: "sqitch:detect",
+  SQITCH_VERSION: "sqitch:version",
+  SQITCH_CANCEL: "sqitch:cancel",
 
   // File watching
-  WATCH_START: 'watch:start',
-  WATCH_STOP: 'watch:stop',
-  WATCH_EVENT: 'watch:event',  // main → renderer
+  WATCH_START: "watch:start",
+  WATCH_STOP: "watch:stop",
+  WATCH_EVENT: "watch:event", // main → renderer
 
   // Native dialogs (main → renderer request, main handles)
-  DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',
+  DIALOG_OPEN_DIRECTORY: "dialog:openDirectory",
 
   // Stream events (main → renderer)
-  SQITCH_STREAM: 'sqitch:stream',
-  SQITCH_COMPLETE: 'sqitch:complete',
-  SQITCH_ERROR: 'sqitch:error',
-  STATUS_STALE: 'status:stale',
+  SQITCH_STREAM: "sqitch:stream",
+  SQITCH_COMPLETE: "sqitch:complete",
+  SQITCH_ERROR: "sqitch:error",
+  STATUS_STALE: "status:stale",
 
   // Settings
-  SETTINGS_GET: 'settings:get',
-  SETTINGS_SET: 'settings:set',
+  SETTINGS_GET: "settings:get",
+  SETTINGS_SET: "settings:set",
 
   // Editor integration
-  EDITOR_OPEN_FILE: 'editor:openFile',
-  EDITOR_DETECT: 'editor:detect',
+  EDITOR_OPEN_FILE: "editor:openFile",
+  EDITOR_DETECT: "editor:detect",
 } as const;
 
-export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS];
+export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
 
 // Request/Response types per channel
 export interface ProjectOpenRequest {
@@ -140,7 +140,7 @@ export interface SqitchInitRequest {
 export interface SqitchStreamEvent {
   projectPath: string;
   data: string;
-  type: 'stdout' | 'stderr';
+  type: "stdout" | "stderr";
 }
 
 export interface SqitchCompleteEvent {
@@ -208,7 +208,7 @@ export interface EditorDetectResponse {
 
 export interface WatchEventPayload {
   projectPath: string;
-  type: 'plan' | 'script';
+  type: "plan" | "script";
   filePath: string;
-  action: 'change' | 'add' | 'unlink';
+  action: "change" | "add" | "unlink";
 }

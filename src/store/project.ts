@@ -1,9 +1,9 @@
-import { create } from 'zustand';
-import type { DeploymentStatus, LogEntry } from '../types/deployment';
-import type { PlanFile } from '../types/plan';
-import type { ConfigEntry } from '../types/config';
-import type { SqitchEvent } from '../types/sqitch-event';
-import type { AppError } from '../types/error';
+import { create } from "zustand";
+import type { ConfigEntry } from "../types/config";
+import type { DeploymentStatus, LogEntry } from "../types/deployment";
+import type { AppError } from "../types/error";
+import type { PlanFile } from "../types/plan";
+import type { SqitchEvent } from "../types/sqitch-event";
 
 interface ProjectState {
   projects: Array<{
@@ -28,7 +28,7 @@ interface ProjectState {
 }
 
 interface ProjectActions {
-  setProjects: (projects: ProjectState['projects']) => void;
+  setProjects: (projects: ProjectState["projects"]) => void;
   setCurrentProject: (id: string | null) => void;
   setPlan: (plan: PlanFile | null) => void;
   setStatus: (status: DeploymentStatus | null) => void;

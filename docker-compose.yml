@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16
     ports:
-      - '54231:5432'
+      - "54231:5432"
     environment:
       POSTGRES_USER: sqitch
       POSTGRES_PASSWORD: sqitch
@@ -13,7 +13,7 @@ services:
   mysql:
     image: mysql:8
     ports:
-      - '33072:3306'
+      - "33072:3306"
     environment:
       MYSQL_ROOT_PASSWORD: sqitch
       MYSQL_DATABASE: sqitch_test
@@ -23,7 +23,7 @@ services:
   cockroach:
     image: cockroachdb/cockroach:latest
     ports:
-      - '36257:26257'
+      - "36257:26257"
     command: start-single-node --insecure
     volumes:
       - cockroachdata:/cockroach/cockroach-data
@@ -31,7 +31,7 @@ services:
   yugabyte:
     image: yugabytedb/yugabyte:latest
     ports:
-      - '54234:5433'
+      - "54234:5433"
     command: bin/yugabyted start --daemon=false
     volumes:
       - yugabytedata:/home/yugabyte/yb_data

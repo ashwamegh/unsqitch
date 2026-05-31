@@ -1,4 +1,4 @@
-import type { UnsqitchAPI } from '../../electron/preload';
+import type { UnsqitchAPI } from "../../electron/preload";
 
 declare global {
   interface Window {

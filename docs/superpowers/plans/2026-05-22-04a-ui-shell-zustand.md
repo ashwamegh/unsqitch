@@ -13,6 +13,7 @@
 ### Task 1: Install shadcn/ui components needed for layout
 
 **Files:**
+
 - Modify: `package.json` (via npx)
 
 - [ ] **Step 1: Add shadcn components**
@@ -33,6 +34,7 @@ git commit -m "chore: add shadcn/ui layout components"
 ### Task 2: Create navigation store
 
 **Files:**
+
 - Create: `src/store/navigation.ts`
 
 - [ ] **Step 1: Implement navigation store**
@@ -40,19 +42,19 @@ git commit -m "chore: add shadcn/ui layout components"
 Create `src/store/navigation.ts`:
 
 ```typescript
-import { create } from 'zustand';
+import { create } from "zustand";
 
-export type View = 'home' | 'project';
+export type View = "home" | "project";
 export type Section =
-  | 'plan'
-  | 'deploy'
-  | 'revert'
-  | 'status'
-  | 'verify'
-  | 'log'
-  | 'engine'
-  | 'target'
-  | 'config';
+  | "plan"
+  | "deploy"
+  | "revert"
+  | "status"
+  | "verify"
+  | "log"
+  | "engine"
+  | "target"
+  | "config";
 
 interface NavigationState {
   view: View;
@@ -70,23 +72,27 @@ interface NavigationActions {
   dismissCommandTooltip: () => void;
 }
 
-export const useNavigationStore = create<NavigationState & NavigationActions>((set) => ({
-  view: 'home',
-  projectId: null,
-  section: null,
-  showCommands: false,
-  commandTooltipDismissed: false,
+export const useNavigationStore = create<NavigationState & NavigationActions>(
+  (set) => ({
+    view: "home",
+    projectId: null,
+    section: null,
+    showCommands: false,
+    commandTooltipDismissed: false,
 
-  goHome: () => set({ view: 'home', projectId: null, section: null }),
+    goHome: () => set({ view: "home", projectId: null, section: null }),
 
-  openProject: (projectId) => set({ view: 'project', projectId, section: 'plan' }),
+    openProject: (projectId) =>
+      set({ view: "project", projectId, section: "plan" }),
 
-  setSection: (section) => set({ section }),
+    setSection: (section) => set({ section }),
 
-  toggleShowCommands: () => set((state) => ({ showCommands: !state.showCommands })),
+    toggleShowCommands: () =>
+      set((state) => ({ showCommands: !state.showCommands })),
 
-  dismissCommandTooltip: () => set({ commandTooltipDismissed: true }),
-}));
+    dismissCommandTooltip: () => set({ commandTooltipDismissed: true }),
+  }),
+);
 ```
 
 - [ ] **Step 2: Commit**
@@ -101,6 +107,7 @@ git commit -m "feat: add Zustand navigation store with view/section/command togg
 ### Task 3: Create project store
 
 **Files:**
+
 - Create: `src/store/project.ts`
 
 - [ ] **Step 1: Implement project store**
@@ -108,12 +115,16 @@ git commit -m "feat: add Zustand navigation store with view/section/command togg
 Create `src/store/project.ts`:
 
 ```typescript
-import { create } from 'zustand';
-import type { DeploymentStatus, DeployedChange, LogEntry } from '../types/deployment';
-import type { PlanFile } from '../types/plan';
-import type { ConfigEntry } from '../types/config';
-import type { SqitchEvent } from '../types/sqitch-event';
-import type { AppError } from '../types/error';
+import { create } from "zustand";
+import type {
+  DeploymentStatus,
+  DeployedChange,
+  LogEntry,
+} from "../types/deployment";
+import type { PlanFile } from "../types/plan";
+import type { ConfigEntry } from "../types/config";
+import type { SqitchEvent } from "../types/sqitch-event";
+import type { AppError } from "../types/error";
 
 interface ProjectState {
   projects: Array<{
@@ -138,7 +149,7 @@ interface ProjectState {
 }
 
 interface ProjectActions {
-  setProjects: (projects: ProjectState['projects']) => void;
+  setProjects: (projects: ProjectState["projects"]) => void;
   setCurrentProject: (id: string | null) => void;
   setPlan: (plan: PlanFile | null) => void;
   setStatus: (status: DeploymentStatus | null) => void;
@@ -183,7 +194,8 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
   setRunning: (running) => set({ isRunning: running }),
   setStatusStale: (stale) => set({ statusStale: stale }),
   markStatusStale: () => set({ statusStale: true }),
-  setLastStatusRefresh: (timestamp) => set({ lastStatusRefresh: timestamp, statusStale: false }),
+  setLastStatusRefresh: (timestamp) =>
+    set({ lastStatusRefresh: timestamp, statusStale: false }),
   reset: () => set(initialState),
 }));
 ```
@@ -200,6 +212,7 @@ git commit -m "feat: add Zustand project store for state management"
 ### Task 4: Create layout components
 
 **Files:**
+
 - Create: `src/components/layout/Sidebar.tsx`
 - Create: `src/components/layout/MainPanel.tsx`
 - Create: `src/components/layout/AppLayout.tsx`
@@ -209,35 +222,46 @@ git commit -m "feat: add Zustand project store for state management"
 Create `src/components/layout/Sidebar.tsx`:
 
 ```tsx
-import { useNavigationStore, type Section } from '../../store/navigation';
-import { useProjectStore } from '../../store/project';
+import { useNavigationStore, type Section } from "../../store/navigation";
+import { useProjectStore } from "../../store/project";
 
 const devSections: { id: Section; label: string }[] = [
-  { id: 'plan', label: 'Plan' },
-  { id: 'deploy', label: 'Deploy' },
-  { id: 'revert', label: 'Revert' },
-  { id: 'status', label: 'Status' },
-  { id: 'verify', label: 'Verify' },
-  { id: 'log', label: 'Log' },
+  { id: "plan", label: "Plan" },
+  { id: "deploy", label: "Deploy" },
+  { id: "revert", label: "Revert" },
+  { id: "status", label: "Status" },
+  { id: "verify", label: "Verify" },
+  { id: "log", label: "Log" },
 ];
 
 const setupSections: { id: Section; label: string }[] = [
-  { id: 'engine', label: 'Engine' },
-  { id: 'target', label: 'Target' },
-  { id: 'config', label: 'Config' },
+  { id: "engine", label: "Engine" },
+  { id: "target", label: "Target" },
+  { id: "config", label: "Config" },
 ];
 
 export function Sidebar() {
-  const { view, section, setSection, goHome, showCommands, toggleShowCommands, commandTooltipDismissed, dismissCommandTooltip } = useNavigationStore();
+  const {
+    view,
+    section,
+    setSection,
+    goHome,
+    showCommands,
+    toggleShowCommands,
+    commandTooltipDismissed,
+    dismissCommandTooltip,
+  } = useNavigationStore();
   const currentProject = useProjectStore((s) =>
-    s.projects.find((p) => p.id === s.currentProjectId)
+    s.projects.find((p) => p.id === s.currentProjectId),
   );
 
-  if (view === 'home') {
+  if (view === "home") {
     return (
       <aside className="w-56 border-r bg-muted/30 flex flex-col p-4">
         <h1 className="text-lg font-semibold mb-4">UnSqitch</h1>
-        <p className="text-sm text-muted-foreground">Select or open a project</p>
+        <p className="text-sm text-muted-foreground">
+          Select or open a project
+        </p>
       </aside>
     );
   }
@@ -251,30 +275,40 @@ export function Sidebar() {
         >
           ← Back
         </button>
-        <h2 className="text-sm font-semibold truncate">{currentProject?.name ?? 'Project'}</h2>
+        <h2 className="text-sm font-semibold truncate">
+          {currentProject?.name ?? "Project"}
+        </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mb-1">Development</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mb-1">
+          Development
+        </p>
         {devSections.map((s) => (
           <button
             key={s.id}
             onClick={() => setSection(s.id)}
             className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-              section === s.id ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+              section === s.id
+                ? "bg-accent text-accent-foreground"
+                : "hover:bg-muted"
             }`}
           >
             {s.label}
           </button>
         ))}
 
-        <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">Setup</p>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">
+          Setup
+        </p>
         {setupSections.map((s) => (
           <button
             key={s.id}
             onClick={() => setSection(s.id)}
             className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-              section === s.id ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+              section === s.id
+                ? "bg-accent text-accent-foreground"
+                : "hover:bg-muted"
             }`}
           >
             {s.label}
@@ -287,15 +321,23 @@ export function Sidebar() {
           <button
             onClick={toggleShowCommands}
             className={`text-xs px-2 py-1 rounded border ${
-              showCommands ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+              showCommands
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground"
             }`}
           >
             &lt;/&gt; Show Commands
           </button>
           {!commandTooltipDismissed && !showCommands && (
             <div className="absolute bottom-full left-0 mb-2 bg-popover text-popover-foreground border rounded px-2 py-1 text-xs w-48 shadow-md">
-              Toggle this to see the exact sqitch CLI commands behind each action.
-              <button onClick={dismissCommandTooltip} className="ml-1 text-muted-foreground hover:text-foreground">✕</button>
+              Toggle this to see the exact sqitch CLI commands behind each
+              action.
+              <button
+                onClick={dismissCommandTooltip}
+                className="ml-1 text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
             </div>
           )}
         </div>
@@ -310,16 +352,16 @@ export function Sidebar() {
 Create `src/components/layout/MainPanel.tsx`:
 
 ```tsx
-import { useNavigationStore } from '../../store/navigation';
-import { HomePage } from '../../pages/HomePage/HomePage';
-import { ProjectPage } from '../../pages/ProjectPage/ProjectPage';
+import { useNavigationStore } from "../../store/navigation";
+import { HomePage } from "../../pages/HomePage/HomePage";
+import { ProjectPage } from "../../pages/ProjectPage/ProjectPage";
 
 export function MainPanel() {
   const view = useNavigationStore((s) => s.view);
 
   return (
     <main className="flex-1 overflow-hidden flex flex-col">
-      {view === 'home' ? <HomePage /> : <ProjectPage />}
+      {view === "home" ? <HomePage /> : <ProjectPage />}
     </main>
   );
 }
@@ -330,8 +372,8 @@ export function MainPanel() {
 Create `src/components/layout/AppLayout.tsx`:
 
 ```tsx
-import { Sidebar } from './Sidebar';
-import { MainPanel } from './MainPanel';
+import { Sidebar } from "./Sidebar";
+import { MainPanel } from "./MainPanel";
 
 export function AppLayout() {
   return (
@@ -368,15 +410,19 @@ export function HomePage() {
 Create `src/pages/ProjectPage/ProjectPage.tsx`:
 
 ```tsx
-import { useNavigationStore } from '../../store/navigation';
+import { useNavigationStore } from "../../store/navigation";
 
 export function ProjectPage() {
   const section = useNavigationStore((s) => s.section);
 
   return (
     <div className="flex-1 p-6 overflow-y-auto">
-      <h2 className="text-xl font-semibold mb-4 capitalize">{section ?? 'Select a section'}</h2>
-      <p className="text-muted-foreground">Section content will be implemented in Plan 5.</p>
+      <h2 className="text-xl font-semibold mb-4 capitalize">
+        {section ?? "Select a section"}
+      </h2>
+      <p className="text-muted-foreground">
+        Section content will be implemented in Plan 5.
+      </p>
     </div>
   );
 }
@@ -387,7 +433,7 @@ export function ProjectPage() {
 Replace `src/App.tsx`:
 
 ```tsx
-import { AppLayout } from './components/layout/AppLayout';
+import { AppLayout } from "./components/layout/AppLayout";
 
 export default function App() {
   return <AppLayout />;
@@ -414,6 +460,7 @@ git commit -m "feat: implement layout shell with sidebar, navigation store, and 
 ### Task 5: Create convenience hooks
 
 **Files:**
+
 - Create: `src/hooks/useProject.ts`
 - Create: `src/hooks/useSqitchCommand.ts`
 
@@ -422,12 +469,23 @@ git commit -m "feat: implement layout shell with sidebar, navigation store, and 
 Create `src/hooks/useProject.ts`:
 
 ```typescript
-import { useProjectStore } from '../store/project';
-import { useNavigationStore } from '../store/navigation';
-import { useIpc } from './useIpc';
+import { useProjectStore } from "../store/project";
+import { useNavigationStore } from "../store/navigation";
+import { useIpc } from "./useIpc";
 
 export function useProject() {
-  const { currentProjectId, projects, status, plan, isRunning, statusStale, setStatus, setPlan, setRunning, setLastStatusRefresh } = useProjectStore();
+  const {
+    currentProjectId,
+    projects,
+    status,
+    plan,
+    isRunning,
+    statusStale,
+    setStatus,
+    setPlan,
+    setRunning,
+    setLastStatusRefresh,
+  } = useProjectStore();
   const project = projects.find((p) => p.id === currentProjectId) ?? null;
   const ipc = useIpc();
 
@@ -444,7 +502,16 @@ export function useProject() {
     setPlan(result as any);
   };
 
-  return { project, status, plan, isRunning, statusStale, refreshStatus, refreshPlan, setRunning };
+  return {
+    project,
+    status,
+    plan,
+    isRunning,
+    statusStale,
+    refreshStatus,
+    refreshPlan,
+    setRunning,
+  };
 }
 ```
 
@@ -453,9 +520,9 @@ export function useProject() {
 Create `src/hooks/useSqitchCommand.ts`:
 
 ```typescript
-import { useState, useCallback } from 'react';
-import { useProjectStore } from '../store/project';
-import { useIpc } from './useIpc';
+import { useState, useCallback } from "react";
+import { useProjectStore } from "../store/project";
+import { useIpc } from "./useIpc";
 
 interface CommandState {
   isRunning: boolean;
@@ -465,48 +532,91 @@ interface CommandState {
 
 export function useSqitchCommand() {
   const ipc = useIpc();
-  const [state, setState] = useState<CommandState>({ isRunning: false, error: null, output: '' });
+  const [state, setState] = useState<CommandState>({
+    isRunning: false,
+    error: null,
+    output: "",
+  });
 
-  const run = useCallback(async (
-    command: 'deploy' | 'revert' | 'verify' | 'status' | 'log' | 'add' | 'init',
-    args: Record<string, any>
-  ) => {
-    setState({ isRunning: true, error: null, output: '' });
-    useProjectStore.getState().setRunning(true);
-    try {
-      let result: any;
-      switch (command) {
-        case 'deploy':
-          result = await ipc.sqitchDeploy(args.projectPath, args.target, args.toChange);
-          break;
-        case 'revert':
-          result = await ipc.sqitchRevert(args.projectPath, args.target, args.toChange);
-          break;
-        case 'verify':
-          result = await ipc.sqitchVerify(args.projectPath, args.target);
-          break;
-        case 'status':
-          result = await ipc.sqitchStatus(args.projectPath, args.target);
-          break;
-        case 'log':
-          result = await ipc.sqitchLog(args.projectPath, args.target);
-          break;
-        case 'add':
-          result = await ipc.sqitchAdd(args.projectPath, args.name, args.note, args.requires, args.conflicts);
-          break;
-        case 'init':
-          result = await ipc.sqitchInit(args.directory, args.name, args.engine, args.uri, args.topDir, args.planFile);
-          break;
+  const run = useCallback(
+    async (
+      command:
+        | "deploy"
+        | "revert"
+        | "verify"
+        | "status"
+        | "log"
+        | "add"
+        | "init",
+      args: Record<string, any>,
+    ) => {
+      setState({ isRunning: true, error: null, output: "" });
+      useProjectStore.getState().setRunning(true);
+      try {
+        let result: any;
+        switch (command) {
+          case "deploy":
+            result = await ipc.sqitchDeploy(
+              args.projectPath,
+              args.target,
+              args.toChange,
+            );
+            break;
+          case "revert":
+            result = await ipc.sqitchRevert(
+              args.projectPath,
+              args.target,
+              args.toChange,
+            );
+            break;
+          case "verify":
+            result = await ipc.sqitchVerify(args.projectPath, args.target);
+            break;
+          case "status":
+            result = await ipc.sqitchStatus(args.projectPath, args.target);
+            break;
+          case "log":
+            result = await ipc.sqitchLog(args.projectPath, args.target);
+            break;
+          case "add":
+            result = await ipc.sqitchAdd(
+              args.projectPath,
+              args.name,
+              args.note,
+              args.requires,
+              args.conflicts,
+            );
+            break;
+          case "init":
+            result = await ipc.sqitchInit(
+              args.directory,
+              args.name,
+              args.engine,
+              args.uri,
+              args.topDir,
+              args.planFile,
+            );
+            break;
+        }
+        setState({
+          isRunning: false,
+          error: null,
+          output: result?.stdout ?? "",
+        });
+        return result;
+      } catch (err: any) {
+        setState({
+          isRunning: false,
+          error: err.message ?? String(err),
+          output: "",
+        });
+        throw err;
+      } finally {
+        useProjectStore.getState().setRunning(false);
       }
-      setState({ isRunning: false, error: null, output: result?.stdout ?? '' });
-      return result;
-    } catch (err: any) {
-      setState({ isRunning: false, error: err.message ?? String(err), output: '' });
-      throw err;
-    } finally {
-      useProjectStore.getState().setRunning(false);
-    }
-  }, [ipc]);
+    },
+    [ipc],
+  );
 
   return { ...state, run };
 }

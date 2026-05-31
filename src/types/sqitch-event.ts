@@ -1,5 +1,5 @@
-export type SqitchEventType = 'deploy' | 'revert' | 'verify';
-export type SqitchEventStatus = 'ok' | 'not_ok' | 'failed' | 'running';
+export type SqitchEventType = "deploy" | "revert" | "verify";
+export type SqitchEventStatus = "ok" | "not_ok" | "failed" | "running";
 
 export interface SqitchEvent {
   type: SqitchEventType;

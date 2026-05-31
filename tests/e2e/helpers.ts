@@ -6,12 +6,27 @@ export async function launchApp(): Promise<{
   page: Page;
 }> {
   const app = await electron.launch({
-    args: ["."],
+    args: [
+      ".",
+      "--no-sandbox",
+      "--disable-gpu",
+      "--disable-software-rasterizer",
+      "--disable-dev-shm-usage",
+    ],
     env: {
       ...process.env,
       VITE_DEV_SERVER_URL: "",
     },
   });
+
+  app.process().stdout?.on("data", (data) => {
+    console.log(`[Electron Stdout] ${data.toString()}`);
+  });
+
+  app.process().stderr?.on("data", (data) => {
+    console.error(`[Electron Stderr] ${data.toString()}`);
+  });
+
   const page = await app.firstWindow({ timeout: 30000 });
   if (!page) {
     throw new Error(

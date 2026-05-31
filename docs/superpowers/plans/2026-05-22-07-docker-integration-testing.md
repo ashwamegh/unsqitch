@@ -13,6 +13,7 @@
 ### Task 1: Create test project fixture
 
 **Files:**
+
 - Create: `tests/fixtures/test-project/sqitch.plan`
 - Create: `tests/fixtures/test-project/deploy/users.sql`
 - Create: `tests/fixtures/test-project/revert/users.sql`
@@ -113,6 +114,7 @@ git add tests/fixtures/ && git commit -m "test: add sqitch test project fixture"
 ### Task 2: Create sqitch output fixtures for parser tests
 
 **Files:**
+
 - Create: `tests/fixtures/sqitch-output/status.txt`
 - Create: `tests/fixtures/sqitch-output/log.txt`
 - Create: `tests/fixtures/sqitch-output/deploy.txt`
@@ -227,6 +229,7 @@ git add tests/fixtures/ && git commit -m "test: add sqitch output fixtures for p
 ### Task 3: Write parser fixture validation tests
 
 **Files:**
+
 - Create: `tests/unit/fixture-validation.test.ts`
 
 - [ ] **Step 1: Create fixture validation tests**
@@ -234,73 +237,73 @@ git add tests/fixtures/ && git commit -m "test: add sqitch output fixtures for p
 Create `tests/unit/fixture-validation.test.ts`:
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { parsePlanFile } from '../../src/lib/plan-parser';
-import { parseSqitchOutput } from '../../src/lib/sqitch-parser';
-import { parseStatusOutput } from '../../src/lib/status-parser';
-import { parseLogOutput } from '../../src/lib/log-parser';
-import { parseConfigList } from '../../src/lib/config-parser';
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { parsePlanFile } from "../../src/lib/plan-parser";
+import { parseSqitchOutput } from "../../src/lib/sqitch-parser";
+import { parseStatusOutput } from "../../src/lib/status-parser";
+import { parseLogOutput } from "../../src/lib/log-parser";
+import { parseConfigList } from "../../src/lib/config-parser";
 
-const fixtureDir = join(__dirname, '..', 'fixtures', 'sqitch-output');
+const fixtureDir = join(__dirname, "..", "fixtures", "sqitch-output");
 
-describe('Fixture validation', () => {
-  it('parses plan fixture', () => {
-    const content = readFileSync(join(fixtureDir, 'plan.txt'), 'utf-8');
+describe("Fixture validation", () => {
+  it("parses plan fixture", () => {
+    const content = readFileSync(join(fixtureDir, "plan.txt"), "utf-8");
     const result = parsePlanFile(content);
-    expect(result.pragmas['syntax-version']).toBe('1.0.0');
-    expect(result.pragmas['project']).toBe('test-project');
+    expect(result.pragmas["syntax-version"]).toBe("1.0.0");
+    expect(result.pragmas["project"]).toBe("test-project");
     expect(result.changes).toHaveLength(2);
     expect(result.tags).toHaveLength(1);
     expect(result.unparseableLines).toHaveLength(0);
   });
 
-  it('parses deploy fixture', () => {
-    const content = readFileSync(join(fixtureDir, 'deploy.txt'), 'utf-8');
+  it("parses deploy fixture", () => {
+    const content = readFileSync(join(fixtureDir, "deploy.txt"), "utf-8");
     const result = parseSqitchOutput(content);
     expect(result.events).toHaveLength(2);
-    expect(result.events[0].type).toBe('deploy');
-    expect(result.events[0].change).toBe('appschema');
-    expect(result.events[0].status).toBe('ok');
+    expect(result.events[0].type).toBe("deploy");
+    expect(result.events[0].change).toBe("appschema");
+    expect(result.events[0].status).toBe("ok");
   });
 
-  it('parses revert fixture', () => {
-    const content = readFileSync(join(fixtureDir, 'revert.txt'), 'utf-8');
+  it("parses revert fixture", () => {
+    const content = readFileSync(join(fixtureDir, "revert.txt"), "utf-8");
     const result = parseSqitchOutput(content);
     expect(result.events).toHaveLength(2);
-    expect(result.events[0].type).toBe('revert');
+    expect(result.events[0].type).toBe("revert");
   });
 
-  it('parses verify fixture', () => {
-    const content = readFileSync(join(fixtureDir, 'verify.txt'), 'utf-8');
+  it("parses verify fixture", () => {
+    const content = readFileSync(join(fixtureDir, "verify.txt"), "utf-8");
     const result = parseSqitchOutput(content);
     expect(result.events).toHaveLength(2);
-    expect(result.events[0].type).toBe('verify');
+    expect(result.events[0].type).toBe("verify");
   });
 
-  it('parses status fixture', () => {
-    const content = readFileSync(join(fixtureDir, 'status.txt'), 'utf-8');
+  it("parses status fixture", () => {
+    const content = readFileSync(join(fixtureDir, "status.txt"), "utf-8");
     const result = parseStatusOutput(content);
-    expect(result.target).toBe('sqitch_test');
-    expect(result.engine).toBe('pg');
+    expect(result.target).toBe("sqitch_test");
+    expect(result.engine).toBe("pg");
     expect(result.deployed).toHaveLength(2);
-    expect(result.pending).toEqual(['orders']);
+    expect(result.pending).toEqual(["orders"]);
   });
 
-  it('parses log fixture', () => {
-    const content = readFileSync(join(fixtureDir, 'log.txt'), 'utf-8');
+  it("parses log fixture", () => {
+    const content = readFileSync(join(fixtureDir, "log.txt"), "utf-8");
     const result = parseLogOutput(content);
     expect(result).toHaveLength(2);
-    expect(result[0].change).toBe('appschema');
-    expect(result[0].action).toBe('deploy');
+    expect(result[0].change).toBe("appschema");
+    expect(result[0].action).toBe("deploy");
   });
 
-  it('parses config fixture', () => {
-    const content = readFileSync(join(fixtureDir, 'config.txt'), 'utf-8');
+  it("parses config fixture", () => {
+    const content = readFileSync(join(fixtureDir, "config.txt"), "utf-8");
     const result = parseConfigList(content);
     expect(result).toHaveLength(5);
-    expect(result[0]).toEqual({ section: 'core', key: 'engine', value: 'pg' });
+    expect(result[0]).toEqual({ section: "core", key: "engine", value: "pg" });
   });
 });
 ```
@@ -324,6 +327,7 @@ git add tests/unit/fixture-validation.test.ts && git commit -m "test: add fixtur
 ### Task 4: Create integration test config and Docker setup script
 
 **Files:**
+
 - Create: `vitest.integration.config.ts`
 - Create: `tests/integration/sqitch-integration.test.ts`
 - Modify: `package.json` (scripts)
@@ -333,16 +337,16 @@ git add tests/unit/fixture-validation.test.ts && git commit -m "test: add fixtur
 Create `vitest.integration.config.ts`:
 
 ```typescript
-import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
+import { defineConfig } from "vitest/config";
+import { resolve } from "path";
 
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['tests/integration/**/*.test.ts'],
+    environment: "node",
+    include: ["tests/integration/**/*.test.ts"],
     testTimeout: 60000,
     alias: {
-      '@shared': resolve(__dirname, 'electron/shared'),
+      "@shared": resolve(__dirname, "electron/shared"),
     },
   },
 });
@@ -353,35 +357,46 @@ export default defineConfig({
 Create `tests/integration/sqitch-integration.test.ts`:
 
 ```typescript
-import { describe, it, expect, beforeAll } from 'vitest';
-import { SqitchService } from '../../electron/services/sqitch.service';
-import { detectSqitchBinary } from '../../electron/services/binary-detector';
+import { describe, it, expect, beforeAll } from "vitest";
+import { SqitchService } from "../../electron/services/sqitch.service";
+import { detectSqitchBinary } from "../../electron/services/binary-detector";
 
-describe.skipIf(!process.env.RUN_INTEGRATION)('SqitchService integration', () => {
-  let sqitch: SqitchService;
-  const projectPath = process.env.TEST_PROJECT_PATH || '/tmp/unsqitch-test-project';
+describe.skipIf(!process.env.RUN_INTEGRATION)(
+  "SqitchService integration",
+  () => {
+    let sqitch: SqitchService;
+    const projectPath =
+      process.env.TEST_PROJECT_PATH || "/tmp/unsqitch-test-project";
 
-  beforeAll(() => {
-    const binary = detectSqitchBinary();
-    if (!binary) throw new Error('sqitch not found — install sqitch or set RUN_INTEGRATION=0');
-    sqitch = new SqitchService(binary);
-  });
+    beforeAll(() => {
+      const binary = detectSqitchBinary();
+      if (!binary)
+        throw new Error(
+          "sqitch not found — install sqitch or set RUN_INTEGRATION=0",
+        );
+      sqitch = new SqitchService(binary);
+    });
 
-  it('detects sqitch binary', () => {
-    const binary = detectSqitchBinary();
-    expect(binary).toBeTruthy();
-  });
+    it("detects sqitch binary", () => {
+      const binary = detectSqitchBinary();
+      expect(binary).toBeTruthy();
+    });
 
-  it('runs sqitch status', async () => {
-    const result = await sqitch.status(projectPath, 'db:pg:sqitch@localhost:54231/sqitch_test', 10000);
-    expect(result.exitCode).toBe(0);
-  }, 30000);
+    it("runs sqitch status", async () => {
+      const result = await sqitch.status(
+        projectPath,
+        "db:pg:sqitch@localhost:54231/sqitch_test",
+        10000,
+      );
+      expect(result.exitCode).toBe(0);
+    }, 30000);
 
-  it('runs sqitch plan', async () => {
-    const result = await sqitch.plan(projectPath, 10000);
-    expect(result.exitCode).toBe(0);
-  }, 30000);
-});
+    it("runs sqitch plan", async () => {
+      const result = await sqitch.plan(projectPath, 10000);
+      expect(result.exitCode).toBe(0);
+    }, 30000);
+  },
+);
 ```
 
 - [ ] **Step 3: Update package.json scripts**
@@ -412,39 +427,40 @@ git add -A && git commit -m "test: add integration test config and Docker script
 
 Skim each spec section. Verify:
 
-| Spec Section | Plan Task |
-|---|---|
-| Architecture (layered service) | Plan 3a-3d |
-| Tech stack (Electron, React, Tailwind, etc.) | Plan 1 |
-| Project structure | Plan 1 Task 6 |
-| Window model (single window, sidebar) | Plan 4a |
-| Home view (project cards, open, remove) | Plan 5a |
-| Project view (sidebar sections) | Plan 4a |
-| Show Commands toggle | Plan 4a Task 2 (Sidebar) |
-| Natural Language UI | Plan 5b (DeployPreview, RevertView) |
-| Preview Mode (deploy/revert) | Plan 5b |
-| Revert flow (click-to-revert, confirmation) | Plan 5b |
-| Plan view (timeline) | Plan 5a Task 2 |
-| Status view (dashboard cards, changes list) | Plan 5b Task 3 |
-| Progress UI | Plan 6 Task 3 |
-| Terminal panel (xterm.js) | Plan 6 Task 2 |
-| Setup views (Engine, Target, Config) | Plan 5d |
-| Settings | Plan 5e Task 1 |
-| Init | Plan 5e Task 2 |
-| Data model (TypeScript types) | Plan 2a Task 1, 2c Task 1, 3a Task 1 |
-| Parsers (plan, stdout, status, log, config) | Plan 2a-2c |
-| Error handling (AppError) | Plan 3b Task 1 |
-| File watching | Plan 8 |
-| Stale state handling | Plan 8 + Plan 3d (browser-window-focus) |
-| External editor | Plan 9 |
-| Safety guardrails | Plan 5b (revert confirmation, threshold, production, deps) |
-| Security (passwords session-only) | Plan 3a (target stores aliases only) + Plan 5d (password advisory) |
-| V1 command coverage | Plan 3d (all IPC handlers) |
-| Docker Compose | Plan 1 Task 7, Plan 7 |
-| Testing layers | Plan 1 Task 5, Plan 7, Plan 10 (E2E) |
-| E2E tests | Plan 10 |
+| Spec Section                                 | Plan Task                                                          |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| Architecture (layered service)               | Plan 3a-3d                                                         |
+| Tech stack (Electron, React, Tailwind, etc.) | Plan 1                                                             |
+| Project structure                            | Plan 1 Task 6                                                      |
+| Window model (single window, sidebar)        | Plan 4a                                                            |
+| Home view (project cards, open, remove)      | Plan 5a                                                            |
+| Project view (sidebar sections)              | Plan 4a                                                            |
+| Show Commands toggle                         | Plan 4a Task 2 (Sidebar)                                           |
+| Natural Language UI                          | Plan 5b (DeployPreview, RevertView)                                |
+| Preview Mode (deploy/revert)                 | Plan 5b                                                            |
+| Revert flow (click-to-revert, confirmation)  | Plan 5b                                                            |
+| Plan view (timeline)                         | Plan 5a Task 2                                                     |
+| Status view (dashboard cards, changes list)  | Plan 5b Task 3                                                     |
+| Progress UI                                  | Plan 6 Task 3                                                      |
+| Terminal panel (xterm.js)                    | Plan 6 Task 2                                                      |
+| Setup views (Engine, Target, Config)         | Plan 5d                                                            |
+| Settings                                     | Plan 5e Task 1                                                     |
+| Init                                         | Plan 5e Task 2                                                     |
+| Data model (TypeScript types)                | Plan 2a Task 1, 2c Task 1, 3a Task 1                               |
+| Parsers (plan, stdout, status, log, config)  | Plan 2a-2c                                                         |
+| Error handling (AppError)                    | Plan 3b Task 1                                                     |
+| File watching                                | Plan 8                                                             |
+| Stale state handling                         | Plan 8 + Plan 3d (browser-window-focus)                            |
+| External editor                              | Plan 9                                                             |
+| Safety guardrails                            | Plan 5b (revert confirmation, threshold, production, deps)         |
+| Security (passwords session-only)            | Plan 3a (target stores aliases only) + Plan 5d (password advisory) |
+| V1 command coverage                          | Plan 3d (all IPC handlers)                                         |
+| Docker Compose                               | Plan 1 Task 7, Plan 7                                              |
+| Testing layers                               | Plan 1 Task 5, Plan 7, Plan 10 (E2E)                               |
+| E2E tests                                    | Plan 10                                                            |
 
 **Previously deferred items — now covered:**
+
 - File watching (chokidar): Plan 8
 - External editor integration: Plan 9
 - E2E tests: Plan 10
@@ -456,6 +472,7 @@ Search all plan files for TBD, TODO, "implement later", "fill in details", "add 
 - [ ] **Step 3: Type consistency check**
 
 Verify function names and types match across plans:
+
 - `parsePlanFile` — defined Plan 2a, used Plan 3d
 - `parseSqitchOutput` — defined Plan 2b, used Plan 3d
 - `parseStatusOutput` — defined Plan 2c, used Plan 3d

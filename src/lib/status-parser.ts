@@ -1,4 +1,4 @@
-import type { DeploymentStatus, DeployedChange } from '../types/deployment';
+import type { DeployedChange, DeploymentStatus } from "../types/deployment";
 
 interface ParseState {
   target: string;
@@ -12,18 +12,18 @@ interface ParseState {
 
 export function parseStatusOutput(output: string): DeploymentStatus {
   const state: ParseState = {
-    target: '',
-    engine: '',
+    target: "",
+    engine: "",
     deployed: [],
     pending: [],
-    lastChange: '',
+    lastChange: "",
     lastTag: [],
-    lastDeployTime: '',
+    lastDeployTime: "",
   };
 
-  const lines = output.split('\n');
+  const lines = output.split("\n");
   let currentChange: Partial<DeployedChange> | null = null;
-  let section: 'deployed' | 'undeployed' | 'other' = 'other';
+  let section: "deployed" | "undeployed" | "other" = "other";
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -40,12 +40,12 @@ export function parseStatusOutput(output: string): DeploymentStatus {
       continue;
     }
 
-    if (trimmed.startsWith('Deployed changes:')) {
-      section = 'deployed';
+    if (trimmed.startsWith("Deployed changes:")) {
+      section = "deployed";
       continue;
     }
-    if (trimmed.startsWith('Undeployed changes:')) {
-      section = 'undeployed';
+    if (trimmed.startsWith("Undeployed changes:")) {
+      section = "undeployed";
       continue;
     }
 
@@ -56,17 +56,17 @@ export function parseStatusOutput(output: string): DeploymentStatus {
     }
 
     const changeHeaderMatch = trimmed.match(/^(\w+)\s+-\s+(\S+)\s+-\s+(.+)$/);
-    if (changeHeaderMatch && section === 'deployed') {
-      if (currentChange && currentChange.name) {
+    if (changeHeaderMatch && section === "deployed") {
+      if (currentChange?.name) {
         state.deployed.push(currentChange as DeployedChange);
       }
       currentChange = {
         name: changeHeaderMatch[1],
         deployedAt: changeHeaderMatch[2],
         deployedBy: changeHeaderMatch[3],
-        changeId: '',
+        changeId: "",
         tags: [],
-        note: '',
+        note: "",
         requires: [],
         conflicts: [],
       };
@@ -76,15 +76,21 @@ export function parseStatusOutput(output: string): DeploymentStatus {
 
     if (currentChange) {
       const changeIdMatch = trimmed.match(/^Change:\s+(.+)$/);
-      if (changeIdMatch) { currentChange.changeId = changeIdMatch[1]; continue; }
+      if (changeIdMatch) {
+        currentChange.changeId = changeIdMatch[1];
+        continue;
+      }
 
       const noteMatch = trimmed.match(/^Note:\s+(.+)$/);
-      if (noteMatch) { currentChange.note = noteMatch[1]; continue; }
+      if (noteMatch) {
+        currentChange.note = noteMatch[1];
+        continue;
+      }
 
       const tagsMatch = trimmed.match(/^Tags:\s*(.*)$/);
       if (tagsMatch) {
         const raw = tagsMatch[1].trim();
-        currentChange.tags = raw ? raw.split(/\s+/).map(t => t.replace(/^@/, '')) : [];
+        currentChange.tags = raw ? raw.split(/\s+/).map((t) => t.replace(/^@/, "")) : [];
         state.lastTag = currentChange.tags;
         continue;
       }
@@ -104,16 +110,15 @@ export function parseStatusOutput(output: string): DeploymentStatus {
       }
     }
 
-    if (section === 'undeployed') {
+    if (section === "undeployed") {
       const pendingMatch = trimmed.match(/^(\w+)$/);
       if (pendingMatch) {
         state.pending.push(pendingMatch[1]);
-        continue;
       }
     }
   }
 
-  if (currentChange && currentChange.name) {
+  if (currentChange?.name) {
     state.deployed.push(currentChange as DeployedChange);
   }
 

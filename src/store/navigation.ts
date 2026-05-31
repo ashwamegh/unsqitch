@@ -1,16 +1,16 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-export type View = 'home' | 'project';
+export type View = "home" | "project";
 export type Section =
-  | 'plan'
-  | 'deploy'
-  | 'revert'
-  | 'status'
-  | 'verify'
-  | 'log'
-  | 'engine'
-  | 'target'
-  | 'config';
+  | "plan"
+  | "deploy"
+  | "revert"
+  | "status"
+  | "verify"
+  | "log"
+  | "engine"
+  | "target"
+  | "config";
 
 interface NavigationState {
   view: View;
@@ -18,6 +18,7 @@ interface NavigationState {
   section: Section | null;
   showCommands: boolean;
   commandTooltipDismissed: boolean;
+  sidebarCollapsed: boolean;
 }
 
 interface NavigationActions {
@@ -26,22 +27,30 @@ interface NavigationActions {
   setSection: (section: Section) => void;
   toggleShowCommands: () => void;
   dismissCommandTooltip: () => void;
+  toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 export const useNavigationStore = create<NavigationState & NavigationActions>((set) => ({
-  view: 'home',
+  view: "home",
   projectId: null,
   section: null,
   showCommands: false,
   commandTooltipDismissed: false,
+  sidebarCollapsed: true,
 
-  goHome: () => set({ view: 'home', projectId: null, section: null }),
+  goHome: () => set({ view: "home", projectId: null, section: null, sidebarCollapsed: true }),
 
-  openProject: (projectId) => set({ view: 'project', projectId, section: 'plan' }),
+  openProject: (projectId) =>
+    set({ view: "project", projectId, section: "plan", sidebarCollapsed: false }),
 
   setSection: (section) => set({ section }),
 
   toggleShowCommands: () => set((state) => ({ showCommands: !state.showCommands })),
 
   dismissCommandTooltip: () => set({ commandTooltipDismissed: true }),
+
+  toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+
+  setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 }));

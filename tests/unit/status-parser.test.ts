@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseStatusOutput } from '../../src/lib/status-parser';
+import { describe, it, expect } from "vitest";
+import { parseStatusOutput } from "../../src/lib/status-parser";
 
 const STATUS_OUTPUT = `On database mydb
 Deployed changes:
@@ -27,62 +27,62 @@ Undeployed changes:
 Last deployed: 2024-01-16T09:00:00Z
 Engine: pg`;
 
-describe('parseStatusOutput', () => {
-  it('parses target name', () => {
+describe("parseStatusOutput", () => {
+  it("parses target name", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.target).toBe('mydb');
+    expect(result.target).toBe("mydb");
   });
 
-  it('parses engine', () => {
+  it("parses engine", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.engine).toBe('pg');
+    expect(result.engine).toBe("pg");
   });
 
-  it('parses deployed changes', () => {
+  it("parses deployed changes", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
     expect(result.deployed).toHaveLength(3);
   });
 
-  it('parses deployed change fields', () => {
+  it("parses deployed change fields", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    const users = result.deployed.find(c => c.name === 'users');
+    const users = result.deployed.find((c) => c.name === "users");
     expect(users).toBeDefined();
-    expect(users!.changeId).toBe('def789ghi012');
-    expect(users!.deployedBy).toBe('Marge <marge@example.com>');
-    expect(users!.note).toBe('Creates table to track our users');
-    expect(users!.requires).toEqual(['appschema']);
+    expect(users!.changeId).toBe("def789ghi012");
+    expect(users!.deployedBy).toBe("Marge <marge@example.com>");
+    expect(users!.note).toBe("Creates table to track our users");
+    expect(users!.requires).toEqual(["appschema"]);
   });
 
-  it('parses tags on deployed changes', () => {
+  it("parses tags on deployed changes", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    const appschema = result.deployed.find(c => c.name === 'appschema');
-    expect(appschema!.tags).toEqual(['v1.0.0']);
+    const appschema = result.deployed.find((c) => c.name === "appschema");
+    expect(appschema!.tags).toEqual(["v1.0.0"]);
   });
 
-  it('parses pending (undeployed) changes', () => {
+  it("parses pending (undeployed) changes", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.pending).toEqual(['orders', 'payments']);
+    expect(result.pending).toEqual(["orders", "payments"]);
   });
 
-  it('parses lastChange', () => {
+  it("parses lastChange", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.lastChange).toBe('emails');
+    expect(result.lastChange).toBe("emails");
   });
 
-  it('parses lastDeployTime', () => {
+  it("parses lastDeployTime", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.lastDeployTime).toBe('2024-01-16T09:00:00Z');
+    expect(result.lastDeployTime).toBe("2024-01-16T09:00:00Z");
   });
 
-  it('handles empty status', () => {
-    const result = parseStatusOutput('');
+  it("handles empty status", () => {
+    const result = parseStatusOutput("");
     expect(result.deployed).toEqual([]);
     expect(result.pending).toEqual([]);
   });
 
-  it('parses deployedBy with angle brackets', () => {
+  it("parses deployedBy with angle brackets", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    const appschema = result.deployed.find(c => c.name === 'appschema');
-    expect(appschema!.deployedBy).toBe('Marge <marge@example.com>');
+    const appschema = result.deployed.find((c) => c.name === "appschema");
+    expect(appschema!.deployedBy).toBe("Marge <marge@example.com>");
   });
 });

@@ -22,7 +22,7 @@ export interface DeploymentStatus {
 export interface LogEntry {
   change: string;
   changeId: string;
-  action: 'deploy' | 'revert';
+  action: "deploy" | "revert";
   timestamp: string;
   committer: { name: string; email: string };
   note: string;

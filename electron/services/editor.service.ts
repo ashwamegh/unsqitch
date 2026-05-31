@@ -1,5 +1,5 @@
-import { spawn as defaultSpawn } from 'child_process';
-import path from 'path';
+import { spawn as defaultSpawn } from "child_process";
+import path from "path";
 
 export class EditorService {
   editorCommand: string | null = null;
@@ -23,18 +23,21 @@ export class EditorService {
       return { command: editor, name: this.deriveEditorName(editor) };
     }
 
-    const defaultEditor = process.platform === 'win32' ? 'notepad' : 'code';
+    const defaultEditor = process.platform === "win32" ? "notepad" : "code";
     this.editorCommand = defaultEditor;
-    return { command: defaultEditor, name: this.deriveEditorName(defaultEditor) };
+    return {
+      command: defaultEditor,
+      name: this.deriveEditorName(defaultEditor),
+    };
   }
 
   openFile(filePath: string): string {
     const command = this.editorCommand || this.detectEditor().command;
-    if (!command) return '';
+    if (!command) return "";
 
     const child = this._spawn(command, [filePath], {
       detached: true,
-      stdio: 'ignore',
+      stdio: "ignore",
     });
     child.unref();
 
@@ -44,13 +47,13 @@ export class EditorService {
   deriveEditorName(command: string): string {
     const base = path.basename(command);
     const nameMap: Record<string, string> = {
-      'code': 'VS Code',
-      'vim': 'Vim',
-      'nvim': 'Neovim',
-      'nano': 'Nano',
-      'emacs': 'Emacs',
-      'subl': 'Sublime Text',
-      'notepad': 'Notepad',
+      code: "VS Code",
+      vim: "Vim",
+      nvim: "Neovim",
+      nano: "Nano",
+      emacs: "Emacs",
+      subl: "Sublime Text",
+      notepad: "Notepad",
     };
     return nameMap[base] || base;
   }

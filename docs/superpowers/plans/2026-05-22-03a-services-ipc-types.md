@@ -15,6 +15,7 @@
 ### Task 1: Define IPC channel types
 
 **Files:**
+
 - Modify: `electron/shared/ipc-types.ts`
 
 - [ ] **Step 1: Write IPC types**
@@ -27,58 +28,58 @@ Replace `electron/shared/ipc-types.ts`:
 // Sqitch commands
 export const IPC_CHANNELS = {
   // Project management
-  PROJECT_OPEN: 'project:open',
-  PROJECT_LIST: 'project:list',
-  PROJECT_REMOVE: 'project:remove',
-  PROJECT_GET: 'project:get',
+  PROJECT_OPEN: "project:open",
+  PROJECT_LIST: "project:list",
+  PROJECT_REMOVE: "project:remove",
+  PROJECT_GET: "project:get",
 
   // Sqitch operations
-  SQITCH_DEPLOY: 'sqitch:deploy',
-  SQITCH_REVERT: 'sqitch:revert',
-  SQITCH_VERIFY: 'sqitch:verify',
-  SQITCH_STATUS: 'sqitch:status',
-  SQITCH_LOG: 'sqitch:log',
-  SQITCH_PLAN: 'sqitch:plan',
-  SQITCH_ADD: 'sqitch:add',
-  SQITCH_INIT: 'sqitch:init',
+  SQITCH_DEPLOY: "sqitch:deploy",
+  SQITCH_REVERT: "sqitch:revert",
+  SQITCH_VERIFY: "sqitch:verify",
+  SQITCH_STATUS: "sqitch:status",
+  SQITCH_LOG: "sqitch:log",
+  SQITCH_PLAN: "sqitch:plan",
+  SQITCH_ADD: "sqitch:add",
+  SQITCH_INIT: "sqitch:init",
 
   // Engine/Target/Config
-  ENGINE_ADD: 'engine:add',
-  ENGINE_REMOVE: 'engine:remove',
-  ENGINE_LIST: 'engine:list',
-  TARGET_ADD: 'target:add',
-  TARGET_REMOVE: 'target:remove',
-  TARGET_LIST: 'target:list',
-  TARGET_GET_LABEL: 'target:getLabel',
-  TARGET_SET_LABEL: 'target:setLabel',
-  CONFIG_LIST: 'config:list',
-  CONFIG_SET: 'config:set',
-  CONFIG_UNSET: 'config:unset',
+  ENGINE_ADD: "engine:add",
+  ENGINE_REMOVE: "engine:remove",
+  ENGINE_LIST: "engine:list",
+  TARGET_ADD: "target:add",
+  TARGET_REMOVE: "target:remove",
+  TARGET_LIST: "target:list",
+  TARGET_GET_LABEL: "target:getLabel",
+  TARGET_SET_LABEL: "target:setLabel",
+  CONFIG_LIST: "config:list",
+  CONFIG_SET: "config:set",
+  CONFIG_UNSET: "config:unset",
 
   // Sqitch binary
-  SQITCH_DETECT: 'sqitch:detect',
-  SQITCH_VERSION: 'sqitch:version',
-  SQITCH_CANCEL: 'sqitch:cancel',
+  SQITCH_DETECT: "sqitch:detect",
+  SQITCH_VERSION: "sqitch:version",
+  SQITCH_CANCEL: "sqitch:cancel",
 
   // File watching
-  WATCH_START: 'watch:start',
-  WATCH_STOP: 'watch:stop',
+  WATCH_START: "watch:start",
+  WATCH_STOP: "watch:stop",
 
   // Native dialogs (main → renderer request, main handles)
-  DIALOG_OPEN_DIRECTORY: 'dialog:openDirectory',
+  DIALOG_OPEN_DIRECTORY: "dialog:openDirectory",
 
   // Stream events (main → renderer)
-  SQITCH_STREAM: 'sqitch:stream',
-  SQITCH_COMPLETE: 'sqitch:complete',
-  SQITCH_ERROR: 'sqitch:error',
-  STATUS_STALE: 'status:stale',
+  SQITCH_STREAM: "sqitch:stream",
+  SQITCH_COMPLETE: "sqitch:complete",
+  SQITCH_ERROR: "sqitch:error",
+  STATUS_STALE: "status:stale",
 
   // Settings
-  SETTINGS_GET: 'settings:get',
-  SETTINGS_SET: 'settings:set',
+  SETTINGS_GET: "settings:get",
+  SETTINGS_SET: "settings:set",
 } as const;
 
-export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS];
+export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
 
 // Request/Response types per channel
 export interface ProjectOpenRequest {
@@ -159,7 +160,7 @@ export interface SqitchInitRequest {
 export interface SqitchStreamEvent {
   projectPath: string;
   data: string;
-  type: 'stdout' | 'stderr';
+  type: "stdout" | "stderr";
 }
 
 export interface SqitchCompleteEvent {
@@ -225,6 +226,7 @@ git commit -m "feat: define typed IPC channels and request/response types"
 ### Task 2: Create preload bridge
 
 **Files:**
+
 - Modify: `electron/preload.ts`
 
 - [ ] **Step 1: Implement preload with contextBridge**
@@ -232,16 +234,15 @@ git commit -m "feat: define typed IPC channels and request/response types"
 Replace `electron/preload.ts`:
 
 ```typescript
-import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '@shared/ipc-types';
+import { contextBridge, ipcRenderer } from "electron";
+import { IPC_CHANNELS } from "@shared/ipc-types";
 
 const api = {
   // Project management
   projectOpen: (path: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROJECT_OPEN, { path }),
 
-  projectList: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_LIST),
+  projectList: () => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_LIST),
 
   projectRemove: (id: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROJECT_REMOVE, { id }),
@@ -251,10 +252,18 @@ const api = {
 
   // Sqitch operations
   sqitchDeploy: (projectPath: string, target: string, toChange?: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_DEPLOY, { projectPath, target, toChange }),
+    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_DEPLOY, {
+      projectPath,
+      target,
+      toChange,
+    }),
 
   sqitchRevert: (projectPath: string, target: string, toChange?: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_REVERT, { projectPath, target, toChange }),
+    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_REVERT, {
+      projectPath,
+      target,
+      toChange,
+    }),
 
   sqitchVerify: (projectPath: string, target: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SQITCH_VERIFY, { projectPath, target }),
@@ -268,15 +277,51 @@ const api = {
   sqitchPlan: (projectPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SQITCH_PLAN, { projectPath }),
 
-  sqitchAdd: (projectPath: string, name: string, note: string, requires: string[], conflicts: string[]) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_ADD, { projectPath, name, note, requires, conflicts }),
+  sqitchAdd: (
+    projectPath: string,
+    name: string,
+    note: string,
+    requires: string[],
+    conflicts: string[],
+  ) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_ADD, {
+      projectPath,
+      name,
+      note,
+      requires,
+      conflicts,
+    }),
 
-  sqitchInit: (directory: string, name: string, engine: string, uri: string, topDir: string, planFile: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_INIT, { directory, name, engine, uri, topDir, planFile }),
+  sqitchInit: (
+    directory: string,
+    name: string,
+    engine: string,
+    uri: string,
+    topDir: string,
+    planFile: string,
+  ) =>
+    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_INIT, {
+      directory,
+      name,
+      engine,
+      uri,
+      topDir,
+      planFile,
+    }),
 
   // Engine/Target/Config
-  engineAdd: (projectPath: string, name: string, uri: string, client?: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.ENGINE_ADD, { projectPath, name, uri, client }),
+  engineAdd: (
+    projectPath: string,
+    name: string,
+    uri: string,
+    client?: string,
+  ) =>
+    ipcRenderer.invoke(IPC_CHANNELS.ENGINE_ADD, {
+      projectPath,
+      name,
+      uri,
+      client,
+    }),
 
   engineRemove: (projectPath: string, name: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.ENGINE_REMOVE, { projectPath, name }),
@@ -294,10 +339,17 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.TARGET_LIST, { projectPath }),
 
   targetGetLabel: (projectId: string, targetName: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.TARGET_GET_LABEL, { projectId, targetName }),
+    ipcRenderer.invoke(IPC_CHANNELS.TARGET_GET_LABEL, {
+      projectId,
+      targetName,
+    }),
 
   targetSetLabel: (projectId: string, targetName: string, label: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.TARGET_SET_LABEL, { projectId, targetName, label }),
+    ipcRenderer.invoke(IPC_CHANNELS.TARGET_SET_LABEL, {
+      projectId,
+      targetName,
+      label,
+    }),
 
   configList: (projectPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.CONFIG_LIST, { projectPath }),
@@ -309,40 +361,69 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.CONFIG_UNSET, { projectPath, key }),
 
   // Sqitch binary
-  sqitchDetect: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_DETECT),
+  sqitchDetect: () => ipcRenderer.invoke(IPC_CHANNELS.SQITCH_DETECT),
 
-  sqitchVersion: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_VERSION),
+  sqitchVersion: () => ipcRenderer.invoke(IPC_CHANNELS.SQITCH_VERSION),
 
-  sqitchCancel: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.SQITCH_CANCEL),
+  sqitchCancel: () => ipcRenderer.invoke(IPC_CHANNELS.SQITCH_CANCEL),
 
   // Native dialogs
   dialogOpenDirectory: () =>
     ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_DIRECTORY),
 
   // Stream listeners
-  onSqitchStream: (callback: (event: { projectPath: string; data: string; type: 'stdout' | 'stderr' }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { projectPath: string; data: string; type: 'stdout' | 'stderr' }) => callback(data);
+  onSqitchStream: (
+    callback: (event: {
+      projectPath: string;
+      data: string;
+      type: "stdout" | "stderr";
+    }) => void,
+  ) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { projectPath: string; data: string; type: "stdout" | "stderr" },
+    ) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.SQITCH_STREAM, handler);
-    return () => ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_STREAM, handler);
+    return () =>
+      ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_STREAM, handler);
   },
 
-  onSqitchComplete: (callback: (event: { projectPath: string; exitCode: number; command: string }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { projectPath: string; exitCode: number; command: string }) => callback(data);
+  onSqitchComplete: (
+    callback: (event: {
+      projectPath: string;
+      exitCode: number;
+      command: string;
+    }) => void,
+  ) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { projectPath: string; exitCode: number; command: string },
+    ) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.SQITCH_COMPLETE, handler);
-    return () => ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_COMPLETE, handler);
+    return () =>
+      ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_COMPLETE, handler);
   },
 
-  onSqitchError: (callback: (event: { projectPath: string; error: string; type: string }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { projectPath: string; error: string; type: string }) => callback(data);
+  onSqitchError: (
+    callback: (event: {
+      projectPath: string;
+      error: string;
+      type: string;
+    }) => void,
+  ) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { projectPath: string; error: string; type: string },
+    ) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.SQITCH_ERROR, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_ERROR, handler);
   },
 
   onStatusStale: (callback: (payload: { threshold?: number }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { threshold?: number }) => callback(data);
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { threshold?: number },
+    ) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.STATUS_STALE, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.STATUS_STALE, handler);
   },
@@ -362,7 +443,7 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, { key, value }),
 };
 
-contextBridge.exposeInMainWorld('unsqitch', api);
+contextBridge.exposeInMainWorld("unsqitch", api);
 
 export type UnsqitchAPI = typeof api;
 ```
@@ -372,7 +453,7 @@ export type UnsqitchAPI = typeof api;
 Create `src/types/window.d.ts`:
 
 ```typescript
-import type { UnsqitchAPI } from '../../electron/preload';
+import type { UnsqitchAPI } from "../../electron/preload";
 
 declare global {
   interface Window {
@@ -393,6 +474,7 @@ git commit -m "feat: implement preload bridge with typed IPC API"
 ### Task 3: Create useIpc hook
 
 **Files:**
+
 - Modify: `src/hooks/useIpc.ts`
 
 - [ ] **Step 1: Implement useIpc hook**
@@ -404,7 +486,9 @@ export function useIpc() {
   const api = window.unsqitch;
 
   if (!api) {
-    throw new Error('Unsqitch API not available — preload script may not have loaded');
+    throw new Error(
+      "Unsqitch API not available — preload script may not have loaded",
+    );
   }
 
   return api;

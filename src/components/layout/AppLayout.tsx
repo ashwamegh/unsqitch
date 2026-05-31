@@ -1,6 +1,6 @@
-import { Sidebar } from './Sidebar';
-import { MainPanel } from './MainPanel';
-import { ToastContainer } from '../shared/Toast';
+import { ToastContainer } from "../shared/Toast";
+import { MainPanel } from "./MainPanel";
+import { Sidebar } from "./Sidebar";
 
 export function AppLayout() {
   return (

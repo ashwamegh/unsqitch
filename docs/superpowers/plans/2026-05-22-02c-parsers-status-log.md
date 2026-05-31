@@ -13,6 +13,7 @@
 ### Task 1: Define status and log data types
 
 **Files:**
+
 - Create: `src/types/deployment.ts`
 - Modify: `src/types/index.ts`
 
@@ -45,7 +46,7 @@ export interface DeploymentStatus {
 export interface LogEntry {
   change: string;
   changeId: string;
-  action: 'deploy' | 'revert';
+  action: "deploy" | "revert";
   timestamp: string;
   committer: { name: string; email: string };
   note: string;
@@ -60,7 +61,7 @@ export interface LogEntry {
 Add to `src/types/index.ts`:
 
 ```typescript
-export * from './deployment';
+export * from "./deployment";
 ```
 
 - [ ] **Step 3: Commit**
@@ -75,6 +76,7 @@ git commit -m "feat: add deployment status and log entry types"
 ### Task 2: Implement status parser — TDD
 
 **Files:**
+
 - Create: `src/lib/status-parser.ts`
 - Create: `tests/unit/status-parser.test.ts`
 
@@ -83,8 +85,8 @@ git commit -m "feat: add deployment status and log entry types"
 Create `tests/unit/status-parser.test.ts`:
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { parseStatusOutput } from '../../src/lib/status-parser';
+import { describe, it, expect } from "vitest";
+import { parseStatusOutput } from "../../src/lib/status-parser";
 
 const STATUS_OUTPUT = `On database mydb
 Deployed changes:
@@ -112,60 +114,60 @@ Undeployed changes:
 Last deployed: 2024-01-16T09:00:00Z
 Engine: pg`;
 
-describe('parseStatusOutput', () => {
-  it('parses target name', () => {
+describe("parseStatusOutput", () => {
+  it("parses target name", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.target).toBe('mydb');
+    expect(result.target).toBe("mydb");
   });
 
-  it('parses engine', () => {
+  it("parses engine", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.engine).toBe('pg');
+    expect(result.engine).toBe("pg");
   });
 
-  it('parses deployed changes', () => {
+  it("parses deployed changes", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
     expect(result.deployed).toHaveLength(3);
   });
 
-  it('parses deployed change fields', () => {
+  it("parses deployed change fields", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    const users = result.deployed.find(c => c.name === 'users');
+    const users = result.deployed.find((c) => c.name === "users");
     expect(users).toBeDefined();
-    expect(users!.changeId).toBe('def789ghi012');
-    expect(users!.deployedBy).toBe('Marge <marge@example.com>');
-    expect(users!.note).toBe('Creates table to track our users');
-    expect(users!.requires).toEqual(['appschema']);
+    expect(users!.changeId).toBe("def789ghi012");
+    expect(users!.deployedBy).toBe("Marge <marge@example.com>");
+    expect(users!.note).toBe("Creates table to track our users");
+    expect(users!.requires).toEqual(["appschema"]);
   });
 
-  it('parses tags on deployed changes', () => {
+  it("parses tags on deployed changes", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    const appschema = result.deployed.find(c => c.name === 'appschema');
-    expect(appschema!.tags).toEqual(['v1.0.0']);
+    const appschema = result.deployed.find((c) => c.name === "appschema");
+    expect(appschema!.tags).toEqual(["v1.0.0"]);
   });
 
-  it('parses pending (undeployed) changes', () => {
+  it("parses pending (undeployed) changes", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.pending).toEqual(['orders', 'payments']);
+    expect(result.pending).toEqual(["orders", "payments"]);
   });
 
-  it('parses lastChange', () => {
+  it("parses lastChange", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.lastChange).toBe('emails');
+    expect(result.lastChange).toBe("emails");
   });
 
-  it('parses lastDeployTime', () => {
+  it("parses lastDeployTime", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    expect(result.lastDeployTime).toBe('2024-01-16T09:00:00Z');
+    expect(result.lastDeployTime).toBe("2024-01-16T09:00:00Z");
   });
 
-  it('handles empty status', () => {
-    const result = parseStatusOutput('');
+  it("handles empty status", () => {
+    const result = parseStatusOutput("");
     expect(result.deployed).toEqual([]);
     expect(result.pending).toEqual([]);
   });
 
-  it('parses --date-format raw output (strict ISO-8601 UTC)', () => {
+  it("parses --date-format raw output (strict ISO-8601 UTC)", () => {
     const output = `On database mydb
 Engine: pg
 Deployed changes:
@@ -179,13 +181,13 @@ Undeployed changes:
 Last deployed: 2024-01-15T10:00:00Z`;
     const result = parseStatusOutput(output);
     expect(result.deployed).toHaveLength(1);
-    expect(result.deployed[0].deployedAt).toBe('2024-01-15T10:00:00Z');
+    expect(result.deployed[0].deployedAt).toBe("2024-01-15T10:00:00Z");
   });
 
-  it('parses deployedBy with angle brackets', () => {
+  it("parses deployedBy with angle brackets", () => {
     const result = parseStatusOutput(STATUS_OUTPUT);
-    const appschema = result.deployed.find(c => c.name === 'appschema');
-    expect(appschema!.deployedBy).toBe('Marge <marge@example.com>');
+    const appschema = result.deployed.find((c) => c.name === "appschema");
+    expect(appschema!.deployedBy).toBe("Marge <marge@example.com>");
   });
 });
 ```
@@ -203,7 +205,7 @@ Expected: FAIL — module not found
 Create `src/lib/status-parser.ts`:
 
 ```typescript
-import type { DeploymentStatus, DeployedChange } from '../types/deployment';
+import type { DeploymentStatus, DeployedChange } from "../types/deployment";
 
 interface ParseState {
   target: string;
@@ -217,18 +219,18 @@ interface ParseState {
 
 export function parseStatusOutput(output: string): DeploymentStatus {
   const state: ParseState = {
-    target: '',
-    engine: '',
+    target: "",
+    engine: "",
     deployed: [],
     pending: [],
-    lastChange: '',
+    lastChange: "",
     lastTag: [],
-    lastDeployTime: '',
+    lastDeployTime: "",
   };
 
-  const lines = output.split('\n');
+  const lines = output.split("\n");
   let currentChange: Partial<DeployedChange> | null = null;
-  let section: 'deployed' | 'undeployed' | 'other' = 'other';
+  let section: "deployed" | "undeployed" | "other" = "other";
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -248,12 +250,12 @@ export function parseStatusOutput(output: string): DeploymentStatus {
     }
 
     // Section headers
-    if (trimmed.startsWith('Deployed changes:')) {
-      section = 'deployed';
+    if (trimmed.startsWith("Deployed changes:")) {
+      section = "deployed";
       continue;
     }
-    if (trimmed.startsWith('Undeployed changes:')) {
-      section = 'undeployed';
+    if (trimmed.startsWith("Undeployed changes:")) {
+      section = "undeployed";
       continue;
     }
 
@@ -265,8 +267,10 @@ export function parseStatusOutput(output: string): DeploymentStatus {
     }
 
     // Deployed change header line: "name - timestamp - deployer"
-    const changeHeaderMatch = trimmed.match(/^([\w.-]+)\s+-\s+(\S+)\s+-\s+(.+)$/);
-    if (changeHeaderMatch && section === 'deployed') {
+    const changeHeaderMatch = trimmed.match(
+      /^([\w.-]+)\s+-\s+(\S+)\s+-\s+(.+)$/,
+    );
+    if (changeHeaderMatch && section === "deployed") {
       if (currentChange && currentChange.name) {
         state.deployed.push(currentChange as DeployedChange);
       }
@@ -274,9 +278,9 @@ export function parseStatusOutput(output: string): DeploymentStatus {
         name: changeHeaderMatch[1],
         deployedAt: changeHeaderMatch[2],
         deployedBy: changeHeaderMatch[3],
-        changeId: '',
+        changeId: "",
         tags: [],
-        note: '',
+        note: "",
         requires: [],
         conflicts: [],
       };
@@ -287,15 +291,23 @@ export function parseStatusOutput(output: string): DeploymentStatus {
     // Change detail lines (indented under a change)
     if (currentChange) {
       const changeIdMatch = trimmed.match(/^Change:\s+(.+)$/);
-      if (changeIdMatch) { currentChange.changeId = changeIdMatch[1]; continue; }
+      if (changeIdMatch) {
+        currentChange.changeId = changeIdMatch[1];
+        continue;
+      }
 
       const noteMatch = trimmed.match(/^Note:\s+(.+)$/);
-      if (noteMatch) { currentChange.note = noteMatch[1]; continue; }
+      if (noteMatch) {
+        currentChange.note = noteMatch[1];
+        continue;
+      }
 
       const tagsMatch = trimmed.match(/^Tags:\s*(.*)$/);
       if (tagsMatch) {
         const raw = tagsMatch[1].trim();
-        currentChange.tags = raw ? raw.split(/\s+/).map(t => t.replace(/^@/, '')) : [];
+        currentChange.tags = raw
+          ? raw.split(/\s+/).map((t) => t.replace(/^@/, ""))
+          : [];
         state.lastTag = currentChange.tags;
         continue;
       }
@@ -316,7 +328,7 @@ export function parseStatusOutput(output: string): DeploymentStatus {
     }
 
     // Pending (undeployed) change names
-    if (section === 'undeployed') {
+    if (section === "undeployed") {
       const pendingMatch = trimmed.match(/^([\w.-]+)$/);
       if (pendingMatch) {
         state.pending.push(pendingMatch[1]);
@@ -362,6 +374,7 @@ git commit -m "feat: implement status parser with TDD"
 ### Task 3: Implement log parser — TDD
 
 **Files:**
+
 - Create: `src/lib/log-parser.ts`
 - Create: `tests/unit/log-parser.test.ts`
 
@@ -370,8 +383,8 @@ git commit -m "feat: implement status parser with TDD"
 Create `tests/unit/log-parser.test.ts`:
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { parseLogOutput } from '../../src/lib/log-parser';
+import { describe, it, expect } from "vitest";
+import { parseLogOutput } from "../../src/lib/log-parser";
 
 const LOG_OUTPUT = `On database mydb
 Change: appschema
@@ -404,64 +417,64 @@ Change: users
   Requires: appschema
   Conflicts:`;
 
-describe('parseLogOutput', () => {
-  it('parses all log entries', () => {
+describe("parseLogOutput", () => {
+  it("parses all log entries", () => {
     const result = parseLogOutput(LOG_OUTPUT);
     expect(result).toHaveLength(3);
   });
 
-  it('parses deploy action', () => {
+  it("parses deploy action", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].change).toBe('appschema');
-    expect(result[0].action).toBe('deploy');
+    expect(result[0].change).toBe("appschema");
+    expect(result[0].action).toBe("deploy");
   });
 
-  it('parses revert action', () => {
+  it("parses revert action", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[2].change).toBe('users');
-    expect(result[2].action).toBe('revert');
+    expect(result[2].change).toBe("users");
+    expect(result[2].action).toBe("revert");
   });
 
-  it('parses change ID', () => {
+  it("parses change ID", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].changeId).toBe('abc123def456');
+    expect(result[0].changeId).toBe("abc123def456");
   });
 
-  it('parses committer', () => {
+  it("parses committer", () => {
     const result = parseLogOutput(LOG_OUTPUT);
     expect(result[0].committer).toEqual({
-      name: 'Marge',
-      email: 'marge@example.com',
+      name: "Marge",
+      email: "marge@example.com",
     });
   });
 
-  it('parses timestamp', () => {
+  it("parses timestamp", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].timestamp).toBe('2024-01-15T10:00:00Z');
+    expect(result[0].timestamp).toBe("2024-01-15T10:00:00Z");
   });
 
-  it('parses note', () => {
+  it("parses note", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].note).toBe('Add schema for all flipr objects');
+    expect(result[0].note).toBe("Add schema for all flipr objects");
   });
 
-  it('parses tags', () => {
+  it("parses tags", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].tags).toEqual(['v1.0.0']);
+    expect(result[0].tags).toEqual(["v1.0.0"]);
   });
 
-  it('parses empty tags', () => {
+  it("parses empty tags", () => {
     const result = parseLogOutput(LOG_OUTPUT);
     expect(result[1].tags).toEqual([]);
   });
 
-  it('parses requires', () => {
+  it("parses requires", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[1].requires).toEqual(['appschema']);
+    expect(result[1].requires).toEqual(["appschema"]);
   });
 
-  it('handles empty output', () => {
-    const result = parseLogOutput('');
+  it("handles empty output", () => {
+    const result = parseLogOutput("");
     expect(result).toEqual([]);
   });
 });
@@ -480,11 +493,11 @@ Expected: FAIL — module not found
 Create `src/lib/log-parser.ts`:
 
 ```typescript
-import type { LogEntry } from '../types/deployment';
+import type { LogEntry } from "../types/deployment";
 
 export function parseLogOutput(output: string): LogEntry[] {
   const entries: LogEntry[] = [];
-  const lines = output.split('\n');
+  const lines = output.split("\n");
   let current: Partial<LogEntry> | null = null;
 
   for (const line of lines) {
@@ -496,17 +509,28 @@ export function parseLogOutput(output: string): LogEntry[] {
       if (current && current.change) {
         entries.push(current as LogEntry);
       }
-      current = { change: changeMatch[1], tags: [], requires: [], conflicts: [] };
+      current = {
+        change: changeMatch[1],
+        tags: [],
+        requires: [],
+        conflicts: [],
+      };
       continue;
     }
 
     if (!current) continue;
 
     const idMatch = trimmed.match(/^ID:\s+(.+)$/);
-    if (idMatch) { current.changeId = idMatch[1]; continue; }
+    if (idMatch) {
+      current.changeId = idMatch[1];
+      continue;
+    }
 
     const actionMatch = trimmed.match(/^Action:\s+(deploy|revert)$/);
-    if (actionMatch) { current.action = actionMatch[1] as 'deploy' | 'revert'; continue; }
+    if (actionMatch) {
+      current.action = actionMatch[1] as "deploy" | "revert";
+      continue;
+    }
 
     const committerMatch = trimmed.match(/^Committed by\s+(.+?)\s+<(.+)>$/);
     if (committerMatch) {
@@ -515,15 +539,23 @@ export function parseLogOutput(output: string): LogEntry[] {
     }
 
     const dateMatch = trimmed.match(/^Date:\s+(.+)$/);
-    if (dateMatch) { current.timestamp = dateMatch[1]; continue; }
+    if (dateMatch) {
+      current.timestamp = dateMatch[1];
+      continue;
+    }
 
     const noteMatch = trimmed.match(/^Note:\s+(.*)$/);
-    if (noteMatch) { current.note = noteMatch[1]; continue; }
+    if (noteMatch) {
+      current.note = noteMatch[1];
+      continue;
+    }
 
     const tagsMatch = trimmed.match(/^Tags:\s*(.*)$/);
     if (tagsMatch) {
       const raw = tagsMatch[1].trim();
-      current.tags = raw ? raw.split(/\s+/).map(t => t.replace(/^@/, '')) : [];
+      current.tags = raw
+        ? raw.split(/\s+/).map((t) => t.replace(/^@/, ""))
+        : [];
       continue;
     }
 

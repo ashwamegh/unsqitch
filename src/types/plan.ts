@@ -1,4 +1,4 @@
-export type PlanEntryType = 'pragma' | 'change' | 'tag' | 'unparseable';
+export type PlanEntryType = "pragma" | "change" | "tag" | "unparseable";
 
 export interface PlanChange {
   name: string;

@@ -22,21 +22,21 @@ Renderer (React UI) ←→ Typed IPC ←→ Service Layer ←→ Sqitch CLI / Fi
 
 ## Tech Stack
 
-| Layer | Choice |
-|-------|--------|
-| Runtime | Electron 33+ |
-| Frontend | React 18 + TypeScript 5 |
-| Styling | Tailwind CSS v4 + shadcn/ui |
-| Build tool | electron-vite |
-| Terminal | xterm.js |
-| State management | Zustand |
-| IPC | Typed channels (shared types between main/renderer) |
-| File watching | chokidar |
-| App state DB | better-sqlite3 |
-| Testing - Unit | Vitest |
-| Testing - Integration | Vitest + Docker containers |
-| Testing - E2E | Playwright |
-| Packaging | electron-builder |
+| Layer                 | Choice                                              |
+| --------------------- | --------------------------------------------------- |
+| Runtime               | Electron 33+                                        |
+| Frontend              | React 18 + TypeScript 5                             |
+| Styling               | Tailwind CSS v4 + shadcn/ui                         |
+| Build tool            | electron-vite                                       |
+| Terminal              | xterm.js                                            |
+| State management      | Zustand                                             |
+| IPC                   | Typed channels (shared types between main/renderer) |
+| File watching         | chokidar                                            |
+| App state DB          | better-sqlite3                                      |
+| Testing - Unit        | Vitest                                              |
+| Testing - Integration | Vitest + Docker containers                          |
+| Testing - E2E         | Playwright                                          |
+| Packaging             | electron-builder                                    |
 
 ## Project Structure
 
@@ -92,6 +92,7 @@ unsqitch/
 Single-window application for v1. Sidebar stays persistent, main panel switches between views.
 
 **Navigation state machine:**
+
 ```
 home → project (click project card)
 project → home (click back button)
@@ -109,6 +110,7 @@ State is managed via Zustand store: `{ view: 'home' | 'project', projectId: stri
 ### Home View
 
 Project cards showing:
+
 - Project name (directory name)
 - Engine type
 - Number of planned changes
@@ -127,6 +129,7 @@ Sidebar navigation + main panel + collapsible terminal panel.
 **Sidebar sections:**
 
 Development (top group):
+
 - **Plan** — Read-only timeline view of sqitch.plan
 - **Deploy** — Form + preview + progress + terminal
 - **Revert** — Click-to-revert with confirmation
@@ -135,6 +138,7 @@ Development (top group):
 - **Log** — Chronological deployment history
 
 Setup (bottom group):
+
 - **Engine** — Add/remove/list engines
 - **Target** — URI builder + add/remove/list
 - **Config** — Section-based key/value editor (via sqitch config CLI)
@@ -166,6 +170,7 @@ UI Preview diffs plan vs status locally, no database connection, instant. Shows 
 **Before any destructive action (deploy, revert), the app forces a fresh `sqitch status` run against the target database** to ensure preview reflects actual state. Preview results are marked as "informational — verified before execution." The actual execution runs the sqitch command which re-checks state atomically.
 
 **Status cache lifecycle:**
+
 - **Populated:** On project open (first `sqitch status` call)
 - **Invalidated:** On window focus, after any deploy/revert/verify action, on manual section refresh, on file watcher change detection
 - **Fallback:** Stale banner only shows after window regains focus (not on a timer during active use). If status cache is older than 5 minutes when window regains focus, show subtle "Data may be outdated" banner with Refresh button This is safer than any CLI-based dry-run because it never touches the database.
@@ -177,12 +182,14 @@ Note: sqitch has no `--dry-run` flag. The `--log-only` flag exists but writes to
 Click any deployed change → "Revert to here" option. **"Revert to here" means the selected change remains deployed; all changes deployed after it are reverted.** This matches `sqitch revert <target> --to <change>` semantics — the `--to` change stays.
 
 Preview dialog shows:
+
 - List of changes that will be undone (with ✕ markers)
 - Natural language summary ("7 changes will remain deployed, including 'discounts'")
 - Generated command (when Show Commands is on): `sqitch revert <target> --to <change> -y`
 - Confirmation required
 
 **Revert edge cases:**
+
 - Revert the latest change only → `sqitch revert <target> --to <second_to_last_change> -y` (revert to the change before the latest, so only the latest is undone)
 - Revert the latest change (if only one deployed) → `sqitch revert <target> -y` (reverts all — only option since there's nothing to keep)
 - Revert to a tag → `sqitch revert <target> --to @v1.0.0 -y` (all changes after tag are reverted, tag stays)
@@ -195,12 +202,13 @@ Dependency-aware blocking: cannot revert a change that has dependent changes dep
 ### Plan View
 
 Timeline/story view with:
+
 - Numbered sequence of changes
 - Dependencies shown as "← requires X" (natural language)
 - Conflicts shown as "conflicts with X"
 - Tags (@v1.0.0) as visual separators/milestones
 - Click a change → read-only script view + open in external editor
-- + Add Change button at bottom
+- - Add Change button at bottom
 
 With Show Commands on: each change shows the `sqitch add` command that created it.
 
@@ -217,12 +225,14 @@ Click a change → detail panel with change ID, project, deployer, timestamp, ta
 ### Progress UI & Terminal Panel
 
 **Top of main panel** — Progress UI during operations:
+
 - Change-by-change status with timing (✔/⟳/⏳/✕)
 - Progress bar
 - Cancel button
 - On failure: error summary, View Full Log, Retry, Revert Successful options
 
 **Bottom panel** — Collapsible terminal using xterm.js:
+
 - Auto-opens when command starts
 - Stays open on failure (user closes manually or auto-closes on next successful command)
 - Streams raw sqitch stdout/stderr
@@ -234,6 +244,7 @@ Click a change → detail panel with change ID, project, deployer, timestamp, ta
 ### Setup Views
 
 **Init:** Accessible from Home page via "New Project" button. Form fields:
+
 - Project directory: file picker (must be empty or non-existent directory)
 - Engine: dropdown (postgresql, mysql, sqlite, cockroachdb, yugabytedb)
 - Project name: text input (defaults to directory name)
@@ -248,6 +259,7 @@ After init: project is opened in project view, and the user is prompted to add t
 **Engine:** Cards for configured engines with Edit/Remove. Add Engine form with engine type, database URI, client path, registry schema. Shows command when toggle is on.
 
 **Target:** URI builder that adapts per engine (user selects engine type from dropdown first):
+
 - PostgreSQL/CockroachDB/YugabyteDB: host, port, database, user, password → constructs `db:pg://`. Engine dropdown selection determines client path defaults and registry behavior (e.g., CockroachDB may use a different psql client path).
 - MySQL: host, port, database, user, password → constructs `db:mysql://`
 - SQLite: file path picker → constructs `db:sqlite:`
@@ -269,7 +281,7 @@ Shows constructed URI and generated command when toggle is on.
 ## Data Model
 
 ```typescript
-type PlanEntryType = 'pragma' | 'change' | 'tag' | 'unparseable';
+type PlanEntryType = "pragma" | "change" | "tag" | "unparseable";
 
 interface PlanEntry {
   type: PlanEntryType;
@@ -331,7 +343,7 @@ interface DeployedChange {
 interface LogEntry {
   change: string;
   changeId: string;
-  action: 'deploy' | 'revert';
+  action: "deploy" | "revert";
   timestamp: string;
   committer: { name: string; email: string };
   note: string;
@@ -351,24 +363,33 @@ interface ConfigEntry {
 // core.engine=pg        → { section: "core", subsection: undefined, key: "engine", value: "pg" }
 
 interface SqitchEvent {
-  type: 'deploy' | 'revert' | 'verify';
+  type: "deploy" | "revert" | "verify";
   change: string;
   target?: string;
-  status: 'ok' | 'failed' | 'running';
+  status: "ok" | "failed" | "running";
   rawLine: string;
 }
 
 type ErrorType =
-  | 'sqitch_crash'
-  | 'db_connection'
-  | 'file_permission'
-  | 'binary_not_found'
-  | 'partial_deployment'
-  | 'command_timeout'
-  | 'unknown';
+  | "sqitch_crash"
+  | "db_connection"
+  | "file_permission"
+  | "binary_not_found"
+  | "partial_deployment"
+  | "command_timeout"
+  | "unknown";
 
-type ErrorAction =
-  | { label: string; action: 'retry' | 'revert' | 'view_log' | 'check_connection' | 'open_settings' | 'open_file_manager' | 'refresh' };
+type ErrorAction = {
+  label: string;
+  action:
+    | "retry"
+    | "revert"
+    | "view_log"
+    | "check_connection"
+    | "open_settings"
+    | "open_file_manager"
+    | "refresh";
+};
 
 interface AppError {
   type: ErrorType;
@@ -394,6 +415,7 @@ interface Project {
 ### sqitch.plan Parser
 
 **Actual format** (single-line per entry):
+
 ```
 %syntax-version=1.0.0
 %project=my-app
@@ -406,6 +428,7 @@ new_auth [users !legacy_auth] 2024-01-17T09:00:00Z Marge N. O'Vera <marge@exampl
 ```
 
 **Parser rules:**
+
 - Pragmas: `/^%([\w-]+)=(.+)$/` → `{ pragmas[key] = value }`
 - Tags: `/^@([\w-]+)\s+(\S+)\s+([^<]*<[^>]+>)\s*(?:#\s*(.+))?$/` → `{ name, timestamp, planner, note }`
 - Changes: `/^([\w-]+)\s*(?:\[(.+?)\])?\s+(\S+)\s+([^<]*<[^>]+>)\s*(?:#\s*(.+))?$/` → `{ name, deps, conflicts, timestamp, planner, note }`
@@ -419,6 +442,7 @@ new_auth [users !legacy_auth] 2024-01-17T09:00:00Z Marge N. O'Vera <marge@exampl
 ### sqitch stdout Parser
 
 **Patterns:**
+
 - Deploy line: `/^\s*\+\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/`
 - Revert line: `/^\s*-\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/`
 - Verify line: `/^\s*\*\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/`
@@ -430,16 +454,16 @@ new_auth [users !legacy_auth] 2024-01-17T09:00:00Z Marge N. O'Vera <marge@exampl
 
 ### CLI Output → Data Model Mapping
 
-| UI Field | Source Command | Parsing Strategy |
-|----------|---------------|------------------|
-| Status dashboard (deployed/reverted/verified counts) | `sqitch status <target>` | Parse summary line + deployed change list |
-| DeployedChange (name, changeId, deployedAt, deployedBy) | `sqitch status <target>` | Parse each "Change: ..." block in status output |
-| DeployedChange.tags | `sqitch status <target>` + `sqitch log <target>` | Tags appear in status output per change |
-| DeployedChange.requires, conflicts | Plan file (not from DB) | Cross-reference plan parser output with deployed list |
-| LogEntry (all fields) | `sqitch log <target>` | Parse structured log output blocks |
-| ConfigEntry (all fields) | `sqitch config --list` | Key=value parsing |
-| Preview pending changes | `sqitch plan` + `sqitch status` diff | Local diff, no command needed |
-| Verify results per change | `sqitch verify <target>` stdout | stdout parser (verify lines) |
+| UI Field                                                | Source Command                                   | Parsing Strategy                                      |
+| ------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------- |
+| Status dashboard (deployed/reverted/verified counts)    | `sqitch status <target>`                         | Parse summary line + deployed change list             |
+| DeployedChange (name, changeId, deployedAt, deployedBy) | `sqitch status <target>`                         | Parse each "Change: ..." block in status output       |
+| DeployedChange.tags                                     | `sqitch status <target>` + `sqitch log <target>` | Tags appear in status output per change               |
+| DeployedChange.requires, conflicts                      | Plan file (not from DB)                          | Cross-reference plan parser output with deployed list |
+| LogEntry (all fields)                                   | `sqitch log <target>`                            | Parse structured log output blocks                    |
+| ConfigEntry (all fields)                                | `sqitch config --list`                           | Key=value parsing                                     |
+| Preview pending changes                                 | `sqitch plan` + `sqitch status` diff             | Local diff, no command needed                         |
+| Verify results per change                               | `sqitch verify <target>` stdout                  | stdout parser (verify lines)                          |
 
 **Note on `sqitch status` output:** Sqitch does not support `--format json` for status. Use `sqitch status <target> --show-changes --show-tags --date-format raw` for the most machine-parseable output. All status parsing must handle human-readable format. All parsers must be validated against real fixture outputs in tests.
 
@@ -448,6 +472,7 @@ new_auth [users !legacy_auth] 2024-01-17T09:00:00Z Marge N. O'Vera <marge@exampl
 **Input:** Output of `sqitch config --list` (flat key=value lines)
 
 **Parser rules:**
+
 - Line format: `section.subsection.key=value` or `section.key=value`
 - Split on first `=` only to handle values containing `=` (e.g., `core.uri=db:pg://user=me@host`)
 - Multiline values: `sqitch config --list` does not produce multiline output (it uses `\n` literal escaping). If encountered, collapse to single line by replacing literal `\n` with newline character on display.
@@ -457,16 +482,17 @@ new_auth [users !legacy_auth] 2024-01-17T09:00:00Z Marge N. O'Vera <marge@exampl
 
 ## Error Handling
 
-| Error Type | Detection | UI Response |
-|-----------|-----------|-------------|
-| sqitch crashes mid-deploy | Non-zero exit code | Show error, mark failed change, offer "Revert Successful" or "View Log" |
-| DB connection drops | sqitch connection error output | Show error with "Check Connection" and "Retry" |
-| File permissions | sqitch permission denied output | Show error with path, offer "Open in File Manager" |
-| sqitch not found | Binary path check fails before spawn | Show setup dialog |
-| Partial deployment | `sqitch status` shows deployed but not at head | Status shows "Partially deployed", offer "Deploy Remaining" or "Revert All" |
-| Command timeout | Process exceeds configurable timeout (default: 5 min) | Kill process, show timeout error with "Retry" or "Increase Timeout" |
+| Error Type                | Detection                                             | UI Response                                                                 |
+| ------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| sqitch crashes mid-deploy | Non-zero exit code                                    | Show error, mark failed change, offer "Revert Successful" or "View Log"     |
+| DB connection drops       | sqitch connection error output                        | Show error with "Check Connection" and "Retry"                              |
+| File permissions          | sqitch permission denied output                       | Show error with path, offer "Open in File Manager"                          |
+| sqitch not found          | Binary path check fails before spawn                  | Show setup dialog                                                           |
+| Partial deployment        | `sqitch status` shows deployed but not at head        | Status shows "Partially deployed", offer "Deploy Remaining" or "Revert All" |
+| Command timeout           | Process exceeds configurable timeout (default: 5 min) | Kill process, show timeout error with "Retry" or "Increase Timeout"         |
 
 All errors use the `AppError` structured type. Every error includes:
+
 - `type` — categorized error type
 - `message` — human-readable description
 - `sqitchOutput` — raw sqitch output when available
@@ -474,6 +500,7 @@ All errors use the `AppError` structured type. Every error includes:
 - `actions` — available recovery actions with labels
 
 Unknown errors (`type: 'unknown'`) surface to the user with:
+
 - Raw sqitch output in a collapsible section
 - "Copy Error Details" button (for pasting into issues)
 - "Report Issue" button (links to GitHub issues)
@@ -482,6 +509,7 @@ Unknown errors (`type: 'unknown'`) surface to the user with:
 ## File Watching
 
 Using chokidar to watch project files when a project is open:
+
 - Watch `sqitch.plan` → re-parse plan, update Plan view
 - Watch deploy/revert/verify script directories → reflect changes in script viewer
 - Debounce: 500ms to avoid thrashing on multi-file saves
@@ -504,6 +532,7 @@ If a destructive action is attempted on stale state (e.g., revert a change alrea
 Using `better-sqlite3` for `~/.unsqitch/app.db`:
 
 **Tables:**
+
 - **projects** — id, name, path, engine, lastOpened, changeCount, lastDeployment
 - **settings** — key, value
 - **recent_commands** — id, projectId, command, timestamp, exitCode
@@ -518,6 +547,7 @@ Note: better-sqlite3 requires native compilation. electron-builder must be confi
 ## Sqitch Binary Management
 
 On first launch:
+
 1. Detect binary: `which sqitch` on macOS/Linux, `where sqitch` on Windows (`process.platform === 'win32'`)
 2. If found: run `sqitch --version`, extract first semver match `(\d+\.\d+\.\d+)` from output, verify minimum version (v1.0.0+), verify engines, cache path
 3. If not found: show platform-appropriate install guidance + option to specify manual path + option to skip
@@ -537,13 +567,13 @@ V1: install guidance only (no auto-install). Auto-install deferred to v2.
 
 ## Engine Support (v1)
 
-| Engine | URI Format | Docker Image | Test Port |
-|--------|-----------|--------------|-----------|
-| PostgreSQL | db:pg:// | postgres:16 | 54231 |
-| MySQL | db:mysql:// | mysql:8 | 33072 |
-| SQLite | db:sqlite: | No Docker | N/A |
-| CockroachDB | db:pg:// | cockroachdb/cockroach:latest | 36257 |
-| YugabyteDB | db:pg:// | yugabytedb/yugabyte:latest | 54234 |
+| Engine      | URI Format  | Docker Image                 | Test Port |
+| ----------- | ----------- | ---------------------------- | --------- |
+| PostgreSQL  | db:pg://    | postgres:16                  | 54231     |
+| MySQL       | db:mysql:// | mysql:8                      | 33072     |
+| SQLite      | db:sqlite:  | No Docker                    | N/A       |
+| CockroachDB | db:pg://    | cockroachdb/cockroach:latest | 36257     |
+| YugabyteDB  | db:pg://    | yugabytedb/yugabyte:latest   | 54234     |
 
 All engines supported with engine-specific URI builders. Docker test setup includes all server-based engines.
 
@@ -556,12 +586,12 @@ All engines supported with engine-specific URI builders. Docker test setup inclu
 - **Production target protection** — targets tagged as "production" require typed confirmation + red warning
 - **UI doesn't expose delete buttons** for plan entries or scripts
 
-| Operation | Plan file | Scripts | Database |
-|-----------|-----------|---------|----------|
-| View | ✅ | ✅ (read-only) | ✅ |
-| Add | ✅ (sqitch add) | ✅ (sqitch add) | ✅ (deploy) |
-| Edit | ❌ | ❌ (open in external editor only) | ❌ |
-| Delete | ❌ | ❌ | ❌ (only revert) |
+| Operation | Plan file       | Scripts                           | Database         |
+| --------- | --------------- | --------------------------------- | ---------------- |
+| View      | ✅              | ✅ (read-only)                    | ✅               |
+| Add       | ✅ (sqitch add) | ✅ (sqitch add)                   | ✅ (deploy)      |
+| Edit      | ❌              | ❌ (open in external editor only) | ❌               |
+| Delete    | ❌              | ❌                                | ❌ (only revert) |
 
 ## Security
 
@@ -574,19 +604,19 @@ All engines supported with engine-specific URI builders. Docker test setup inclu
 
 ## V1 Command Coverage
 
-| Command | View | Operations |
-|---------|------|------------|
-| init | Home | Initialize new sqitch project in a directory |
-| add | Plan | Add change form + command builder |
-| plan | Plan | Read-only timeline view |
-| deploy | Deploy | Form + preview + progress + terminal |
-| revert | Status/Plan | Click-to-revert + confirmation |
-| verify | Verify | Run + results per change |
-| status | Status | Dashboard cards + changes list |
-| log | Log | Chronological deployment history |
-| engine | Engine | Add/remove/list engines |
-| target | Target | URI builder + add/remove/list |
-| config | Config | Section-based key/value editor via sqitch config CLI |
+| Command | View        | Operations                                           |
+| ------- | ----------- | ---------------------------------------------------- |
+| init    | Home        | Initialize new sqitch project in a directory         |
+| add     | Plan        | Add change form + command builder                    |
+| plan    | Plan        | Read-only timeline view                              |
+| deploy  | Deploy      | Form + preview + progress + terminal                 |
+| revert  | Status/Plan | Click-to-revert + confirmation                       |
+| verify  | Verify      | Run + results per change                             |
+| status  | Status      | Dashboard cards + changes list                       |
+| log     | Log         | Chronological deployment history                     |
+| engine  | Engine      | Add/remove/list engines                              |
+| target  | Target      | URI builder + add/remove/list                        |
+| config  | Config      | Section-based key/value editor via sqitch config CLI |
 
 **Not in v1:** rework, tag, bundle, checkout, rebase, check, upgrade. Architecture supports adding these later.
 
@@ -594,25 +624,25 @@ All engines supported with engine-specific URI builders. Docker test setup inclu
 
 Every UI action maps to an exact sqitch command:
 
-| UI Action | Generated Command |
-|-----------|-------------------|
-| Init project | `sqitch init <name> --engine <engine> --uri <uri> --top-dir <dir>` |
-| Add change | `sqitch add <name> -n "<note>" [-r <requires>]... [-x <conflicts>]...` |
-| Deploy all | `sqitch deploy <target> --verify` |
-| Deploy to change | `sqitch deploy <target> --to <change> --verify` |
-| Revert latest change | `sqitch revert <target> --to <second_to_last_change> -y` |
-| Revert to change | `sqitch revert <target> --to <change> -y` |
-| Verify | `sqitch verify <target>` |
-| Status | `sqitch status <target>` |
-| Log | `sqitch log <target>` |
-| Plan | `sqitch plan` |
-| Add engine | `sqitch engine add <name> --target <uri>` |
-| Remove engine | `sqitch engine remove <name>` |
-| Add target | `sqitch target add <name> --uri <uri>` |
-| Remove target | `sqitch target remove <name>` |
-| Read config | `sqitch config --list` |
-| Set config | `sqitch config <key> <value>` |
-| Unset config | `sqitch config --unset <key>` |
+| UI Action            | Generated Command                                                      |
+| -------------------- | ---------------------------------------------------------------------- |
+| Init project         | `sqitch init <name> --engine <engine> --uri <uri> --top-dir <dir>`     |
+| Add change           | `sqitch add <name> -n "<note>" [-r <requires>]... [-x <conflicts>]...` |
+| Deploy all           | `sqitch deploy <target> --verify`                                      |
+| Deploy to change     | `sqitch deploy <target> --to <change> --verify`                        |
+| Revert latest change | `sqitch revert <target> --to <second_to_last_change> -y`               |
+| Revert to change     | `sqitch revert <target> --to <change> -y`                              |
+| Verify               | `sqitch verify <target>`                                               |
+| Status               | `sqitch status <target>`                                               |
+| Log                  | `sqitch log <target>`                                                  |
+| Plan                 | `sqitch plan`                                                          |
+| Add engine           | `sqitch engine add <name> --target <uri>`                              |
+| Remove engine        | `sqitch engine remove <name>`                                          |
+| Add target           | `sqitch target add <name> --uri <uri>`                                 |
+| Remove target        | `sqitch target remove <name>`                                          |
+| Read config          | `sqitch config --list`                                                 |
+| Set config           | `sqitch config <key> <value>`                                          |
+| Unset config         | `sqitch config --unset <key>`                                          |
 
 All commands run with `--chdir <project_path>` to ensure correct working directory. Exception: `sqitch init` — if the project directory doesn't exist, create it first (`fs.mkdir`), then run `sqitch init <name> --engine <engine> --uri <uri> --top-dir <dir>` with `--chdir` pointing to the new directory. If the directory exists but is empty, run init directly with `--chdir`.
 
@@ -621,6 +651,7 @@ All commands run with `--chdir <project_path>` to ensure correct working directo
 Docker Compose runs Postgres (54231), MySQL (33072), CockroachDB (36257), YugabyteDB (54234) for testing. All ports are non-default to avoid conflicts with local installs.
 
 Testing layers:
+
 - **Unit:** Services, parsers, React components (no Docker)
 - **Integration:** Docker containers, real sqitch commands against live databases
 - **E2E:** Playwright against full Electron app

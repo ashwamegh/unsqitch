@@ -1,113 +1,359 @@
-import { useState } from 'react';
-import { useNavigationStore, type Section } from '../../store/navigation';
-import { useProjectStore } from '../../store/project';
-import { AddChangeForm } from '../plan/AddChangeForm';
-import { SettingsDialog } from '../shared/SettingsDialog';
+import {
+  Activity,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  FileText,
+  HelpCircle,
+  History,
+  Info,
+  Layers,
+  Plus,
+  RotateCcw,
+  Settings,
+  Sliders,
+  Target,
+  Terminal,
+} from "lucide-react";
+import { useState } from "react";
+import { type Section, useNavigationStore } from "../../store/navigation";
+import { useProjectStore } from "../../store/project";
+import { AddChangeForm } from "../plan/AddChangeForm";
+import { SettingsDialog } from "../shared/SettingsDialog";
 
-const devSections: { id: Section; label: string }[] = [
-  { id: 'plan', label: 'Plan' },
-  { id: 'deploy', label: 'Deploy' },
-  { id: 'revert', label: 'Revert' },
-  { id: 'status', label: 'Status' },
-  { id: 'verify', label: 'Verify' },
-  { id: 'log', label: 'Log' },
+interface SectionConfig {
+  id: Section;
+  label: string;
+  icon: any;
+}
+
+const devSections: SectionConfig[] = [
+  { id: "plan", label: "Plan", icon: FileText },
+  { id: "deploy", label: "Deploy", icon: Layers },
+  { id: "revert", label: "Revert", icon: RotateCcw },
+  { id: "status", label: "Status", icon: Activity },
+  { id: "verify", label: "Verify", icon: CheckCircle2 },
+  { id: "log", label: "Log", icon: History },
 ];
 
-const setupSections: { id: Section; label: string }[] = [
-  { id: 'engine', label: 'Engine' },
-  { id: 'target', label: 'Target' },
-  { id: 'config', label: 'Config' },
+const setupSections: SectionConfig[] = [
+  { id: "engine", label: "Engine", icon: Database },
+  { id: "target", label: "Target", icon: Target },
+  { id: "config", label: "Config", icon: Sliders },
 ];
 
 export function Sidebar() {
-  const { view, section, setSection, goHome, showCommands, toggleShowCommands, commandTooltipDismissed, dismissCommandTooltip } = useNavigationStore();
+  const {
+    view,
+    section,
+    setSection,
+    goHome,
+    showCommands,
+    toggleShowCommands,
+    commandTooltipDismissed,
+    dismissCommandTooltip,
+    sidebarCollapsed,
+    toggleSidebar,
+  } = useNavigationStore();
+
   const currentProject = useProjectStore((s) =>
-    s.projects.find((p) => p.id === s.currentProjectId)
+    s.projects.find((p) => p.id === s.currentProjectId),
   );
   const [addChangeOpen, setAddChangeOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  if (view === 'home') {
+  // --- Render for Home Page (Project Selector) ---
+  if (view === "home") {
     return (
-      <aside className="w-56 border-r bg-muted/30 flex flex-col p-4">
-        <h1 className="text-lg font-semibold mb-4">UnSqitch</h1>
-        <p className="text-sm text-muted-foreground">Select or open a project</p>
+      <aside
+        className={`border-r border-border bg-card/60 flex flex-col glass-panel transition-all duration-300 ${
+          sidebarCollapsed ? "w-16 px-2 py-4 items-center" : "w-64 p-6"
+        }`}
+      >
+        {!sidebarCollapsed ? (
+          <>
+            <div className="flex items-center gap-3 mb-6 w-full">
+              <div className="p-2 bg-primary/10 rounded-xl text-primary">
+                <Layers className="stroke-[2.2]" size={22} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-foreground/90">UnSqitch</h1>
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                  migration manager
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col justify-center text-center p-4 rounded-xl border border-dashed border-border bg-muted/10 w-full mb-6">
+              <HelpCircle className="mx-auto text-muted-foreground/60 mb-2" size={24} />
+              <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                Select or open a project to display migration operations
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center gap-6 w-full">
+            <div className="p-2 bg-primary/10 rounded-xl text-primary" title="UnSqitch">
+              <Layers className="stroke-[2.2]" size={22} />
+            </div>
+          </div>
+        )}
+
+        <div className={`flex flex-col gap-2.5 w-full ${sidebarCollapsed ? "items-center" : ""}`}>
+          {/* Toggle Sidebar */}
+          <button
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            className={`flex items-center transition-all cursor-pointer ${
+              sidebarCollapsed
+                ? "w-10 h-10 justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                : "w-full gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-accent/30"
+            }`}
+          >
+            {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+            {!sidebarCollapsed && "Collapse Sidebar"}
+          </button>
+
+          {/* Settings */}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            title={sidebarCollapsed ? "Settings" : undefined}
+            className={`flex items-center transition-all cursor-pointer ${
+              sidebarCollapsed
+                ? "w-10 h-10 justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                : "w-full gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-accent/30"
+            }`}
+          >
+            <Settings size={14} />
+            {!sidebarCollapsed && "Settings"}
+          </button>
+        </div>
+
+        <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </aside>
     );
   }
 
+  // --- Render for Project Page ---
   return (
-    <aside className="w-56 border-r bg-muted/30 flex flex-col">
-      <div className="p-4 border-b">
-        <button
-          onClick={goHome}
-          className="text-sm text-muted-foreground hover:text-foreground mb-2"
-        >
-          Back
-        </button>
-        <h2 className="text-sm font-semibold truncate">{currentProject?.name ?? 'Project'}</h2>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-2">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mb-1">Development</p>
-        {devSections.map((s) => (
+    <aside
+      className={`border-r border-border bg-card/60 flex flex-col glass-panel transition-all duration-300 ${
+        sidebarCollapsed ? "w-16 px-2 py-4" : "w-64"
+      }`}
+    >
+      {/* Brand Header */}
+      {!sidebarCollapsed ? (
+        <div className="p-5 border-b border-border flex flex-col gap-4">
           <button
-            key={s.id}
-            onClick={() => setSection(s.id)}
-            className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-              section === s.id ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+            onClick={goHome}
+            className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors cursor-pointer w-max"
+          >
+            <ArrowLeft size={14} className="stroke-[2.5]" />
+            Back to Projects
+          </button>
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+              <Layers className="stroke-[2.2]" size={16} />
+            </div>
+            <h2
+              className="text-sm font-bold text-foreground/90 truncate flex-1"
+              title={currentProject?.name}
+            >
+              {currentProject?.name ?? "Project"}
+            </h2>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 items-center pb-4 border-b border-border w-full">
+          <button
+            onClick={goHome}
+            title="Back to Projects"
+            className="p-2 hover:bg-accent/40 rounded-xl text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+          >
+            <ArrowLeft size={16} className="stroke-[2.5]" />
+          </button>
+          <div className="p-1.5 bg-primary/10 rounded-lg text-primary" title={currentProject?.name}>
+            <Layers className="stroke-[2.2]" size={16} />
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Groups */}
+      <div
+        className={`flex-1 flex flex-col ${sidebarCollapsed ? "gap-4 py-4 w-full" : "overflow-y-auto p-3 gap-5"}`}
+      >
+        {/* Development Section */}
+        <div className="w-full">
+          {!sidebarCollapsed && (
+            <p className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-widest px-3 mb-2">
+              Development
+            </p>
+          )}
+          <div className={`flex flex-col gap-0.5 ${sidebarCollapsed ? "items-center" : ""}`}>
+            {devSections.map((s) => {
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSection(s.id)}
+                  title={sidebarCollapsed ? s.label : undefined}
+                  className={`flex items-center transition-all cursor-pointer ${
+                    sidebarCollapsed
+                      ? `w-10 h-10 justify-center rounded-xl ${
+                          section === s.id
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/15"
+                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        }`
+                      : `w-full gap-3 px-3 py-2 rounded-xl text-xs font-semibold ${
+                          section === s.id
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/15"
+                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        }`
+                  }`}
+                >
+                  <Icon size={16} className={section === s.id ? "stroke-[2.2]" : "stroke-[1.8]"} />
+                  {!sidebarCollapsed && s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Setup Section */}
+        <div className="w-full">
+          {!sidebarCollapsed && (
+            <p className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-widest px-3 mb-2">
+              Setup
+            </p>
+          )}
+          <div className={`flex flex-col gap-0.5 ${sidebarCollapsed ? "items-center" : ""}`}>
+            {setupSections.map((s) => {
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSection(s.id)}
+                  title={sidebarCollapsed ? s.label : undefined}
+                  className={`flex items-center transition-all cursor-pointer ${
+                    sidebarCollapsed
+                      ? `w-10 h-10 justify-center rounded-xl ${
+                          section === s.id
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/15"
+                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        }`
+                      : `w-full gap-3 px-3 py-2 rounded-xl text-xs font-semibold ${
+                          section === s.id
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/15"
+                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        }`
+                  }`}
+                >
+                  <Icon size={16} className={section === s.id ? "stroke-[2.2]" : "stroke-[1.8]"} />
+                  {!sidebarCollapsed && s.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Add Change Button */}
+        <div className={sidebarCollapsed ? "flex justify-center w-full" : "px-1"}>
+          <button
+            onClick={() => setAddChangeOpen(true)}
+            title={sidebarCollapsed ? "Add Change" : undefined}
+            className={`flex items-center justify-center transition-all cursor-pointer active:scale-[0.98] ${
+              sidebarCollapsed
+                ? "w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-600/95 text-primary-foreground shadow-md shadow-primary/10"
+                : "w-full gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-600/95 text-primary-foreground shadow-md shadow-primary/10 mt-2"
             }`}
           >
-            {s.label}
+            <Plus size={15} />
+            {!sidebarCollapsed && "Add Change"}
           </button>
-        ))}
+        </div>
 
-        <p className="text-xs text-muted-foreground uppercase tracking-wider px-2 mt-4 mb-1">Setup</p>
-        {setupSections.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setSection(s.id)}
-            className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-              section === s.id ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
-
-        <button
-          onClick={() => setAddChangeOpen(true)}
-          className="w-full text-left px-2 py-1.5 rounded text-sm bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
-        >
-          + Add Change
-        </button>
         <AddChangeForm open={addChangeOpen} onClose={() => setAddChangeOpen(false)} />
       </div>
 
-      <div className="p-3 border-t">
-        <div className="relative">
+      {/* Footer Settings & Tooltip */}
+      <div
+        className={`border-t border-border flex flex-col gap-2.5 ${
+          sidebarCollapsed ? "w-full items-center py-4 px-1" : "p-4"
+        }`}
+      >
+        {/* CLI Inspector Toggle */}
+        <div className={sidebarCollapsed ? "w-full flex justify-center" : "relative"}>
           <button
             onClick={toggleShowCommands}
-            className={`text-xs px-2 py-1 rounded border ${
-              showCommands ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+            title={sidebarCollapsed ? "Show Commands" : undefined}
+            className={`flex items-center justify-center transition-all cursor-pointer ${
+              sidebarCollapsed
+                ? `w-10 h-10 rounded-xl border ${
+                    showCommands
+                      ? "bg-accent/80 text-foreground border-border/80"
+                      : "text-muted-foreground border-border/40 hover:bg-accent/30 hover:border-border/80"
+                  }`
+                : `w-full gap-2 text-[11px] font-bold px-3 py-2 rounded-xl border ${
+                    showCommands
+                      ? "bg-accent/80 text-foreground border-border/80"
+                      : "text-muted-foreground border-border/40 hover:bg-accent/30 hover:border-border/80"
+                  }`
             }`}
           >
-            Show Commands
+            <Terminal size={13} />
+            {!sidebarCollapsed && "Show Commands"}
           </button>
-          {!commandTooltipDismissed && !showCommands && (
-            <div className="absolute bottom-full left-0 mb-2 bg-popover text-popover-foreground border rounded px-2 py-1 text-xs w-48 shadow-md">
-              Toggle this to see the exact sqitch CLI commands behind each action.
-              <button onClick={dismissCommandTooltip} className="ml-1 text-muted-foreground hover:text-foreground">X</button>
+          {!sidebarCollapsed && !commandTooltipDismissed && !showCommands && (
+            <div className="absolute bottom-full left-0 right-0 mb-3 bg-popover text-popover-foreground border border-border/85 rounded-xl p-3 text-xs shadow-xl glass-panel flex flex-col gap-2 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="flex items-start justify-between">
+                <span className="font-semibold text-foreground flex items-center gap-1">
+                  <Info size={13} className="text-primary" />
+                  CLI Inspector
+                </span>
+                <button
+                  onClick={dismissCommandTooltip}
+                  className="text-muted-foreground hover:text-foreground cursor-pointer text-xs font-bold p-0.5 rounded-md hover:bg-accent/40"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-[11px] leading-normal text-muted-foreground font-medium">
+                Toggle this to display the exact Sqitch CLI commands being run in the background.
+              </p>
             </div>
           )}
         </div>
+
+        {/* Toggle Collapse/Expand Button */}
+        <button
+          onClick={toggleSidebar}
+          title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          className={`flex items-center transition-all cursor-pointer ${
+            sidebarCollapsed
+              ? "w-10 h-10 justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              : "w-full gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-accent/30"
+          }`}
+        >
+          {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          {!sidebarCollapsed && "Collapse Sidebar"}
+        </button>
+
+        {/* Settings Button */}
+        <button
+          onClick={() => setSettingsOpen(true)}
+          title={sidebarCollapsed ? "Settings" : undefined}
+          className={`flex items-center transition-all cursor-pointer ${
+            sidebarCollapsed
+              ? "w-10 h-10 justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              : "w-full gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-accent/30"
+          }`}
+        >
+          <Settings size={14} />
+          {!sidebarCollapsed && "Settings"}
+        </button>
       </div>
-      <button
-        onClick={() => setSettingsOpen(true)}
-        className="text-sm text-muted-foreground hover:text-foreground mt-2 mx-3 mb-2"
-      >
-        Settings
-      </button>
+
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </aside>
   );

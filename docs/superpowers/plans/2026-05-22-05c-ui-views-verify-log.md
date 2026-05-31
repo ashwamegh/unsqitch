@@ -11,22 +11,25 @@
 ### Task 1: Implement Verify view
 
 **Files:**
+
 - Create: `src/pages/ProjectPage/VerifyView.tsx`
 
 - [ ] **Step 1: Create VerifyView**
 
 ```tsx
-import { useState } from 'react';
-import { useProjectStore } from '../../store/project';
-import { useNavigationStore } from '../../store/navigation';
-import { useIpc } from '../../hooks/useIpc';
+import { useState } from "react";
+import { useProjectStore } from "../../store/project";
+import { useNavigationStore } from "../../store/navigation";
+import { useIpc } from "../../hooks/useIpc";
 
 export function VerifyView() {
   const { currentProjectId, projects, isRunning } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState('');
-  const [results, setResults] = useState<Array<{ change: string; status: string; raw: string }>>([]);
+  const [target, setTarget] = useState("");
+  const [results, setResults] = useState<
+    Array<{ change: string; status: string; raw: string }>
+  >([]);
   const [error, setError] = useState<string | null>(null);
 
   const project = projects.find((p) => p.id === currentProjectId);
@@ -39,7 +42,7 @@ export function VerifyView() {
       const result = await ipc.sqitchVerify(project.path, target);
       setResults((result as any).events || []);
     } catch (err: any) {
-      setError(err.message || 'Verify failed');
+      setError(err.message || "Verify failed");
     } finally {
       useProjectStore.getState().setRunning(false);
     }
@@ -63,7 +66,7 @@ export function VerifyView() {
           disabled={isRunning || !target}
           className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 mt-5"
         >
-          {isRunning ? 'Verifying...' : 'Run Verify'}
+          {isRunning ? "Verifying..." : "Run Verify"}
         </button>
       </div>
 
@@ -74,14 +77,21 @@ export function VerifyView() {
       )}
 
       {error && (
-        <div className="mb-4 p-3 border border-destructive rounded text-sm text-destructive">{error}</div>
+        <div className="mb-4 p-3 border border-destructive rounded text-sm text-destructive">
+          {error}
+        </div>
       )}
 
       {results.length > 0 && (
         <div className="space-y-1">
           {results.map((r, i) => (
-            <div key={i} className="flex items-center gap-2 border rounded px-3 py-2 text-xs">
-              <span>{r.status === 'ok' ? '✔' : r.status === 'not_ok' ? '✕' : '⟳'}</span>
+            <div
+              key={i}
+              className="flex items-center gap-2 border rounded px-3 py-2 text-xs"
+            >
+              <span>
+                {r.status === "ok" ? "✔" : r.status === "not_ok" ? "✕" : "⟳"}
+              </span>
               <span className="font-mono">{r.change}</span>
               <span className="text-muted-foreground">{r.status}</span>
             </div>
@@ -109,22 +119,23 @@ git commit -m "feat: implement Verify view with per-change results"
 ### Task 2: Implement Log view
 
 **Files:**
+
 - Create: `src/pages/ProjectPage/LogView.tsx`
 
 - [ ] **Step 1: Create LogView**
 
 ```tsx
-import { useState } from 'react';
-import { useProjectStore } from '../../store/project';
-import { useNavigationStore } from '../../store/navigation';
-import { useIpc } from '../../hooks/useIpc';
-import type { LogEntry } from '../../types/deployment';
+import { useState } from "react";
+import { useProjectStore } from "../../store/project";
+import { useNavigationStore } from "../../store/navigation";
+import { useIpc } from "../../hooks/useIpc";
+import type { LogEntry } from "../../types/deployment";
 
 export function LogView() {
   const { currentProjectId, projects, isRunning } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState('');
+  const [target, setTarget] = useState("");
   const [entries, setEntries] = useState<LogEntry[]>([]);
 
   const project = projects.find((p) => p.id === currentProjectId);
@@ -136,7 +147,7 @@ export function LogView() {
       const result = await ipc.sqitchLog(project.path, target);
       setEntries(result as any);
     } catch (err) {
-      console.error('Log fetch failed:', err);
+      console.error("Log fetch failed:", err);
     } finally {
       useProjectStore.getState().setRunning(false);
     }
@@ -160,7 +171,7 @@ export function LogView() {
           disabled={isRunning || !target}
           className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50 mt-5"
         >
-          {isRunning ? 'Loading...' : 'Fetch Log'}
+          {isRunning ? "Loading..." : "Fetch Log"}
         </button>
       </div>
 
@@ -175,12 +186,18 @@ export function LogView() {
           <div key={i} className="border rounded p-3">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <span className={`text-xs px-1.5 py-0.5 rounded ${entry.action === 'deploy' ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded ${entry.action === "deploy" ? "bg-green-500/20 text-green-600" : "bg-red-500/20 text-red-600"}`}
+                >
                   {entry.action}
                 </span>
-                <span className="font-mono text-sm font-medium">{entry.change}</span>
+                <span className="font-mono text-sm font-medium">
+                  {entry.change}
+                </span>
               </div>
-              <span className="text-xs text-muted-foreground">{entry.timestamp}</span>
+              <span className="text-xs text-muted-foreground">
+                {entry.timestamp}
+              </span>
             </div>
             <div className="text-xs text-muted-foreground">
               {entry.committer.name} &lt;{entry.committer.email}&gt;
@@ -189,7 +206,10 @@ export function LogView() {
             {entry.tags.length > 0 && (
               <div className="flex gap-1 mt-1">
                 {entry.tags.map((t) => (
-                  <span key={t} className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                  <span
+                    key={t}
+                    className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded"
+                  >
                     @{t}
                   </span>
                 ))}

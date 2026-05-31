@@ -1,6 +1,6 @@
-import type { PlanFile } from '../../types/plan';
-import { PlanEntry } from './PlanEntry';
-import { UnparseableWarning } from './UnparseableWarning';
+import type { PlanFile } from "../../types/plan";
+import { PlanEntry } from "./PlanEntry";
+import { UnparseableWarning } from "./UnparseableWarning";
 
 interface PlanTimelineProps {
   plan: PlanFile;
@@ -14,7 +14,12 @@ export function PlanTimeline({ plan, showCommand, projectPath }: PlanTimelinePro
       <UnparseableWarning lines={plan.unparseableLines} />
       <div className="space-y-0.5">
         {plan.entries.map((entry) => (
-          <PlanEntry key={entry.index} entry={entry} showCommand={showCommand} projectPath={projectPath} />
+          <PlanEntry
+            key={entry.index}
+            entry={entry}
+            showCommand={showCommand}
+            projectPath={projectPath}
+          />
         ))}
       </div>
     </div>

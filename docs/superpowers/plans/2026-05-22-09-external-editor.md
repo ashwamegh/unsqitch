@@ -13,6 +13,7 @@
 ### Task 1: Add editor IPC channels and preload methods
 
 **Files:**
+
 - Modify: `electron/shared/ipc-types.ts`
 - Modify: `electron/preload.ts`
 
@@ -63,6 +64,7 @@ git commit -m "feat: add editor IPC channels and preload methods"
 ### Task 2: Implement editor service
 
 **Files:**
+
 - Create: `electron/services/editor.service.ts`
 - Create: `tests/unit/editor.service.test.ts`
 
@@ -71,16 +73,16 @@ git commit -m "feat: add editor IPC channels and preload methods"
 Create `tests/unit/editor.service.test.ts`:
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock('child_process', () => ({
+vi.mock("child_process", () => ({
   spawn: vi.fn(),
 }));
 
-import { spawn } from 'child_process';
-import { EditorService } from '../../electron/services/editor.service';
+import { spawn } from "child_process";
+import { EditorService } from "../../electron/services/editor.service";
 
-describe('EditorService', () => {
+describe("EditorService", () => {
   let service: EditorService;
 
   beforeEach(() => {
@@ -88,39 +90,43 @@ describe('EditorService', () => {
     service = new EditorService();
   });
 
-  it('detects editor from VISUAL env var', () => {
-    process.env.VISUAL = 'vim';
-    process.env.EDITOR = 'nano';
+  it("detects editor from VISUAL env var", () => {
+    process.env.VISUAL = "vim";
+    process.env.EDITOR = "nano";
     const result = service.detectEditor();
-    expect(result.command).toBe('vim');
-    expect(result.name).toBe('Vim');
+    expect(result.command).toBe("vim");
+    expect(result.name).toBe("Vim");
   });
 
-  it('falls back to EDITOR env var', () => {
+  it("falls back to EDITOR env var", () => {
     delete process.env.VISUAL;
-    process.env.EDITOR = 'nano';
+    process.env.EDITOR = "nano";
     const result = service.detectEditor();
-    expect(result.command).toBe('nano');
-    expect(result.name).toBe('Nano');
+    expect(result.command).toBe("nano");
+    expect(result.name).toBe("Nano");
   });
 
-  it('falls back to platform default (code)', () => {
+  it("falls back to platform default (code)", () => {
     delete process.env.VISUAL;
     delete process.env.EDITOR;
     const result = service.detectEditor();
-    expect(result.command).toBe('code');
-    expect(result.name).toBe('VS Code');
+    expect(result.command).toBe("code");
+    expect(result.name).toBe("VS Code");
   });
 
-  it('spawns editor with file path', () => {
-    service.editorCommand = 'code';
-    service.openFile('/project/deploy/users.sql');
-    expect(spawn).toHaveBeenCalledWith('code', ['/project/deploy/users.sql'], expect.objectContaining({ detached: true }));
+  it("spawns editor with file path", () => {
+    service.editorCommand = "code";
+    service.openFile("/project/deploy/users.sql");
+    expect(spawn).toHaveBeenCalledWith(
+      "code",
+      ["/project/deploy/users.sql"],
+      expect.objectContaining({ detached: true }),
+    );
   });
 
-  it('derives name from custom path', () => {
-    const result = service.deriveEditorName('/usr/local/bin/sublime-text');
-    expect(result).toBe('sublime-text');
+  it("derives name from custom path", () => {
+    const result = service.deriveEditorName("/usr/local/bin/sublime-text");
+    expect(result).toBe("sublime-text");
   });
 });
 ```
@@ -138,8 +144,8 @@ Expected: FAIL — module not found
 Create `electron/services/editor.service.ts`:
 
 ```typescript
-import { spawn } from 'child_process';
-import path from 'path';
+import { spawn } from "child_process";
+import path from "path";
 
 export class EditorService {
   editorCommand: string | null = null;
@@ -158,9 +164,12 @@ export class EditorService {
       return { command: editor, name: this.deriveEditorName(editor) };
     }
 
-    const defaultEditor = process.platform === 'win32' ? 'notepad' : 'code';
+    const defaultEditor = process.platform === "win32" ? "notepad" : "code";
     this.editorCommand = defaultEditor;
-    return { command: defaultEditor, name: this.deriveEditorName(defaultEditor) };
+    return {
+      command: defaultEditor,
+      name: this.deriveEditorName(defaultEditor),
+    };
   }
 
   openFile(filePath: string): void {
@@ -169,7 +178,7 @@ export class EditorService {
 
     const child = spawn(command, [filePath], {
       detached: true,
-      stdio: 'ignore',
+      stdio: "ignore",
     });
     child.unref();
   }
@@ -177,13 +186,13 @@ export class EditorService {
   deriveEditorName(command: string): string {
     const base = path.basename(command);
     const nameMap: Record<string, string> = {
-      'code': 'VS Code',
-      'vim': 'Vim',
-      'nvim': 'Neovim',
-      'nano': 'Nano',
-      'emacs': 'Emacs',
-      'subl': 'Sublime Text',
-      'notepad': 'Notepad',
+      code: "VS Code",
+      vim: "Vim",
+      nvim: "Neovim",
+      nano: "Nano",
+      emacs: "Emacs",
+      subl: "Sublime Text",
+      notepad: "Notepad",
     };
     return nameMap[base] || base;
   }
@@ -210,6 +219,7 @@ git commit -m "feat: implement EditorService with detection and file launch"
 ### Task 3: Wire editor service in main.ts and add toast notification
 
 **Files:**
+
 - Modify: `electron/main.ts`
 - Create: `src/components/shared/Toast.tsx`
 
@@ -218,7 +228,7 @@ git commit -m "feat: implement EditorService with detection and file launch"
 Add import and initialization:
 
 ```typescript
-import { EditorService } from './services/editor.service';
+import { EditorService } from "./services/editor.service";
 // ... alongside other service initialization:
 let editorService: EditorService;
 
@@ -230,14 +240,22 @@ editorService.detectEditor();
 Add IPC handlers:
 
 ```typescript
-  ipcMain.handle(IPC_CHANNELS.EDITOR_DETECT, async () => {
-    return editorService.detectEditor();
-  });
+ipcMain.handle(IPC_CHANNELS.EDITOR_DETECT, async () => {
+  return editorService.detectEditor();
+});
 
-  ipcMain.handle(IPC_CHANNELS.EDITOR_OPEN_FILE, async (_event, request: { filePath: string }) => {
+ipcMain.handle(
+  IPC_CHANNELS.EDITOR_OPEN_FILE,
+  async (_event, request: { filePath: string }) => {
     editorService.openFile(request.filePath);
-    return { success: true, editorName: editorService.deriveEditorName(editorService.editorCommand || 'code') };
-  });
+    return {
+      success: true,
+      editorName: editorService.deriveEditorName(
+        editorService.editorCommand || "code",
+      ),
+    };
+  },
+);
 ```
 
 - [ ] **Step 2: Create Toast component for editor launch feedback**
@@ -245,7 +263,7 @@ Add IPC handlers:
 Create `src/components/shared/Toast.tsx`:
 
 ```tsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 interface ToastMessage {
   id: number;
@@ -283,7 +301,10 @@ export function ToastContainer() {
   return (
     <div className="fixed bottom-4 right-4 z-50 space-y-2">
       {toasts.map((toast) => (
-        <div key={toast.id} className="bg-foreground text-background px-4 py-2 rounded shadow-lg text-sm animate-in fade-in slide-in-from-bottom-2">
+        <div
+          key={toast.id}
+          className="bg-foreground text-background px-4 py-2 rounded shadow-lg text-sm animate-in fade-in slide-in-from-bottom-2"
+        >
           {toast.text}
         </div>
       ))}
@@ -297,7 +318,7 @@ export function ToastContainer() {
 Add `<ToastContainer />` at the bottom of `AppLayout`:
 
 ```tsx
-import { ToastContainer } from '../shared/Toast';
+import { ToastContainer } from "../shared/Toast";
 
 export function AppLayout() {
   return (

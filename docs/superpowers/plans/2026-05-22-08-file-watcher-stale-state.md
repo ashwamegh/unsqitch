@@ -13,6 +13,7 @@
 ### Task 1: Add IPC channels for file watching events
 
 **Files:**
+
 - Modify: `electron/shared/ipc-types.ts`
 - Modify: `electron/preload.ts`
 
@@ -30,9 +31,9 @@ Add a new type:
 ```typescript
 export interface WatchEventPayload {
   projectPath: string;
-  type: 'plan' | 'script';
+  type: "plan" | "script";
   filePath: string;
-  action: 'change' | 'add' | 'unlink';
+  action: "change" | "add" | "unlink";
 }
 ```
 
@@ -62,6 +63,7 @@ git commit -m "feat: add file watcher IPC channels and preload listener"
 ### Task 2: Implement FileWatcherService
 
 **Files:**
+
 - Create: `electron/services/file-watcher.service.ts`
 - Create: `tests/unit/file-watcher.service.test.ts`
 
@@ -70,19 +72,19 @@ git commit -m "feat: add file watcher IPC channels and preload listener"
 Create `tests/unit/file-watcher.service.test.ts`:
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock('chokidar', () => ({
+vi.mock("chokidar", () => ({
   watch: vi.fn(() => ({
     on: vi.fn().mockReturnThis(),
     close: vi.fn(),
   })),
 }));
 
-import { watch } from 'chokidar';
-import { FileWatcherService } from '../../electron/services/file-watcher.service';
+import { watch } from "chokidar";
+import { FileWatcherService } from "../../electron/services/file-watcher.service";
 
-describe('FileWatcherService', () => {
+describe("FileWatcherService", () => {
   let service: FileWatcherService;
   const onEvent = vi.fn();
 
@@ -91,33 +93,42 @@ describe('FileWatcherService', () => {
     service = new FileWatcherService(onEvent);
   });
 
-  it('starts watching a project directory', () => {
-    service.start('/project');
+  it("starts watching a project directory", () => {
+    service.start("/project");
     expect(watch).toHaveBeenCalledWith(
-      ['/project/sqitch.plan', '/project/deploy', '/project/revert', '/project/verify'],
+      [
+        "/project/sqitch.plan",
+        "/project/deploy",
+        "/project/revert",
+        "/project/verify",
+      ],
       expect.objectContaining({
         ignoreInitial: true,
         atomic: true,
         awaitWriteFinish: { stabilityThreshold: 500 },
-        ignored: expect.arrayContaining(['**/.git/**', '**/node_modules/**', '**/*.tmp']),
-      })
+        ignored: expect.arrayContaining([
+          "**/.git/**",
+          "**/node_modules/**",
+          "**/*.tmp",
+        ]),
+      }),
     );
   });
 
-  it('stops watching', () => {
-    service.start('/project');
-    service.stop('/project');
+  it("stops watching", () => {
+    service.start("/project");
+    service.stop("/project");
   });
 
-  it('does not start duplicate watchers', () => {
-    service.start('/project');
-    service.start('/project');
+  it("does not start duplicate watchers", () => {
+    service.start("/project");
+    service.start("/project");
     expect(watch).toHaveBeenCalledTimes(1);
   });
 
-  it('stops all watchers on stopAll', () => {
-    service.start('/project-a');
-    service.start('/project-b');
+  it("stops all watchers on stopAll", () => {
+    service.start("/project-a");
+    service.start("/project-b");
     service.stopAll();
   });
 });
@@ -136,9 +147,9 @@ Expected: FAIL — module not found
 Create `electron/services/file-watcher.service.ts`:
 
 ```typescript
-import chokidar, { FSWatcher } from 'chokidar';
-import path from 'path';
-import type { WatchEventPayload } from '../shared/ipc-types';
+import chokidar, { FSWatcher } from "chokidar";
+import path from "path";
+import type { WatchEventPayload } from "../shared/ipc-types";
 
 export class FileWatcherService {
   private watchers: Map<string, FSWatcher> = new Map();
@@ -152,10 +163,10 @@ export class FileWatcherService {
     if (this.watchers.has(projectPath)) return;
 
     const watchPaths = [
-      path.join(projectPath, 'sqitch.plan'),
-      path.join(projectPath, 'deploy'),
-      path.join(projectPath, 'revert'),
-      path.join(projectPath, 'verify'),
+      path.join(projectPath, "sqitch.plan"),
+      path.join(projectPath, "deploy"),
+      path.join(projectPath, "revert"),
+      path.join(projectPath, "verify"),
     ];
 
     const watcher = chokidar.watch(watchPaths, {
@@ -164,23 +175,19 @@ export class FileWatcherService {
       awaitWriteFinish: {
         stabilityThreshold: 500,
       },
-      ignored: [
-        '**/.git/**',
-        '**/node_modules/**',
-        '**/*.tmp',
-      ],
+      ignored: ["**/.git/**", "**/node_modules/**", "**/*.tmp"],
     });
 
-    watcher.on('change', (filePath: string) => {
-      this.emitEvent(projectPath, filePath, 'change');
+    watcher.on("change", (filePath: string) => {
+      this.emitEvent(projectPath, filePath, "change");
     });
 
-    watcher.on('add', (filePath: string) => {
-      this.emitEvent(projectPath, filePath, 'add');
+    watcher.on("add", (filePath: string) => {
+      this.emitEvent(projectPath, filePath, "add");
     });
 
-    watcher.on('unlink', (filePath: string) => {
-      this.emitEvent(projectPath, filePath, 'unlink');
+    watcher.on("unlink", (filePath: string) => {
+      this.emitEvent(projectPath, filePath, "unlink");
     });
 
     this.watchers.set(projectPath, watcher);
@@ -201,8 +208,14 @@ export class FileWatcherService {
     this.watchers.clear();
   }
 
-  private emitEvent(projectPath: string, filePath: string, action: WatchEventPayload['action']): void {
-    const type: WatchEventPayload['type'] = filePath.endsWith('sqitch.plan') ? 'plan' : 'script';
+  private emitEvent(
+    projectPath: string,
+    filePath: string,
+    action: WatchEventPayload["action"],
+  ): void {
+    const type: WatchEventPayload["type"] = filePath.endsWith("sqitch.plan")
+      ? "plan"
+      : "script";
     this.onEvent({ projectPath, type, filePath, action });
   }
 }
@@ -228,6 +241,7 @@ git commit -m "feat: implement FileWatcherService with chokidar"
 ### Task 3: Wire FileWatcherService in main.ts
 
 **Files:**
+
 - Modify: `electron/main.ts`
 
 - [ ] **Step 1: Add FileWatcherService to main.ts**
@@ -235,7 +249,7 @@ git commit -m "feat: implement FileWatcherService with chokidar"
 Add import and initialization alongside other services in `electron/main.ts`:
 
 ```typescript
-import { FileWatcherService } from './services/file-watcher.service';
+import { FileWatcherService } from "./services/file-watcher.service";
 // ... after other service initialization:
 let fileWatcherService: FileWatcherService;
 
@@ -250,16 +264,22 @@ fileWatcherService = new FileWatcherService((event) => {
 Add to `registerIpcHandlers()`:
 
 ```typescript
-  // File watching
-  ipcMain.handle(IPC_CHANNELS.WATCH_START, async (_event, request: { projectPath: string }) => {
+// File watching
+ipcMain.handle(
+  IPC_CHANNELS.WATCH_START,
+  async (_event, request: { projectPath: string }) => {
     fileWatcherService.start(request.projectPath);
     return { success: true };
-  });
+  },
+);
 
-  ipcMain.handle(IPC_CHANNELS.WATCH_STOP, async (_event, request: { projectPath: string }) => {
+ipcMain.handle(
+  IPC_CHANNELS.WATCH_STOP,
+  async (_event, request: { projectPath: string }) => {
     fileWatcherService.stop(request.projectPath);
     return { success: true };
-  });
+  },
+);
 ```
 
 - [ ] **Step 3: Start watcher when project opens, stop on remove**
@@ -267,38 +287,48 @@ Add to `registerIpcHandlers()`:
 In the `PROJECT_OPEN` handler, after validation and adding the project, start the watcher. This replaces the PROJECT_OPEN handler from Plan 3d — keep the sqitch project validation check:
 
 ```typescript
-  ipcMain.handle(IPC_CHANNELS.PROJECT_OPEN, async (_event, request: { path: string }) => {
+ipcMain.handle(
+  IPC_CHANNELS.PROJECT_OPEN,
+  async (_event, request: { path: string }) => {
     // Validate it's a sqitch project (must have sqitch.plan or sqitch.conf)
-    const hasPlan = fs.existsSync(path.join(request.path, 'sqitch.plan'));
-    const hasConf = fs.existsSync(path.join(request.path, 'sqitch.conf'));
+    const hasPlan = fs.existsSync(path.join(request.path, "sqitch.plan"));
+    const hasConf = fs.existsSync(path.join(request.path, "sqitch.conf"));
     if (!hasPlan && !hasConf) {
-      return { project: null, error: 'Not a Sqitch project: no sqitch.plan or sqitch.conf found in directory' };
+      return {
+        project: null,
+        error:
+          "Not a Sqitch project: no sqitch.plan or sqitch.conf found in directory",
+      };
     }
     const id = projectService.addProject({
       name: path.basename(request.path),
       path: request.path,
-      engine: 'unknown',
+      engine: "unknown",
     });
     fileWatcherService.start(request.path);
     return { project: projectService.getProject(id) };
-  });
+  },
+);
 ```
 
 In the `PROJECT_REMOVE` handler:
 
 ```typescript
-  ipcMain.handle(IPC_CHANNELS.PROJECT_REMOVE, async (_event, request: { id: string }) => {
+ipcMain.handle(
+  IPC_CHANNELS.PROJECT_REMOVE,
+  async (_event, request: { id: string }) => {
     const project = projectService.getProject(request.id);
     if (project) fileWatcherService.stop(project.path);
     projectService.removeProject(request.id);
     return { success: true };
-  });
+  },
+);
 ```
 
 - [ ] **Step 4: Stop all watchers on app quit**
 
 ```typescript
-app.on('before-quit', () => {
+app.on("before-quit", () => {
   fileWatcherService.stopAll();
 });
 ```
@@ -315,6 +345,7 @@ git commit -m "feat: wire FileWatcherService in main process with IPC handlers"
 ### Task 4: Implement stale state handling in renderer
 
 **Files:**
+
 - Modify: `src/store/project.ts`
 - Create: `src/components/shared/StaleBanner.tsx`
 - Modify: `src/pages/ProjectPage/ProjectPage.tsx`
@@ -346,7 +377,7 @@ interface ProjectState {
 Create `src/components/shared/StaleBanner.tsx`:
 
 ```tsx
-import { useProjectStore } from '../../store/project';
+import { useProjectStore } from "../../store/project";
 
 export function StaleBanner() {
   const { statusStale, setLastStatusRefresh } = useProjectStore();
@@ -355,7 +386,9 @@ export function StaleBanner() {
 
   return (
     <div className="bg-yellow-500/10 border-b border-yellow-500/30 px-4 py-2 flex items-center justify-between">
-      <span className="text-sm text-yellow-700">Data may be outdated — switch sections or use Refresh to update</span>
+      <span className="text-sm text-yellow-700">
+        Data may be outdated — switch sections or use Refresh to update
+      </span>
     </div>
   );
 }
@@ -366,11 +399,11 @@ export function StaleBanner() {
 In `src/pages/ProjectPage/ProjectPage.tsx`, add a `useEffect` for the `onStatusStale` IPC listener and the `onWatchEvent` listener:
 
 ```tsx
-import { useEffect } from 'react';
-import { useIpc } from '../../hooks/useIpc';
-import { useProjectStore } from '../../store/project';
-import { StaleBanner } from '../../components/shared/StaleBanner';
-import type { PlanFile } from '../../types/plan';
+import { useEffect } from "react";
+import { useIpc } from "../../hooks/useIpc";
+import { useProjectStore } from "../../store/project";
+import { StaleBanner } from "../../components/shared/StaleBanner";
+import type { PlanFile } from "../../types/plan";
 
 // Inside ProjectPage component:
 const ipc = useIpc();
@@ -388,10 +421,13 @@ useEffect(() => {
   });
 
   const unsubWatch = ipc.onWatchEvent((event) => {
-    if (event.type === 'plan' && event.action === 'change') {
-      ipc.sqitchPlan(event.projectPath).then((result) => {
-        setPlan(result as PlanFile);
-      }).catch(console.error);
+    if (event.type === "plan" && event.action === "change") {
+      ipc
+        .sqitchPlan(event.projectPath)
+        .then((result) => {
+          setPlan(result as PlanFile);
+        })
+        .catch(console.error);
     }
     markStatusStale();
   });
