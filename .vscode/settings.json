@@ -1,0 +1,4 @@
+{
+  "biome.enabled": true,
+  "typescript.tsserver.maxTsServerMemory": 4096
+}
