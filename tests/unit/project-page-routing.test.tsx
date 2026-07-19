@@ -21,6 +21,7 @@ const ipcStub = {
   engineList: vi.fn().mockResolvedValue([]),
   targetList: vi.fn().mockResolvedValue([]),
   targetGetLabel: vi.fn().mockResolvedValue({ label: null }),
+  settingsGet: vi.fn().mockResolvedValue({ value: null }),
   onStatusStale: noop,
   onWatchEvent: noop,
   onSqitchStream: noop,
