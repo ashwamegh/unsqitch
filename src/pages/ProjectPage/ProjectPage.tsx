@@ -49,6 +49,8 @@ export function ProjectPage() {
       const project = projects.find((p) => p.id === currentProjectId);
       if (project && event.projectPath === project.path) {
         markStatusStale();
+        // Plan + script changes surface in the Plan view — pulse its sidebar dot.
+        useNavigationStore.getState().pulseSection("plan");
       }
     });
     // Feed streamed sqitch stdout into the progress event list so the

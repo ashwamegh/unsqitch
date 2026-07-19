@@ -19,6 +19,8 @@ interface NavigationState {
   showCommands: boolean;
   commandTooltipDismissed: boolean;
   sidebarCollapsed: boolean;
+  // Sections that received new data from the file watcher (show a pulse dot).
+  pulsedSections: Section[];
 }
 
 interface NavigationActions {
@@ -31,6 +33,8 @@ interface NavigationActions {
   setCommandTooltipDismissed: (value: boolean) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  pulseSection: (section: Section) => void;
+  clearPulse: (section: Section) => void;
 }
 
 export const useNavigationStore = create<NavigationState & NavigationActions>((set) => ({
@@ -40,13 +44,29 @@ export const useNavigationStore = create<NavigationState & NavigationActions>((s
   showCommands: false,
   commandTooltipDismissed: false,
   sidebarCollapsed: true,
+  pulsedSections: [],
 
   goHome: () => set({ view: "home", projectId: null, section: null, sidebarCollapsed: true }),
 
   openProject: (projectId) =>
     set({ view: "project", projectId, section: "plan", sidebarCollapsed: false }),
 
-  setSection: (section) => set({ section }),
+  // Opening a section clears its pending "new data" pulse.
+  setSection: (section) =>
+    set((state) => ({
+      section,
+      pulsedSections: state.pulsedSections.filter((s) => s !== section),
+    })),
+
+  pulseSection: (section) =>
+    set((state) =>
+      state.pulsedSections.includes(section)
+        ? {}
+        : { pulsedSections: [...state.pulsedSections, section] },
+    ),
+
+  clearPulse: (section) =>
+    set((state) => ({ pulsedSections: state.pulsedSections.filter((s) => s !== section) })),
 
   toggleShowCommands: () => set((state) => ({ showCommands: !state.showCommands })),
 

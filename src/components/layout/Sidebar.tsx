@@ -58,6 +58,7 @@ export function Sidebar() {
     setCommandTooltipDismissed,
     sidebarCollapsed,
     toggleSidebar,
+    pulsedSections,
   } = useNavigationStore();
 
   const currentProject = useProjectStore((s) =>
@@ -217,7 +218,7 @@ export function Sidebar() {
                   key={s.id}
                   onClick={() => setSection(s.id)}
                   title={sidebarCollapsed ? s.label : undefined}
-                  className={`flex items-center transition-all cursor-pointer ${
+                  className={`relative flex items-center transition-all cursor-pointer ${
                     sidebarCollapsed
                       ? `w-10 h-10 justify-center rounded-xl ${
                           section === s.id
@@ -233,6 +234,9 @@ export function Sidebar() {
                 >
                   <Icon size={16} className={section === s.id ? "stroke-[2.2]" : "stroke-[1.8]"} />
                   {!sidebarCollapsed && s.label}
+                  {pulsedSections.includes(s.id) && section !== s.id && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  )}
                 </button>
               );
             })}
@@ -254,7 +258,7 @@ export function Sidebar() {
                   key={s.id}
                   onClick={() => setSection(s.id)}
                   title={sidebarCollapsed ? s.label : undefined}
-                  className={`flex items-center transition-all cursor-pointer ${
+                  className={`relative flex items-center transition-all cursor-pointer ${
                     sidebarCollapsed
                       ? `w-10 h-10 justify-center rounded-xl ${
                           section === s.id
@@ -270,6 +274,9 @@ export function Sidebar() {
                 >
                   <Icon size={16} className={section === s.id ? "stroke-[2.2]" : "stroke-[1.8]"} />
                   {!sidebarCollapsed && s.label}
+                  {pulsedSections.includes(s.id) && section !== s.id && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  )}
                 </button>
               );
             })}
