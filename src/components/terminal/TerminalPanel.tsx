@@ -78,9 +78,13 @@ export function TerminalPanel() {
       }
     });
 
-    const unsubComplete = ipc.onSqitchComplete(() => {
+    const unsubComplete = ipc.onSqitchComplete((event) => {
       if (xtermRef.current) {
         xtermRef.current.writeln("\x1b[32m✔ CLI Command Completed successfully ---\x1b[0m");
+      }
+      // Spec: terminal auto-closes on a successful command; stays open on failure.
+      if (event.exitCode === 0) {
+        setTimeout(() => setIsOpen(false), 1200);
       }
     });
 
@@ -113,7 +117,7 @@ export function TerminalPanel() {
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         const delta = startY - moveEvent.clientY;
-        const newHeight = Math.max(120, Math.min(window.innerHeight * 0.55, startHeight + delta));
+        const newHeight = Math.max(150, Math.min(window.innerHeight * 0.5, startHeight + delta));
         setHeight(newHeight);
       };
 

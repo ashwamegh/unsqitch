@@ -7,11 +7,10 @@ import { useProjectStore } from "../../store/project";
 import type { ConfigEntry } from "../../types/config";
 
 export function ConfigView() {
-  const { currentProjectId, projects } = useProjectStore();
+  const { currentProjectId, projects, config, setConfig } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
   const project = projects.find((p) => p.id === currentProjectId);
-  const [entries, setEntries] = useState<ConfigEntry[]>([]);
   const [activeSection, setActiveSection] = useState<string>("all");
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
@@ -20,15 +19,16 @@ export function ConfigView() {
   // Spec: fixed visual groupings of the flat key=value list, not derived tabs.
   const sections = ["all", "core", "engine", "target", "user"];
 
+  // Config is cached in the store after first read; invalidated on write + focus.
   const filtered =
-    activeSection === "all" ? entries : entries.filter((e) => e.section === activeSection);
+    activeSection === "all" ? config : config.filter((e) => e.section === activeSection);
 
   const handleList = async () => {
     if (!project) return;
     setLoading(true);
     try {
-      const result = await ipc.configList(project.path);
-      setEntries(result as any);
+      const result = (await ipc.configList(project.path)) as ConfigEntry[];
+      setConfig(result);
     } catch (err: any) {
       console.error("List config failed:", err);
       showToast(err.message || "Failed to load configs", "error");
@@ -63,12 +63,19 @@ export function ConfigView() {
     }
   };
 
-  // Auto load on mount
+  // Load once from cache miss; refetch on window focus (cache invalidation).
   useEffect(() => {
-    if (project) {
+    if (project && config.length === 0) handleList();
+  }, [project]);
+
+  useEffect(() => {
+    const unsubscribe = ipc.onStatusStale(() => {
       handleList();
-    }
-  }, [project, handleList]);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [ipc, project]);
 
   return (
     <div className="space-y-6 max-w-3xl">

@@ -10,7 +10,7 @@ export function RevertView() {
   const { status, currentProjectId, projects, isRunning, setStatus } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [confirmedTarget, setConfirmedTarget] = useState("");
   const [revertTo, setRevertTo] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -95,11 +95,12 @@ export function RevertView() {
   const handleRevert = async () => {
     if (!project || !target) return;
     setConfirmedTarget(target);
+    useProjectStore.getState().setLastTarget(target);
     if (isProduction && confirmText !== "REVERT PRODUCTION") return;
     if (!isProduction && requiresConfirm && confirmText !== String(changesToRevert.length)) return;
 
     try {
-      useProjectStore.getState().startRun();
+      useProjectStore.getState().startRun(changesToRevert.map((c) => c.name));
       showToast("Reverting changes...");
       const toChangeArg = revertAll
         ? undefined

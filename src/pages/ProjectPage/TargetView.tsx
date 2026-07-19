@@ -1,8 +1,8 @@
-import { Network, Plus, RefreshCw, Settings, ShieldAlert, Trash2 } from "lucide-react";
+import { Network, Pencil, Plus, RefreshCw, Settings, ShieldAlert, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
-import { buildUri, type EngineType } from "../../lib/uri-builder";
+import { buildUri, type EngineType, parseUri } from "../../lib/uri-builder";
 import { useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 
@@ -18,6 +18,7 @@ export function TargetView() {
   const [engine, setEngine] = useState<EngineType>("pg");
   const [fields, setFields] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [editingName, setEditingName] = useState<string | null>(null);
 
   const uri = buildUri(engine, fields);
 
@@ -59,19 +60,37 @@ export function TargetView() {
     }
   };
 
-  const handleAdd = async () => {
+  const resetForm = () => {
+    setAdding(false);
+    setEditingName(null);
+    setTargetName("");
+    setFields({});
+  };
+
+  const handleSave = async () => {
     if (!project || !targetName) return;
     try {
+      // Editing an existing target: replace it (remove old, add updated URI).
+      if (editingName) await ipc.targetRemove(project.path, editingName);
       await ipc.targetAdd(project.path, targetName, uri);
-      setAdding(false);
-      setTargetName("");
-      setFields({});
+      resetForm();
       await handleList();
-      showToast("Database target added successfully!", "success");
+      showToast(editingName ? "Target updated" : "Database target added successfully!", "success");
     } catch (err: any) {
-      console.error("Add target failed:", err);
-      showToast(err.message || "Failed to add target", "error");
+      console.error("Save target failed:", err);
+      showToast(err.message || "Failed to save target", "error");
     }
+  };
+
+  // Editing repopulates the builder from the target's URI. The password is NOT
+  // restored (masked) — the user re-enters it only if changing it.
+  const startEdit = (t: { name: string; uri: string }) => {
+    const parsed = parseUri(t.uri);
+    setEngine(parsed.engine);
+    setFields(parsed.fields as Record<string, string>);
+    setTargetName(t.name);
+    setEditingName(t.name);
+    setAdding(true);
   };
 
   const handleRemove = async (name: string) => {
@@ -116,7 +135,12 @@ export function TargetView() {
           </button>
           {!adding && (
             <button
-              onClick={() => setAdding(true)}
+              onClick={() => {
+                setEditingName(null);
+                setTargetName("");
+                setFields({});
+                setAdding(true);
+              }}
               className="flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground hover:bg-primary/95 font-semibold rounded-lg text-xs shadow-sm transition-all cursor-pointer"
             >
               <Plus size={13} />
@@ -131,9 +155,14 @@ export function TargetView() {
           <div className="flex items-center gap-2 pb-2 border-b border-border/40 mb-2">
             <Settings size={14} className="text-primary" />
             <h4 className="text-xs font-bold text-foreground/80 uppercase tracking-wider">
-              URI Connection Builder
+              {editingName ? `Edit Target: ${editingName}` : "URI Connection Builder"}
             </h4>
           </div>
+          {editingName && (
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              Password is hidden — re-enter it only if you want to change it.
+            </p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -286,14 +315,14 @@ export function TargetView() {
 
           <div className="flex gap-2 pt-2">
             <button
-              onClick={handleAdd}
+              onClick={handleSave}
               disabled={!targetName}
               className="px-4 py-2.5 bg-primary text-primary-foreground hover:bg-primary/95 disabled:bg-muted font-bold rounded-lg text-xs shadow-sm transition-all cursor-pointer disabled:opacity-50"
             >
-              Add Target
+              {editingName ? "Update Target" : "Add Target"}
             </button>
             <button
-              onClick={() => setAdding(false)}
+              onClick={resetForm}
               className="px-4 py-2.5 border border-border hover:bg-accent text-foreground font-medium rounded-lg text-xs transition-all cursor-pointer"
             >
               Cancel
@@ -334,6 +363,13 @@ export function TargetView() {
               </div>
 
               <div className="flex items-center gap-2 sm:self-center">
+                <button
+                  onClick={() => startEdit(t)}
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors cursor-pointer"
+                  title="Edit Target"
+                >
+                  <Pencil size={13} />
+                </button>
                 <button
                   onClick={() => handleToggleProduction(t.name)}
                   className={`px-2.5 py-1.5 border rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${

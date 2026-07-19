@@ -1,5 +1,5 @@
 import { Clock, History, MessageSquare, Tag, User } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useNavigationStore } from "../../store/navigation";
@@ -10,7 +10,7 @@ export function LogView() {
   const { currentProjectId, projects, isRunning } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -18,6 +18,7 @@ export function LogView() {
 
   const handleFetchLog = async () => {
     if (!project || !target) return;
+    useProjectStore.getState().setLastTarget(target);
     setLoading(true);
     try {
       useProjectStore.getState().setRunning(true);
@@ -32,6 +33,11 @@ export function LogView() {
       setLoading(false);
     }
   };
+
+  // Auto-load the log once when a target is already known from another view.
+  useEffect(() => {
+    if (project && target) handleFetchLog();
+  }, [project]);
 
   return (
     <div className="space-y-6 max-w-3xl">

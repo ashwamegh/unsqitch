@@ -9,7 +9,7 @@ export function VerifyView() {
   const { currentProjectId, projects, isRunning } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [results, setResults] = useState<Array<{ change: string; status: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,8 +18,11 @@ export function VerifyView() {
   const handleVerify = async () => {
     if (!project || !target) return;
     setError(null);
+    useProjectStore.getState().setLastTarget(target);
     try {
-      useProjectStore.getState().startRun();
+      useProjectStore
+        .getState()
+        .startRun(useProjectStore.getState().status?.deployed.map((c) => c.name) ?? []);
       showToast("Running verification suite...");
       const result = await ipc.sqitchVerify(project.path, target);
       const events = ((result as any).events || []) as Array<{ change: string; status: string }>;

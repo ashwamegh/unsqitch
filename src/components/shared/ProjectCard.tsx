@@ -36,6 +36,11 @@ export function ProjectCard({
   return (
     <div
       onClick={onClick}
+      onContextMenu={(e) => {
+        // Spec: right-click a project card to remove it from the recent list.
+        e.preventDefault();
+        onRemove();
+      }}
       className="glass-card rounded-xl p-5 cursor-pointer relative overflow-hidden group flex flex-col justify-between h-40 shadow-sm"
     >
       <div>

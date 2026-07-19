@@ -21,7 +21,7 @@ export function StatusView() {
   const { status, currentProjectId, projects, verifyResults, setStatus, setLastStatusRefresh } =
     useProjectStore();
   const ipc = useIpc();
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [confirmedTarget, setConfirmedTarget] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
@@ -45,6 +45,7 @@ export function StatusView() {
   const handleRefresh = async () => {
     if (!project || !target) return;
     setConfirmedTarget(target);
+    useProjectStore.getState().setLastTarget(target);
     setLoading(true);
     try {
       const result = (await ipc.sqitchStatus(project.path, target)) as DeploymentStatus;

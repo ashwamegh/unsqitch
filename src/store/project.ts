@@ -22,11 +22,16 @@ interface ProjectState {
   log: LogEntry[];
   config: ConfigEntry[];
   events: SqitchEvent[];
+  // Change names expected in the active run, so the progress UI can show
+  // not-yet-started changes in a "queued" state.
+  expectedChanges: string[];
   verifyResults: Array<{ change: string; status: string }>;
   error: AppError | null;
   isRunning: boolean;
   statusStale: boolean;
   lastStatusRefresh: number | null;
+  // Last target the user acted on, shared across the target-based views.
+  lastTarget: string;
 }
 
 interface ProjectActions {
@@ -38,7 +43,7 @@ interface ProjectActions {
   setConfig: (config: ConfigEntry[]) => void;
   addEvent: (event: SqitchEvent) => void;
   clearEvents: () => void;
-  startRun: () => void;
+  startRun: (expectedChanges?: string[]) => void;
   ingestStream: (data: string) => void;
   setVerifyResults: (results: Array<{ change: string; status: string }>) => void;
   setError: (error: AppError | null) => void;
@@ -46,6 +51,7 @@ interface ProjectActions {
   setStatusStale: (stale: boolean) => void;
   markStatusStale: () => void;
   setLastStatusRefresh: (timestamp: number) => void;
+  setLastTarget: (target: string) => void;
   reset: () => void;
 }
 
@@ -57,16 +63,20 @@ const initialState: ProjectState = {
   log: [],
   config: [],
   events: [],
+  expectedChanges: [],
   verifyResults: [],
   error: null,
   isRunning: false,
   statusStale: false,
   lastStatusRefresh: null,
+  lastTarget: "",
 };
 
 // Accumulates raw sqitch stdout across stream chunks for the active command so
-// each chunk can be re-parsed into an up-to-date coalesced event list.
+// each chunk can be re-parsed into an up-to-date coalesced event list. Timings
+// track per-change wall-clock so the progress UI can show elapsed durations.
 let streamBuffer = "";
+let changeTimings: Record<string, { startedAt: number; endedAt?: number }> = {};
 
 export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
   ...initialState,
@@ -79,13 +89,25 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
   setConfig: (config) => set({ config }),
   addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
   clearEvents: () => set({ events: [] }),
-  startRun: () => {
+  startRun: (expectedChanges = []) => {
     streamBuffer = "";
-    set({ events: [], error: null, isRunning: true });
+    changeTimings = {};
+    set({ events: [], error: null, isRunning: true, expectedChanges });
   },
   ingestStream: (data) => {
     streamBuffer += data;
-    set({ events: coalesceEvents(parseSqitchOutput(streamBuffer).events) });
+    const events = coalesceEvents(parseSqitchOutput(streamBuffer).events);
+    const now = Date.now();
+    const timed = events.map((e) => {
+      let t = changeTimings[e.change];
+      if (!t) {
+        t = { startedAt: now };
+        changeTimings[e.change] = t;
+      }
+      if (e.status !== "running" && t.endedAt === undefined) t.endedAt = now;
+      return { ...e, durationMs: (t.endedAt ?? now) - t.startedAt };
+    });
+    set({ events: timed });
   },
   setVerifyResults: (verifyResults) => set({ verifyResults }),
   setError: (error) => set({ error }),
@@ -93,5 +115,6 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
   setStatusStale: (stale) => set({ statusStale: stale }),
   markStatusStale: () => set({ statusStale: true }),
   setLastStatusRefresh: (timestamp) => set({ lastStatusRefresh: timestamp, statusStale: false }),
+  setLastTarget: (lastTarget) => set({ lastTarget }),
   reset: () => set(initialState),
 }));

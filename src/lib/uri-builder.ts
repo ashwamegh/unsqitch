@@ -29,6 +29,39 @@ export function sqitchEngine(engine: EngineType): string {
   return engine === "cockroach" || engine === "yugabyte" ? "pg" : engine;
 }
 
+/** Suggested client executable per engine (used as a placeholder default). */
+export function defaultClient(engine: EngineType): string {
+  switch (engine) {
+    case "mysql":
+      return "mysql";
+    case "sqlite":
+      return "sqlite3";
+    default:
+      // pg / cockroach / yugabyte all use the psql client.
+      return "psql";
+  }
+}
+
+/**
+ * Parse a sqitch target URI back into an engine + fields for editing. The
+ * password is intentionally NOT returned — the field stays masked and the
+ * existing value is preserved unless the user types a new one.
+ */
+export function parseUri(uri: string): { engine: EngineType; fields: UriFields } {
+  if (uri.startsWith("db:sqlite:")) {
+    return { engine: "sqlite", fields: { path: uri.slice("db:sqlite:".length) } };
+  }
+  const match = uri.match(
+    /^db:(pg|mysql):\/\/(?:([^:@/]+)(?::[^@/]+)?@)?([^:/]+)(?::(\d+))?\/(.+)$/,
+  );
+  if (!match) return { engine: "pg", fields: {} };
+  const [, scheme, user, host, port, database] = match;
+  return {
+    engine: scheme === "mysql" ? "mysql" : "pg",
+    fields: { host, port, database, user },
+  };
+}
+
 /**
  * Construct a sqitch target URI for the given engine. Postgres-family engines
  * (pg / cockroach / yugabyte) share the db:pg:// scheme; mysql uses db:mysql://;

@@ -16,7 +16,7 @@ export function DeployView() {
     useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [confirmedTarget, setConfirmedTarget] = useState("");
   const [toChange, setToChange] = useState("");
   const [deployError, setDeployError] = useState<AppError | null>(null);
@@ -62,8 +62,9 @@ export function DeployView() {
     if (!project || !target) return;
     setConfirmedTarget(target);
     setDeployError(null);
+    useProjectStore.getState().setLastTarget(target);
     try {
-      useProjectStore.getState().startRun();
+      useProjectStore.getState().startRun(pending);
       showToast("Starting deployment...");
       await ipc.sqitchDeploy(project.path, target, toChange || undefined);
       const result = await ipc.sqitchStatus(project.path, target);
