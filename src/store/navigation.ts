@@ -26,7 +26,9 @@ interface NavigationActions {
   openProject: (projectId: string) => void;
   setSection: (section: Section) => void;
   toggleShowCommands: () => void;
+  setShowCommands: (value: boolean) => void;
   dismissCommandTooltip: () => void;
+  setCommandTooltipDismissed: (value: boolean) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
 }
@@ -48,7 +50,11 @@ export const useNavigationStore = create<NavigationState & NavigationActions>((s
 
   toggleShowCommands: () => set((state) => ({ showCommands: !state.showCommands })),
 
+  setShowCommands: (showCommands) => set({ showCommands }),
+
   dismissCommandTooltip: () => set({ commandTooltipDismissed: true }),
+
+  setCommandTooltipDismissed: (commandTooltipDismissed) => set({ commandTooltipDismissed }),
 
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 

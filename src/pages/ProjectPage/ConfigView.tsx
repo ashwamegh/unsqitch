@@ -1,5 +1,5 @@
 import { RefreshCw, Sliders, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useProjectStore } from "../../store/project";
@@ -15,10 +15,8 @@ export function ConfigView() {
   const [newValue, setNewValue] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const sections = useMemo(() => {
-    const s = new Set(entries.map((e) => e.section));
-    return ["all", ...Array.from(s).sort()];
-  }, [entries]);
+  // Spec: fixed visual groupings of the flat key=value list, not derived tabs.
+  const sections = ["all", "core", "engine", "target", "user"];
 
   const filtered =
     activeSection === "all" ? entries : entries.filter((e) => e.section === activeSection);
@@ -89,24 +87,22 @@ export function ConfigView() {
         </button>
       </div>
 
-      {/* Tabs */}
-      {sections.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-          {sections.map((s) => (
-            <button
-              key={s}
-              onClick={() => setActiveSection(s)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer ${
-                activeSection === s
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "border-border/60 hover:bg-accent/40 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Tabs — fixed core/engine/target/user groupings */}
+      <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+        {sections.map((s) => (
+          <button
+            key={s}
+            onClick={() => setActiveSection(s)}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer ${
+              activeSection === s
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "border-border/60 hover:bg-accent/40 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
 
       {/* Set configuration card */}
       <div className="glass-panel rounded-2xl p-5 border border-border/80 shadow-md space-y-3">

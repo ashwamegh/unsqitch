@@ -18,6 +18,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { useState } from "react";
+import { useIpc } from "../../hooks/useIpc";
 import { type Section, useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 import { AddChangeForm } from "../plan/AddChangeForm";
@@ -54,6 +55,7 @@ export function Sidebar() {
     toggleShowCommands,
     commandTooltipDismissed,
     dismissCommandTooltip,
+    setCommandTooltipDismissed,
     sidebarCollapsed,
     toggleSidebar,
   } = useNavigationStore();
@@ -61,8 +63,25 @@ export function Sidebar() {
   const currentProject = useProjectStore((s) =>
     s.projects.find((p) => p.id === s.currentProjectId),
   );
+  const ipc = useIpc();
   const [addChangeOpen, setAddChangeOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Turning Show-Commands on for the first time permanently dismisses the tooltip
+  // (persisted), so it never reappears after a restart (spec).
+  const handleToggleShowCommands = () => {
+    const turningOn = !showCommands;
+    toggleShowCommands();
+    if (turningOn && !commandTooltipDismissed) {
+      setCommandTooltipDismissed(true);
+      ipc.settingsSet("commandTooltipDismissed", "true").catch(() => {});
+    }
+  };
+
+  const handleDismissTooltip = () => {
+    dismissCommandTooltip();
+    ipc.settingsSet("commandTooltipDismissed", "true").catch(() => {});
+  };
 
   // --- Render for Home Page (Project Selector) ---
   if (view === "home") {
@@ -285,7 +304,7 @@ export function Sidebar() {
         {/* CLI Inspector Toggle */}
         <div className={sidebarCollapsed ? "w-full flex justify-center" : "relative"}>
           <button
-            onClick={toggleShowCommands}
+            onClick={handleToggleShowCommands}
             title={sidebarCollapsed ? "Show Commands" : undefined}
             className={`flex items-center justify-center transition-all cursor-pointer ${
               sidebarCollapsed
@@ -312,7 +331,7 @@ export function Sidebar() {
                   CLI Inspector
                 </span>
                 <button
-                  onClick={dismissCommandTooltip}
+                  onClick={handleDismissTooltip}
                   className="text-muted-foreground hover:text-foreground cursor-pointer text-xs font-bold p-0.5 rounded-md hover:bg-accent/40"
                 >
                   ✕

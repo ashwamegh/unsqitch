@@ -43,6 +43,7 @@ export const IPC_CHANNELS = {
 
   // Native dialogs (main → renderer request, main handles)
   DIALOG_OPEN_DIRECTORY: "dialog:openDirectory",
+  DIALOG_OPEN_FILE: "dialog:openFile",
 
   // Stream events (main → renderer)
   SQITCH_STREAM: "sqitch:stream",

@@ -37,8 +37,13 @@ export function ProjectPage() {
   }, [currentProjectId, section, projects, ipc, setPlan]);
 
   useEffect(() => {
-    const unsubscribeStale = ipc.onStatusStale(() => {
-      markStatusStale();
+    const unsubscribeStale = ipc.onStatusStale((payload) => {
+      // Only flag stale on focus if the cached status is older than the threshold.
+      const last = useProjectStore.getState().lastStatusRefresh;
+      const threshold = payload?.threshold ?? 5 * 60 * 1000;
+      if (last === null || Date.now() - last > threshold) {
+        markStatusStale();
+      }
     });
     const unsubscribeWatch = ipc.onWatchEvent((event) => {
       const project = projects.find((p) => p.id === currentProjectId);

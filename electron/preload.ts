@@ -126,6 +126,8 @@ const api = {
   // Native dialogs
   dialogOpenDirectory: () => ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_DIRECTORY),
 
+  dialogOpenFile: () => ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_FILE),
+
   // Stream listeners
   onSqitchStream: (
     callback: (event: { projectPath: string; data: string; type: "stdout" | "stderr" }) => void,

@@ -62,8 +62,7 @@ export function HomePage() {
             Welcome to UnSqitch
           </h2>
           <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[280px] mx-auto font-medium">
-            Manage your database migrations effortlessly. Open an existing Sqitch project directory
-            to begin.
+            Open a directory containing a Sqitch project to get started.
           </p>
 
           <div className="flex flex-col gap-3">

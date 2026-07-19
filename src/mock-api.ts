@@ -429,6 +429,12 @@ export const mockUnsqitchAPI: any = {
     return { canceled: false, path: path || defaultPath };
   },
 
+  dialogOpenFile: async () => {
+    const path = window.prompt("UnSqitch Mock API (Browser Mode)\nEnter a file path:", "");
+    if (path === null) return { canceled: true, path: null };
+    return { canceled: false, path };
+  },
+
   // Stream listeners
   onSqitchStream: (callback) => {
     streamCallbacks.push(callback);

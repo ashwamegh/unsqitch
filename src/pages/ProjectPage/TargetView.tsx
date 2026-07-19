@@ -2,25 +2,9 @@ import { Network, Plus, RefreshCw, Settings, ShieldAlert, Trash2 } from "lucide-
 import { useEffect, useState } from "react";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
+import { buildUri, type EngineType } from "../../lib/uri-builder";
 import { useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
-
-type EngineType = "pg" | "mysql" | "sqlite" | "cockroach" | "yugabyte";
-
-function buildUri(engine: EngineType, fields: Record<string, string>): string {
-  switch (engine) {
-    case "pg":
-      return `db:pg://${fields.user || "user"}${fields.password ? `:${fields.password}` : ""}@${fields.host || "localhost"}:${fields.port || "5432"}/${fields.database || "mydb"}`;
-    case "mysql":
-      return `db:mysql://${fields.user || "user"}${fields.password ? `:${fields.password}` : ""}@${fields.host || "localhost"}:${fields.port || "3306"}/${fields.database || "mydb"}`;
-    case "sqlite":
-      return `db:sqlite:${fields.path || "/path/to/db.sqlite"}`;
-    case "cockroach":
-      return `db:pg://${fields.user || "user"}${fields.password ? `:${fields.password}` : ""}@${fields.host || "localhost"}:${fields.port || "26257"}/${fields.database || "mydb"}`;
-    case "yugabyte":
-      return `db:pg://${fields.user || "user"}${fields.password ? `:${fields.password}` : ""}@${fields.host || "localhost"}:${fields.port || "5433"}/${fields.database || "mydb"}`;
-  }
-}
 
 export function TargetView() {
   const { currentProjectId, projects } = useProjectStore();
@@ -186,12 +170,24 @@ export function TargetView() {
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1.5">
                 Database File Path
               </label>
-              <input
-                value={fields.path || ""}
-                onChange={(e) => updateField("path", e.target.value)}
-                placeholder="/path/to/db.sqlite"
-                className="w-full border border-border bg-card/65 focus:bg-background rounded-xl px-3 py-2 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={fields.path || ""}
+                  onChange={(e) => updateField("path", e.target.value)}
+                  placeholder="/path/to/db.sqlite"
+                  className="flex-1 border border-border bg-card/65 focus:bg-background rounded-xl px-3 py-2 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const r = await ipc.dialogOpenFile();
+                    if (!r.canceled && r.path) updateField("path", r.path);
+                  }}
+                  className="px-3 py-2 border border-border hover:bg-accent text-foreground font-semibold rounded-xl text-xs transition-all cursor-pointer whitespace-nowrap"
+                >
+                  Browse…
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -265,6 +261,11 @@ export function TargetView() {
                   />
                 </div>
               </div>
+              <p className="text-[10px] text-amber-400/90 font-medium leading-relaxed flex items-start gap-1.5">
+                <ShieldAlert size={12} className="shrink-0 mt-0.5" />
+                Avoid embedding passwords in URIs. Prefer .pgpass, environment variables, or
+                engine-specific auth files — sqitch stores target URIs in sqitch.conf.
+              </p>
             </>
           )}
 

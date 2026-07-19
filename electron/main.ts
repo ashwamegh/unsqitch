@@ -141,6 +141,13 @@ function registerIpcHandlers() {
     return { canceled: result.canceled, path: result.filePaths[0] || null };
   });
 
+  ipcMain.handle(IPC_CHANNELS.DIALOG_OPEN_FILE, async () => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      properties: ["openFile", "promptToCreate", "createDirectory"],
+    });
+    return { canceled: result.canceled, path: result.filePaths[0] || null };
+  });
+
   ipcMain.handle(IPC_CHANNELS.PROJECT_OPEN, async (_event, request: { path: string }) => {
     const hasPlan = fs.existsSync(path.join(request.path, "sqitch.plan"));
     const hasConf = fs.existsSync(path.join(request.path, "sqitch.conf"));
