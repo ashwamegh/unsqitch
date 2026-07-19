@@ -28,6 +28,7 @@ interface Engine {
   name: string;
   uri: string;
   client?: string;
+  registry?: string;
 }
 
 interface Target {
@@ -307,10 +308,16 @@ export const mockUnsqitchAPI: any = {
   },
 
   // Engine/Target/Config
-  engineAdd: async (projectPath: string, name: string, uri: string, client?: string) => {
+  engineAdd: async (
+    projectPath: string,
+    name: string,
+    uri: string,
+    client?: string,
+    registry?: string,
+  ) => {
     const key = `unsqitch_engines_${projectPath}`;
     const list = getStorage<Engine[]>(key, defaultEngines);
-    list.push({ name, uri, client });
+    list.push({ name, uri, client, registry });
     setStorage(key, list);
     return { success: true };
   },

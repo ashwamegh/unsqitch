@@ -71,12 +71,13 @@ const api = {
     }),
 
   // Engine/Target/Config
-  engineAdd: (projectPath: string, name: string, uri: string, client?: string) =>
+  engineAdd: (projectPath: string, name: string, uri: string, client?: string, registry?: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.ENGINE_ADD, {
       projectPath,
       name,
       uri,
       client,
+      registry,
     }),
 
   engineRemove: (projectPath: string, name: string) =>

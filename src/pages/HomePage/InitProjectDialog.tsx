@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useIpc } from "../../hooks/useIpc";
-import { buildUri, ENGINE_OPTIONS, type EngineType, type UriFields } from "../../lib/uri-builder";
+import {
+  buildUri,
+  ENGINE_OPTIONS,
+  type EngineType,
+  sqitchEngine,
+  type UriFields,
+} from "../../lib/uri-builder";
 import { useNavigationStore } from "../../store/navigation";
 
 function basename(p: string): string {
@@ -45,7 +51,7 @@ export function InitProjectDialog({ open, onClose }: { open: boolean; onClose: (
     if (!directory || !effectiveName) return;
     setLoading(true);
     try {
-      await ipc.sqitchInit(directory, effectiveName, engine, uri, topDir, planFile);
+      await ipc.sqitchInit(directory, effectiveName, sqitchEngine(engine), uri, topDir, planFile);
       const response = await ipc.projectOpen(directory);
       if (response.error) {
         console.error("Open after init failed:", response.error);
@@ -212,8 +218,8 @@ export function InitProjectDialog({ open, onClose }: { open: boolean; onClose: (
           </div>
           {showCommands && (
             <div className="p-2 bg-muted rounded text-xs font-mono text-muted-foreground break-all">
-              sqitch init {effectiveName || "<name>"} --engine {engine} --uri {uri} --top-dir{" "}
-              {topDir}
+              sqitch init {effectiveName || "<name>"} --engine {sqitchEngine(engine)} --uri {uri}{" "}
+              --top-dir {topDir}
             </div>
           )}
         </div>

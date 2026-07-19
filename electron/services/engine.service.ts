@@ -10,9 +10,16 @@ export interface EngineInfo {
 export class EngineService {
   constructor(private sqitch: SqitchService) {}
 
-  async add(projectPath: string, name: string, uri: string, client?: string): Promise<void> {
+  async add(
+    projectPath: string,
+    name: string,
+    uri: string,
+    client?: string,
+    registry?: string,
+  ): Promise<void> {
     const args = ["engine", "add", name, "--target", uri];
     if (client) args.push("--client", client);
+    if (registry) args.push("--registry", registry);
     await this.sqitch.runCommand(args, projectPath);
   }
 

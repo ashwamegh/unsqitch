@@ -22,6 +22,14 @@ export function defaultPort(engine: EngineType): string {
 }
 
 /**
+ * The engine name sqitch itself understands. CockroachDB and YugabyteDB speak
+ * the Postgres wire protocol and use sqitch's `pg` engine, not their own name.
+ */
+export function sqitchEngine(engine: EngineType): string {
+  return engine === "cockroach" || engine === "yugabyte" ? "pg" : engine;
+}
+
+/**
  * Construct a sqitch target URI for the given engine. Postgres-family engines
  * (pg / cockroach / yugabyte) share the db:pg:// scheme; mysql uses db:mysql://;
  * sqlite uses a file path. Credentials are only included when a user is given

@@ -15,6 +15,7 @@ export function EngineView() {
   const [name, setName] = useState("");
   const [uri, setUri] = useState("");
   const [client, setClient] = useState("");
+  const [registry, setRegistry] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleList = async () => {
@@ -34,11 +35,12 @@ export function EngineView() {
   const handleAdd = async () => {
     if (!project || !name || !uri) return;
     try {
-      await ipc.engineAdd(project.path, name, uri, client || undefined);
+      await ipc.engineAdd(project.path, name, uri, client || undefined, registry || undefined);
       setAdding(false);
       setName("");
       setUri("");
       setClient("");
+      setRegistry("");
       await handleList();
       showToast("Engine configured successfully!", "success");
     } catch (err: any) {
@@ -142,10 +144,23 @@ export function EngineView() {
             />
           </div>
 
+          <div>
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1.5">
+              Registry Schema (Optional)
+            </label>
+            <input
+              value={registry}
+              onChange={(e) => setRegistry(e.target.value)}
+              placeholder="e.g., sqitch"
+              className="w-full border border-border bg-card/65 focus:bg-background rounded-xl px-3 py-2 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
+            />
+          </div>
+
           {showCommands && (
             <div className="p-2.5 bg-black/40 border border-border/60 rounded-lg text-[10px] font-mono text-muted-foreground">
-              sqitch engine add {name || "<key>"} --target {uri || "<uri>"}{" "}
-              {client ? `--client ${client}` : ""}
+              sqitch engine add {name || "<key>"} --target {uri || "<uri>"}
+              {client ? ` --client ${client}` : ""}
+              {registry ? ` --registry ${registry}` : ""}
             </div>
           )}
 

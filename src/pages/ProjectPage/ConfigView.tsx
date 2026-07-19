@@ -2,11 +2,13 @@ import { RefreshCw, Sliders, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
+import { useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 import type { ConfigEntry } from "../../types/config";
 
 export function ConfigView() {
   const { currentProjectId, projects } = useProjectStore();
+  const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
   const project = projects.find((p) => p.id === currentProjectId);
   const [entries, setEntries] = useState<ConfigEntry[]>([]);
@@ -130,6 +132,11 @@ export function ConfigView() {
             Save Value
           </button>
         </div>
+        {showCommands && (newKey || newValue) && (
+          <div className="p-2 bg-black/40 border border-border/50 rounded-lg text-[10px] font-mono text-muted-foreground">
+            sqitch config {newKey || "<key>"} {newValue || "<value>"}
+          </div>
+        )}
       </div>
 
       {/* Configuration values table */}

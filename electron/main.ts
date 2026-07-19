@@ -432,7 +432,13 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC_CHANNELS.ENGINE_ADD, async (_event, request) => {
-    await engineService.add(request.projectPath, request.name, request.uri, request.client);
+    await engineService.add(
+      request.projectPath,
+      request.name,
+      request.uri,
+      request.client,
+      request.registry,
+    );
     return { success: true };
   });
 

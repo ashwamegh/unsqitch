@@ -67,6 +67,7 @@ export function createAppError(type: ErrorType, message: string, sqitchOutput?: 
   const actionMap: Record<ErrorType, ErrorAction[]> = {
     sqitch_crash: [
       { label: "View Log", action: "view_log" },
+      { label: "Revert Successful", action: "revert" },
       { label: "Retry", action: "retry" },
     ],
     db_connection: [
