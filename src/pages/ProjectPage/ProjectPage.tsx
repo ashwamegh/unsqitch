@@ -11,6 +11,7 @@ import { ConfigView } from "./ConfigView";
 import { DeployView } from "./DeployView";
 import { EngineView } from "./EngineView";
 import { LogView } from "./LogView";
+import { RevertView } from "./RevertView";
 import { StatusView } from "./StatusView";
 import { TargetView } from "./TargetView";
 import { VerifyView } from "./VerifyView";
@@ -68,6 +69,8 @@ export function ProjectPage() {
         return <LogView />;
       case "deploy":
         return <DeployView />;
+      case "revert":
+        return <RevertView />;
       case "engine":
         return <EngineView />;
       case "target":

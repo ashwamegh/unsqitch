@@ -1,22 +1,20 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
-import path from "path";
-import { SqitchService } from "./services/sqitch.service";
-import { ProjectService } from "./services/project.service";
-import { ConfigService } from "./services/config.service";
-import { EngineService } from "./services/engine.service";
-import { TargetService } from "./services/target.service";
-import { FileWatcherService } from "./services/file-watcher.service";
-import {
-  detectSqitchBinary,
-  checkSqitchVersion,
-} from "./services/binary-detector";
-import { IPC_CHANNELS } from "./shared/ipc-types";
-import { parseStatusOutput } from "../src/lib/status-parser";
+import fs from "node:fs";
+import path from "node:path";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { parseLogOutput } from "../src/lib/log-parser";
 import { parsePlanFile } from "../src/lib/plan-parser";
 import { parseSqitchOutput } from "../src/lib/sqitch-parser";
+import { parseStatusOutput } from "../src/lib/status-parser";
 import { createAppError } from "../src/types/error";
-import fs from "fs";
+import { checkSqitchVersion, detectSqitchBinary } from "./services/binary-detector";
+import { ConfigService } from "./services/config.service";
+import { EditorService } from "./services/editor.service";
+import { EngineService } from "./services/engine.service";
+import { FileWatcherService } from "./services/file-watcher.service";
+import { ProjectService } from "./services/project.service";
+import { SqitchService } from "./services/sqitch.service";
+import { TargetService } from "./services/target.service";
+import { IPC_CHANNELS } from "./shared/ipc-types";
 
 let mainWindow: BrowserWindow | null = null;
 let sqitchService: SqitchService;
@@ -25,6 +23,7 @@ let configService: ConfigService;
 let engineService: EngineService;
 let targetService: TargetService;
 let fileWatcherService: FileWatcherService;
+let editorService: EditorService;
 
 const DEFAULT_TIMEOUT = 5 * 60 * 1000;
 
@@ -87,50 +86,40 @@ function registerIpcHandlers() {
     return { canceled: result.canceled, path: result.filePaths[0] || null };
   });
 
-  ipcMain.handle(
-    IPC_CHANNELS.PROJECT_OPEN,
-    async (_event, request: { path: string }) => {
-      const hasPlan = fs.existsSync(path.join(request.path, "sqitch.plan"));
-      const hasConf = fs.existsSync(path.join(request.path, "sqitch.conf"));
-      if (!hasPlan && !hasConf) {
-        return {
-          project: null,
-          error:
-            "Not a Sqitch project: no sqitch.plan or sqitch.conf found in directory",
-        };
-      }
-      const id = projectService.addProject({
-        name: path.basename(request.path),
-        path: request.path,
-        engine: "unknown",
-      });
-      fileWatcherService.start(request.path);
-      return { project: projectService.getProject(id) };
-    },
-  );
+  ipcMain.handle(IPC_CHANNELS.PROJECT_OPEN, async (_event, request: { path: string }) => {
+    const hasPlan = fs.existsSync(path.join(request.path, "sqitch.plan"));
+    const hasConf = fs.existsSync(path.join(request.path, "sqitch.conf"));
+    if (!hasPlan && !hasConf) {
+      return {
+        project: null,
+        error: "Not a Sqitch project: no sqitch.plan or sqitch.conf found in directory",
+      };
+    }
+    const id = projectService.addProject({
+      name: path.basename(request.path),
+      path: request.path,
+      engine: "unknown",
+    });
+    fileWatcherService.start(request.path);
+    return { project: projectService.getProject(id) };
+  });
 
   ipcMain.handle(IPC_CHANNELS.PROJECT_LIST, async () => {
     return { projects: projectService.listProjects() };
   });
 
-  ipcMain.handle(
-    IPC_CHANNELS.PROJECT_REMOVE,
-    async (_event, request: { id: string }) => {
-      const project = projectService.getProject(request.id);
-      if (project) {
-        fileWatcherService.stop(project.path);
-      }
-      projectService.removeProject(request.id);
-      return { success: true };
-    },
-  );
+  ipcMain.handle(IPC_CHANNELS.PROJECT_REMOVE, async (_event, request: { id: string }) => {
+    const project = projectService.getProject(request.id);
+    if (project) {
+      fileWatcherService.stop(project.path);
+    }
+    projectService.removeProject(request.id);
+    return { success: true };
+  });
 
-  ipcMain.handle(
-    IPC_CHANNELS.PROJECT_GET,
-    async (_event, request: { id: string }) => {
-      return projectService.getProject(request.id);
-    },
-  );
+  ipcMain.handle(IPC_CHANNELS.PROJECT_GET, async (_event, request: { id: string }) => {
+    return projectService.getProject(request.id);
+  });
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_DEPLOY, async (event, request) => {
     try {
@@ -163,11 +152,7 @@ function registerIpcHandlers() {
       });
       return parsed;
     } catch (err: any) {
-      const error = createAppError(
-        "sqitch_crash",
-        err.message,
-        err.stderr || err.sqitchOutput,
-      );
+      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
       event.sender.send(IPC_CHANNELS.SQITCH_ERROR, {
         projectPath: request.projectPath,
         error: error.message,
@@ -207,11 +192,7 @@ function registerIpcHandlers() {
       });
       return parseSqitchOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError(
-        "sqitch_crash",
-        err.message,
-        err.stderr || err.sqitchOutput,
-      );
+      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
       event.sender.send(IPC_CHANNELS.SQITCH_ERROR, {
         projectPath: request.projectPath,
         error: error.message,
@@ -224,25 +205,20 @@ function registerIpcHandlers() {
   ipcMain.handle(IPC_CHANNELS.SQITCH_VERIFY, async (event, request) => {
     try {
       const sender = event.sender;
-      const result = await sqitchService.verify(
-        request.projectPath,
-        request.target,
-        getTimeout(),
-        {
-          onStdout: (data) =>
-            sender.send(IPC_CHANNELS.SQITCH_STREAM, {
-              projectPath: request.projectPath,
-              data,
-              type: "stdout",
-            }),
-          onStderr: (data) =>
-            sender.send(IPC_CHANNELS.SQITCH_STREAM, {
-              projectPath: request.projectPath,
-              data,
-              type: "stderr",
-            }),
-        },
-      );
+      const result = await sqitchService.verify(request.projectPath, request.target, getTimeout(), {
+        onStdout: (data) =>
+          sender.send(IPC_CHANNELS.SQITCH_STREAM, {
+            projectPath: request.projectPath,
+            data,
+            type: "stdout",
+          }),
+        onStderr: (data) =>
+          sender.send(IPC_CHANNELS.SQITCH_STREAM, {
+            projectPath: request.projectPath,
+            data,
+            type: "stderr",
+          }),
+      });
       sender.send(IPC_CHANNELS.SQITCH_COMPLETE, {
         projectPath: request.projectPath,
         exitCode: result.exitCode,
@@ -250,11 +226,7 @@ function registerIpcHandlers() {
       });
       return parseSqitchOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError(
-        "sqitch_crash",
-        err.message,
-        err.stderr || err.sqitchOutput,
-      );
+      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
       event.sender.send(IPC_CHANNELS.SQITCH_ERROR, {
         projectPath: request.projectPath,
         error: error.message,
@@ -266,36 +238,20 @@ function registerIpcHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_STATUS, async (_event, request) => {
     try {
-      const result = await sqitchService.status(
-        request.projectPath,
-        request.target,
-        getTimeout(),
-      );
+      const result = await sqitchService.status(request.projectPath, request.target, getTimeout());
       return parseStatusOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError(
-        "sqitch_crash",
-        err.message,
-        err.stderr || err.sqitchOutput,
-      );
+      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
       throw error;
     }
   });
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_LOG, async (_event, request) => {
     try {
-      const result = await sqitchService.log(
-        request.projectPath,
-        request.target,
-        getTimeout(),
-      );
+      const result = await sqitchService.log(request.projectPath, request.target, getTimeout());
       return parseLogOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError(
-        "sqitch_crash",
-        err.message,
-        err.stderr || err.sqitchOutput,
-      );
+      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
       throw error;
     }
   });
@@ -306,10 +262,7 @@ function registerIpcHandlers() {
       const content = fs.readFileSync(planPath, "utf-8");
       return parsePlanFile(content);
     } catch (err: any) {
-      throw createAppError(
-        "file_permission",
-        `Failed to read plan file: ${err.message}`,
-      );
+      throw createAppError("file_permission", `Failed to read plan file: ${err.message}`);
     }
   });
 
@@ -325,11 +278,7 @@ function registerIpcHandlers() {
       );
       return { success: true, stdout: result.stdout };
     } catch (err: any) {
-      throw createAppError(
-        "sqitch_crash",
-        err.message,
-        err.stderr || err.sqitchOutput,
-      );
+      throw createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
     }
   });
 
@@ -349,21 +298,12 @@ function registerIpcHandlers() {
       );
       return { success: true, stdout: result.stdout };
     } catch (err: any) {
-      throw createAppError(
-        "sqitch_crash",
-        err.message,
-        err.stderr || err.sqitchOutput,
-      );
+      throw createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
     }
   });
 
   ipcMain.handle(IPC_CHANNELS.ENGINE_ADD, async (_event, request) => {
-    await engineService.add(
-      request.projectPath,
-      request.name,
-      request.uri,
-      request.client,
-    );
+    await engineService.add(request.projectPath, request.name, request.uri, request.client);
     return { success: true };
   });
 
@@ -391,19 +331,12 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC_CHANNELS.TARGET_GET_LABEL, async (_event, request) => {
-    const label = projectService.getTargetLabel(
-      request.projectId,
-      request.targetName,
-    );
+    const label = projectService.getTargetLabel(request.projectId, request.targetName);
     return { label: label ?? null };
   });
 
   ipcMain.handle(IPC_CHANNELS.TARGET_SET_LABEL, async (_event, request) => {
-    projectService.setTargetLabel(
-      request.projectId,
-      request.targetName,
-      request.label,
-    );
+    projectService.setTargetLabel(request.projectId, request.targetName, request.label);
     return { success: true };
   });
 
@@ -430,21 +363,24 @@ function registerIpcHandlers() {
     return { success: true };
   });
 
-  ipcMain.handle(
-    IPC_CHANNELS.WATCH_START,
-    async (_event, request: { projectPath: string }) => {
-      fileWatcherService.start(request.projectPath);
-      return { success: true };
-    },
-  );
+  ipcMain.handle(IPC_CHANNELS.EDITOR_DETECT, async () => {
+    return editorService.detectEditor();
+  });
 
-  ipcMain.handle(
-    IPC_CHANNELS.WATCH_STOP,
-    async (_event, request: { projectPath: string }) => {
-      fileWatcherService.stop(request.projectPath);
-      return { success: true };
-    },
-  );
+  ipcMain.handle(IPC_CHANNELS.EDITOR_OPEN_FILE, async (_event, request: { filePath: string }) => {
+    const editorName = editorService.openFile(request.filePath);
+    return { editorName };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WATCH_START, async (_event, request: { projectPath: string }) => {
+    fileWatcherService.start(request.projectPath);
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WATCH_STOP, async (_event, request: { projectPath: string }) => {
+    fileWatcherService.stop(request.projectPath);
+    return { success: true };
+  });
 }
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -465,6 +401,7 @@ if (!gotTheLock) {
     configService = new ConfigService(sqitchService);
     engineService = new EngineService(sqitchService);
     targetService = new TargetService(sqitchService);
+    editorService = new EditorService();
     fileWatcherService = new FileWatcherService((event) => {
       mainWindow?.webContents.send(IPC_CHANNELS.WATCH_EVENT, event);
     });

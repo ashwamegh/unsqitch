@@ -418,7 +418,7 @@ export const mockUnsqitchAPI: any = {
 
   // Native dialogs
   dialogOpenDirectory: async () => {
-    const defaultPath = "/home/ashwaspare/Studio/labs/coding/unsqitch/tests/fixtures/test-project";
+    const defaultPath = "tests/fixtures/test-project";
     const path = window.prompt(
       "UnSqitch Mock API (Browser Mode)\nEnter directory path for mock database project:",
       defaultPath,
@@ -488,10 +488,10 @@ export const mockUnsqitchAPI: any = {
   // Editor integration
   editorOpenFile: async (filePath: string) => {
     console.log("Opening file in editor:", filePath);
-    return { success: true };
+    return { editorName: "VS Code" };
   },
 
   editorDetect: async () => {
-    return { found: true, name: "VS Code" };
+    return { command: "code", name: "VS Code" };
   },
 };
