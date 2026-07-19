@@ -103,3 +103,25 @@ All commits must follow the **Conventional Commits** specification. In this repo
 - `wip: sidebar stuff` (Invalid type and missing scope)
 
 Our Husky hooks automatically validate both the commit message format and code syntax before letting you commit.
+
+---
+
+## Testing
+
+UnSqitch has three layers of tests:
+
+| Layer | Command | Notes |
+| ----- | ------- | ----- |
+| **Unit** | `npm test` | Vitest + jsdom. Covers parsers, services, and React view routing. No external dependencies. |
+| **E2E** | `npm run test:e2e` | Playwright drives the fully built Electron app. Automatically rebuilds native modules and runs `npm run build` first. |
+| **Integration** | `npm run test:integration` | Runs real Sqitch commands against live databases. Requires the [Sqitch CLI](https://sqitch.org/download/) and Docker (`npm run docker:up`). Skipped automatically when `RUN_INTEGRATION` is unset. |
+
+### Native module note
+
+`better-sqlite3` is a native module and must be compiled against the ABI of whichever runtime loads it — **Node.js** for unit tests, **Electron** for the running app and E2E. This is handled automatically:
+
+- `npm test` rebuilds for the **Node** ABI first (via its `pretest` hook → `npm run rebuild:node`).
+- `npm run test:e2e` rebuilds for the **Electron** ABI and builds the app first (via its `pretest:e2e` hook → `npm run rebuild:electron`).
+- The app itself (`npm run dev`, `npm run start`, and production builds) uses the **Electron** ABI, set up by `postinstall` on a fresh `npm install`.
+
+If you switch between running the unit tests and launching the app manually and hit a `NODE_MODULE_VERSION` error, re-run the matching rebuild script (`npm run rebuild:node` or `npm run rebuild:electron`).
