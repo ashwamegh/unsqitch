@@ -1,10 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  detectSqitchBinary,
-  checkSqitchVersion,
-} from "../../electron/services/binary-detector";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { checkSqitchVersion, detectSqitchBinary } from "../../electron/services/binary-detector";
 
-vi.mock("child_process", () => {
+vi.mock("node:child_process", () => {
   const execSync = vi.fn();
   return {
     default: { execSync },
@@ -12,7 +9,7 @@ vi.mock("child_process", () => {
   };
 });
 
-import { execSync } from "child_process";
+import { execSync } from "node:child_process";
 
 describe("detectSqitchBinary", () => {
   beforeEach(() => {
@@ -20,9 +17,7 @@ describe("detectSqitchBinary", () => {
   });
 
   it("returns path when sqitch is found", () => {
-    (execSync as ReturnType<typeof vi.fn>).mockReturnValue(
-      "/usr/local/bin/sqitch\n",
-    );
+    (execSync as ReturnType<typeof vi.fn>).mockReturnValue("/usr/local/bin/sqitch\n");
     const result = detectSqitchBinary();
     expect(result).toBe("/usr/local/bin/sqitch");
   });

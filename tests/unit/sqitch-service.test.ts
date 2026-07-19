@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SqitchService } from "../../electron/services/sqitch.service";
 
 function createMockSpawn() {
@@ -7,7 +7,7 @@ function createMockSpawn() {
 
 function mockSpawn(
   spawnMock: ReturnType<typeof createMockSpawn>,
-  success: boolean,
+  _success: boolean,
   stdout: string,
   stderr: string,
   exitCode = 0,
@@ -46,13 +46,8 @@ describe("SqitchService", () => {
   });
 
   it("builds deploy command", async () => {
-    mockSpawn(
-      spawnMock,
-      true,
-      "Deploying changes to mydb\n  + appschema .. ok\n",
-      "",
-    );
-    const result = await service.deploy("/project", "mydb");
+    mockSpawn(spawnMock, true, "Deploying changes to mydb\n  + appschema .. ok\n", "");
+    const _result = await service.deploy("/project", "mydb");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
       ["deploy", "mydb", "--verify"],
@@ -105,14 +100,7 @@ describe("SqitchService", () => {
     await service.status("/project", "mydb");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      [
-        "status",
-        "mydb",
-        "--show-changes",
-        "--show-tags",
-        "--date-format",
-        "raw",
-      ],
+      ["status", "mydb", "--show-changes", "--show-tags", "--date-format", "raw"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -129,13 +117,7 @@ describe("SqitchService", () => {
 
   it("builds add command", async () => {
     mockSpawn(spawnMock, true, "", "");
-    await service.add(
-      "/project",
-      "users",
-      "Add users table",
-      ["appschema"],
-      [],
-    );
+    await service.add("/project", "users", "Add users table", ["appschema"], []);
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
       ["add", "users", "-n", "Add users table", "-r", "appschema"],
@@ -145,13 +127,7 @@ describe("SqitchService", () => {
 
   it("builds add command with conflicts", async () => {
     mockSpawn(spawnMock, true, "", "");
-    await service.add(
-      "/project",
-      "new_auth",
-      "New auth",
-      ["users"],
-      ["legacy_auth"],
-    );
+    await service.add("/project", "new_auth", "New auth", ["users"], ["legacy_auth"]);
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
       ["add", "new_auth", "-n", "New auth", "-r", "users", "-x", "legacy_auth"],
@@ -160,12 +136,7 @@ describe("SqitchService", () => {
   });
 
   it("returns stdout on success", async () => {
-    mockSpawn(
-      spawnMock,
-      true,
-      "Deploying changes to mydb\n  + appschema .. ok\n",
-      "",
-    );
+    mockSpawn(spawnMock, true, "Deploying changes to mydb\n  + appschema .. ok\n", "");
     const result = await service.deploy("/project", "mydb");
     expect(result.stdout).toContain("Deploying changes");
   });

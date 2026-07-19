@@ -1,5 +1,5 @@
-import { spawn as defaultSpawn } from "child_process";
-import path from "path";
+import { spawn as defaultSpawn } from "node:child_process";
+import path from "node:path";
 
 export class EditorService {
   editorCommand: string | null = null;

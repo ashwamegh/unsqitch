@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseSqitchOutput } from "../../src/lib/sqitch-parser";
 
 const DEPLOY_OUTPUT = `Deploying changes to db:pg://localhost/mydb

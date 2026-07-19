@@ -1,8 +1,8 @@
+import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import Database from "better-sqlite3";
-import path from "path";
-import os from "os";
-import fs from "fs";
-import { randomUUID } from "crypto";
 
 export interface ProjectRecord {
   id: string;
@@ -18,8 +18,7 @@ export class ProjectService {
   private db: Database.Database;
 
   constructor(dbPath?: string) {
-    const resolvedPath =
-      dbPath || path.join(os.homedir(), ".unsqitch", "app.db");
+    const resolvedPath = dbPath || path.join(os.homedir(), ".unsqitch", "app.db");
     const dir = path.dirname(resolvedPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -80,9 +79,9 @@ export class ProjectService {
   }
 
   getProject(id: string): ProjectRecord | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM projects WHERE id = ?")
-      .get(id) as Record<string, unknown> | undefined;
+    const row = this.db.prepare("SELECT * FROM projects WHERE id = ?").get(id) as
+      | Record<string, unknown>
+      | undefined;
     if (!row) return undefined;
     this.db
       .prepare("UPDATE projects SET lastOpened = ? WHERE id = ?")
@@ -103,23 +102,19 @@ export class ProjectService {
   }
 
   getSetting(key: string): string | undefined {
-    const row = this.db
-      .prepare("SELECT value FROM settings WHERE key = ?")
-      .get(key) as Record<string, string> | undefined;
+    const row = this.db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as
+      | Record<string, string>
+      | undefined;
     return row?.value;
   }
 
   setSetting(key: string, value: string): void {
-    this.db
-      .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)")
-      .run(key, value);
+    this.db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(key, value);
   }
 
   getTargetLabel(projectId: string, targetName: string): string | undefined {
     const row = this.db
-      .prepare(
-        "SELECT label FROM target_labels WHERE projectId = ? AND targetName = ?",
-      )
+      .prepare("SELECT label FROM target_labels WHERE projectId = ? AND targetName = ?")
       .get(projectId, targetName) as Record<string, string> | undefined;
     return row?.label;
   }

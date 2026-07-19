@@ -1,5 +1,5 @@
-import { spawn as defaultSpawn, ChildProcess } from "child_process";
-import { createAppError, AppError } from "../../src/types/error";
+import { type ChildProcess, spawn as defaultSpawn } from "node:child_process";
+import { type AppError, createAppError } from "../../src/types/error";
 
 export interface SqitchResult {
   stdout: string;
@@ -17,10 +17,7 @@ export class SqitchService {
   private activeProcess: ChildProcess | null = null;
   private _spawn: typeof defaultSpawn;
 
-  constructor(
-    binaryPath: string,
-    spawnImpl: typeof defaultSpawn = defaultSpawn,
-  ) {
+  constructor(binaryPath: string, spawnImpl: typeof defaultSpawn = defaultSpawn) {
     this._binaryPath = binaryPath;
     this._spawn = spawnImpl;
   }
@@ -63,12 +60,7 @@ export class SqitchService {
         timeoutId = setTimeout(() => {
           child.kill();
           this.activeProcess = null;
-          reject(
-            createAppError(
-              "command_timeout",
-              `Command timed out after ${timeout}ms`,
-            ),
-          );
+          reject(createAppError("command_timeout", `Command timed out after ${timeout}ms`));
         }, timeout);
       }
 
@@ -84,11 +76,7 @@ export class SqitchService {
             stdout: string;
             stderr: string;
           } = {
-            ...createAppError(
-              "sqitch_crash",
-              `sqitch exited with code ${code}`,
-              stderr,
-            ),
+            ...createAppError("sqitch_crash", `sqitch exited with code ${code}`, stderr),
             exitCode: code,
             stdout,
             stderr,
@@ -134,30 +122,15 @@ export class SqitchService {
     return this.runCommand(["verify", target], projectPath, timeout, streams);
   }
 
-  async status(
-    projectPath: string,
-    target: string,
-    timeout?: number,
-  ): Promise<SqitchResult> {
+  async status(projectPath: string, target: string, timeout?: number): Promise<SqitchResult> {
     return this.runCommand(
-      [
-        "status",
-        target,
-        "--show-changes",
-        "--show-tags",
-        "--date-format",
-        "raw",
-      ],
+      ["status", target, "--show-changes", "--show-tags", "--date-format", "raw"],
       projectPath,
       timeout,
     );
   }
 
-  async log(
-    projectPath: string,
-    target: string,
-    timeout?: number,
-  ): Promise<SqitchResult> {
+  async log(projectPath: string, target: string, timeout?: number): Promise<SqitchResult> {
     return this.runCommand(["log", target], projectPath, timeout);
   }
 
@@ -188,18 +161,8 @@ export class SqitchService {
     planFile: string,
     timeout?: number,
   ): Promise<SqitchResult> {
-    const args = [
-      "init",
-      name,
-      "--engine",
-      engine,
-      "--uri",
-      uri,
-      "--top-dir",
-      topDir,
-    ];
-    if (planFile && planFile !== "sqitch.plan")
-      args.push("--plan-file", planFile);
+    const args = ["init", name, "--engine", engine, "--uri", uri, "--top-dir", topDir];
+    if (planFile && planFile !== "sqitch.plan") args.push("--plan-file", planFile);
     return this.runCommand(args, directory, timeout);
   }
 

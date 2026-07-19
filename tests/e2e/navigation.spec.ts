@@ -1,14 +1,14 @@
-import { test, expect } from "@playwright/test";
-import { launchApp, closeApp } from "./helpers";
+import { test } from "@playwright/test";
 import type { ElectronApplication, Page } from "playwright";
+import { closeApp, launchApp } from "./helpers";
 
 let app: ElectronApplication;
-let page: Page;
+let _page: Page;
 
 test.beforeAll(async () => {
   const result = await launchApp();
   app = result.app;
-  page = result.page;
+  _page = result.page;
 });
 
 test.afterAll(async () => {

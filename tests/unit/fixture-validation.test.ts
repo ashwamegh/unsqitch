@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
-import { resolve } from "path";
-import { parsePlanFile } from "../../src/lib/plan-parser";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
 import { parseConfigList } from "../../src/lib/config-parser";
+import { parseLogOutput } from "../../src/lib/log-parser";
+import { parsePlanFile } from "../../src/lib/plan-parser";
 import { parseSqitchOutput } from "../../src/lib/sqitch-parser";
 import { parseStatusOutput } from "../../src/lib/status-parser";
-import { parseLogOutput } from "../../src/lib/log-parser";
 
 const fixturesDir = resolve(__dirname, "../fixtures");
 
@@ -20,10 +20,8 @@ describe("fixture validation", () => {
       const result = parsePlanFile(content);
 
       expect(result.pragmas["syntax-version"]).toBe("1.0.0");
-      expect(result.pragmas["project"]).toBe("test-project");
-      expect(result.pragmas["uri"]).toBe(
-        "https://github.com/example/test-project",
-      );
+      expect(result.pragmas.project).toBe("test-project");
+      expect(result.pragmas.uri).toBe("https://github.com/example/test-project");
 
       expect(result.changes).toHaveLength(2);
       expect(result.changes[0].name).toBe("appschema");

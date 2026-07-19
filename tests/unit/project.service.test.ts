@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { ProjectService } from "../../electron/services/project.service";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ProjectService } from "../../electron/services/project.service";
 
 const tmpDir = path.join(os.tmpdir(), `unsqitch-test-${Date.now()}`);
 
@@ -23,11 +23,11 @@ describe("ProjectService", () => {
   }
 
   it("initializes database with tables", () => {
-    const service = createService();
+    const _service = createService();
     const db = new Database(path.join(tmpDir, "app.db"));
-    const tables = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-      .all() as Array<{ name: string }>;
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{
+      name: string;
+    }>;
     const tableNames = tables.map((t) => t.name);
     expect(tableNames).toContain("projects");
     expect(tableNames).toContain("settings");

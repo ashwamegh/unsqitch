@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!src/assets/main.css"]
+    "includes": ["**", "!src/assets/main.css", "!package-lock.json"]
   },
   "formatter": {
     "enabled": true,

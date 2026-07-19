@@ -1,15 +1,12 @@
-import { SqitchService } from "./sqitch.service";
 import { parseConfigList } from "../../src/lib/config-parser";
 import type { ConfigEntry } from "../../src/types/config";
+import type { SqitchService } from "./sqitch.service";
 
 export class ConfigService {
   constructor(private sqitch: SqitchService) {}
 
   async list(projectPath: string): Promise<ConfigEntry[]> {
-    const result = await this.sqitch.runCommand(
-      ["config", "--list"],
-      projectPath,
-    );
+    const result = await this.sqitch.runCommand(["config", "--list"], projectPath);
     return parseConfigList(result.stdout);
   }
 

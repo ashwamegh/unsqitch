@@ -1,2 +1,2 @@
-npx @biomejs/biome check src
+npx @biomejs/biome check .
 npm run typecheck

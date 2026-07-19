@@ -1,18 +1,15 @@
+import { IPC_CHANNELS, type WatchEventPayload } from "@shared/ipc-types";
 import { contextBridge, ipcRenderer } from "electron";
-import { IPC_CHANNELS, WatchEventPayload } from "@shared/ipc-types";
 
 const api = {
   // Project management
-  projectOpen: (path: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_OPEN, { path }),
+  projectOpen: (path: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_OPEN, { path }),
 
   projectList: () => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_LIST),
 
-  projectRemove: (id: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_REMOVE, { id }),
+  projectRemove: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_REMOVE, { id }),
 
-  projectGet: (id: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_GET, { id }),
+  projectGet: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_GET, { id }),
 
   // Sqitch operations
   sqitchDeploy: (projectPath: string, target: string, toChange?: string) =>
@@ -74,12 +71,7 @@ const api = {
     }),
 
   // Engine/Target/Config
-  engineAdd: (
-    projectPath: string,
-    name: string,
-    uri: string,
-    client?: string,
-  ) =>
+  engineAdd: (projectPath: string, name: string, uri: string, client?: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.ENGINE_ADD, {
       projectPath,
       name,
@@ -132,48 +124,33 @@ const api = {
   sqitchCancel: () => ipcRenderer.invoke(IPC_CHANNELS.SQITCH_CANCEL),
 
   // Native dialogs
-  dialogOpenDirectory: () =>
-    ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_DIRECTORY),
+  dialogOpenDirectory: () => ipcRenderer.invoke(IPC_CHANNELS.DIALOG_OPEN_DIRECTORY),
 
   // Stream listeners
   onSqitchStream: (
-    callback: (event: {
-      projectPath: string;
-      data: string;
-      type: "stdout" | "stderr";
-    }) => void,
+    callback: (event: { projectPath: string; data: string; type: "stdout" | "stderr" }) => void,
   ) => {
     const handler = (
       _event: Electron.IpcRendererEvent,
       data: { projectPath: string; data: string; type: "stdout" | "stderr" },
     ) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.SQITCH_STREAM, handler);
-    return () =>
-      ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_STREAM, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_STREAM, handler);
   },
 
   onSqitchComplete: (
-    callback: (event: {
-      projectPath: string;
-      exitCode: number;
-      command: string;
-    }) => void,
+    callback: (event: { projectPath: string; exitCode: number; command: string }) => void,
   ) => {
     const handler = (
       _event: Electron.IpcRendererEvent,
       data: { projectPath: string; exitCode: number; command: string },
     ) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.SQITCH_COMPLETE, handler);
-    return () =>
-      ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_COMPLETE, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_COMPLETE, handler);
   },
 
   onSqitchError: (
-    callback: (event: {
-      projectPath: string;
-      error: string;
-      type: string;
-    }) => void,
+    callback: (event: { projectPath: string; error: string; type: string }) => void,
   ) => {
     const handler = (
       _event: Electron.IpcRendererEvent,
@@ -184,10 +161,8 @@ const api = {
   },
 
   onStatusStale: (callback: (payload: { threshold?: number }) => void) => {
-    const handler = (
-      _event: Electron.IpcRendererEvent,
-      data: { threshold?: number },
-    ) => callback(data);
+    const handler = (_event: Electron.IpcRendererEvent, data: { threshold?: number }) =>
+      callback(data);
     ipcRenderer.on(IPC_CHANNELS.STATUS_STALE, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.STATUS_STALE, handler);
   },
@@ -196,21 +171,16 @@ const api = {
   watchStart: (projectPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.WATCH_START, { projectPath }),
 
-  watchStop: (projectPath: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.WATCH_STOP, { projectPath }),
+  watchStop: (projectPath: string) => ipcRenderer.invoke(IPC_CHANNELS.WATCH_STOP, { projectPath }),
 
   onWatchEvent: (callback: (event: WatchEventPayload) => void) => {
-    const handler = (
-      _event: Electron.IpcRendererEvent,
-      data: WatchEventPayload,
-    ) => callback(data);
+    const handler = (_event: Electron.IpcRendererEvent, data: WatchEventPayload) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.WATCH_EVENT, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.WATCH_EVENT, handler);
   },
 
   // Settings
-  settingsGet: (key: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET, { key }),
+  settingsGet: (key: string) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET, { key }),
 
   settingsSet: (key: string, value: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, { key, value }),

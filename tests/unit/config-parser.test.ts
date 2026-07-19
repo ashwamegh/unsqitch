@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseConfigList } from "../../src/lib/config-parser";
 
 describe("parseConfigList", () => {
@@ -9,16 +9,12 @@ describe("parseConfigList", () => {
 
   it("parses key with subsection", () => {
     const result = parseConfigList("engine.pg.client=psql");
-    expect(result).toEqual([
-      { section: "engine", subsection: "pg", key: "client", value: "psql" },
-    ]);
+    expect(result).toEqual([{ section: "engine", subsection: "pg", key: "client", value: "psql" }]);
   });
 
   it("parses value containing equals sign", () => {
     const result = parseConfigList("core.uri=db:pg://user=me@host/db");
-    expect(result).toEqual([
-      { section: "core", key: "uri", value: "db:pg://user=me@host/db" },
-    ]);
+    expect(result).toEqual([{ section: "core", key: "uri", value: "db:pg://user=me@host/db" }]);
   });
 
   it("parses multiple lines", () => {

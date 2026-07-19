@@ -1,5 +1,5 @@
-import { watch, FSWatcher } from "chokidar";
-import path from "path";
+import path from "node:path";
+import { type FSWatcher, watch } from "chokidar";
 import type { WatchEventPayload } from "../shared/ipc-types";
 
 export class FileWatcherService {
@@ -64,9 +64,7 @@ export class FileWatcherService {
     filePath: string,
     action: WatchEventPayload["action"],
   ): void {
-    const type: WatchEventPayload["type"] = filePath.endsWith("sqitch.plan")
-      ? "plan"
-      : "script";
+    const type: WatchEventPayload["type"] = filePath.endsWith("sqitch.plan") ? "plan" : "script";
     this.onEvent({ projectPath, type, filePath, action });
   }
 }

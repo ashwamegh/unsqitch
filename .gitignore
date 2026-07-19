@@ -6,3 +6,7 @@ out
 *.log*
 .eslintcache
 test-results/
+
+# Editor / agent tooling session artifacts
+.antigravitycli/
+.omo/

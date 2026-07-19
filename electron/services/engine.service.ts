@@ -1,4 +1,4 @@
-import { SqitchService } from "./sqitch.service";
+import type { SqitchService } from "./sqitch.service";
 
 export interface EngineInfo {
   name: string;
@@ -10,12 +10,7 @@ export interface EngineInfo {
 export class EngineService {
   constructor(private sqitch: SqitchService) {}
 
-  async add(
-    projectPath: string,
-    name: string,
-    uri: string,
-    client?: string,
-  ): Promise<void> {
+  async add(projectPath: string, name: string, uri: string, client?: string): Promise<void> {
     const args = ["engine", "add", name, "--target", uri];
     if (client) args.push("--client", client);
     await this.sqitch.runCommand(args, projectPath);
@@ -26,10 +21,7 @@ export class EngineService {
   }
 
   async list(projectPath: string): Promise<EngineInfo[]> {
-    const result = await this.sqitch.runCommand(
-      ["engine", "list"],
-      projectPath,
-    );
+    const result = await this.sqitch.runCommand(["engine", "list"], projectPath);
     return this.parseEngineList(result.stdout);
   }
 

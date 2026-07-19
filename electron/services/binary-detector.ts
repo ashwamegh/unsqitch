@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execSync } from "node:child_process";
 
 const MINIMUM_VERSION = "1.0.0";
 
@@ -23,8 +23,7 @@ export function detectSqitchBinary(customPath?: string): string | null {
   }
 
   try {
-    const command =
-      process.platform === "win32" ? "where sqitch" : "which sqitch";
+    const command = process.platform === "win32" ? "where sqitch" : "which sqitch";
     const result = execSync(command, { stdio: "pipe" }).toString().trim();
     return result.split("\n")[0].trim();
   } catch {
