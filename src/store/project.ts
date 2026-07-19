@@ -22,6 +22,7 @@ interface ProjectState {
   log: LogEntry[];
   config: ConfigEntry[];
   events: SqitchEvent[];
+  verifyResults: Array<{ change: string; status: string }>;
   error: AppError | null;
   isRunning: boolean;
   statusStale: boolean;
@@ -39,6 +40,7 @@ interface ProjectActions {
   clearEvents: () => void;
   startRun: () => void;
   ingestStream: (data: string) => void;
+  setVerifyResults: (results: Array<{ change: string; status: string }>) => void;
   setError: (error: AppError | null) => void;
   setRunning: (running: boolean) => void;
   setStatusStale: (stale: boolean) => void;
@@ -55,6 +57,7 @@ const initialState: ProjectState = {
   log: [],
   config: [],
   events: [],
+  verifyResults: [],
   error: null,
   isRunning: false,
   statusStale: false,
@@ -84,6 +87,7 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
     streamBuffer += data;
     set({ events: coalesceEvents(parseSqitchOutput(streamBuffer).events) });
   },
+  setVerifyResults: (verifyResults) => set({ verifyResults }),
   setError: (error) => set({ error }),
   setRunning: (running) => set({ isRunning: running }),
   setStatusStale: (stale) => set({ statusStale: stale }),

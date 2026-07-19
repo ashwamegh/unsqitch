@@ -10,9 +10,7 @@ export function VerifyView() {
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
   const [target, setTarget] = useState("");
-  const [results, setResults] = useState<Array<{ change: string; status: string; raw: string }>>(
-    [],
-  );
+  const [results, setResults] = useState<Array<{ change: string; status: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
   const project = projects.find((p) => p.id === currentProjectId);
@@ -24,7 +22,9 @@ export function VerifyView() {
       useProjectStore.getState().startRun();
       showToast("Running verification suite...");
       const result = await ipc.sqitchVerify(project.path, target);
-      setResults((result as any).events || []);
+      const events = ((result as any).events || []) as Array<{ change: string; status: string }>;
+      setResults(events);
+      useProjectStore.getState().setVerifyResults(events);
       showToast("Verification completed", "success");
     } catch (err: any) {
       setError(err.message || "Verify failed");
