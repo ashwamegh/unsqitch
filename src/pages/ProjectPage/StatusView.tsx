@@ -67,12 +67,14 @@ export function StatusView() {
     }
   };
 
-  // Automatically refresh when the confirmed target changes.
+  // Automatically refresh when the confirmed target changes. Depend only on
+  // project + confirmedTarget — handleRefresh is recreated each render and would
+  // otherwise cause an infinite update loop.
   useEffect(() => {
     if (project && confirmedTarget) {
       handleRefresh();
     }
-  }, [confirmedTarget, project, handleRefresh]);
+  }, [confirmedTarget, project]);
 
   const stats = [
     {

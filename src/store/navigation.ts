@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useProjectStore } from "./project";
 
 export type View = "home" | "project";
 export type Section =
@@ -46,10 +47,16 @@ export const useNavigationStore = create<NavigationState & NavigationActions>((s
   sidebarCollapsed: true,
   pulsedSections: [],
 
-  goHome: () => set({ view: "home", projectId: null, section: null, sidebarCollapsed: true }),
+  goHome: () => {
+    // Keep the project store's active project in sync with navigation.
+    useProjectStore.getState().setCurrentProject(null);
+    set({ view: "home", projectId: null, section: null, sidebarCollapsed: true });
+  },
 
-  openProject: (projectId) =>
-    set({ view: "project", projectId, section: "plan", sidebarCollapsed: false }),
+  openProject: (projectId) => {
+    useProjectStore.getState().setCurrentProject(projectId);
+    set({ view: "project", projectId, section: "plan", sidebarCollapsed: false });
+  },
 
   // Opening a section clears its pending "new data" pulse.
   setSection: (section) =>

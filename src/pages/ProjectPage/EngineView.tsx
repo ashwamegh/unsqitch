@@ -61,12 +61,13 @@ export function EngineView() {
     }
   };
 
-  // Auto load on mount
+  // Auto load on mount. Depend only on project — handleList is recreated every
+  // render, so including it would loop (setState -> re-render -> new fn -> rerun).
   useEffect(() => {
     if (project) {
       handleList();
     }
-  }, [project, handleList]);
+  }, [project]);
 
   return (
     <div className="space-y-6 max-w-3xl">

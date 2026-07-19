@@ -23,11 +23,17 @@ describe("fixture validation", () => {
       expect(result.pragmas.project).toBe("test-project");
       expect(result.pragmas.uri).toBe("https://github.com/example/test-project");
 
-      expect(result.changes).toHaveLength(2);
+      expect(result.changes).toHaveLength(3);
       expect(result.changes[0].name).toBe("appschema");
       expect(result.changes[0].requires).toEqual([]);
       expect(result.changes[1].name).toBe("users");
       expect(result.changes[1].requires).toEqual(["appschema"]);
+      expect(result.changes[2].name).toBe("orders");
+      expect(result.changes[2].requires).toEqual(["users"]);
+      expect(result.changes[2].conflicts).toEqual(["legacy_orders"]);
+
+      expect(result.tags).toHaveLength(1);
+      expect(result.tags[0].name).toBe("v1.0.0");
 
       expect(result.unparseableLines).toHaveLength(0);
     });

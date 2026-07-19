@@ -19,7 +19,7 @@ export function PlanTimeline({ plan, showCommand, projectPath }: PlanTimelinePro
     <div>
       <UnparseableWarning lines={plan.unparseableLines} />
       <div className="space-y-0.5">
-        {plan.entries.map((entry) => {
+        {(plan.entries ?? []).map((entry) => {
           const n = entry.type === "change" ? ++changeNumber : undefined;
           return (
             <PlanEntry
