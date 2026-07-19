@@ -21,7 +21,7 @@ export function VerifyView() {
     if (!project || !target) return;
     setError(null);
     try {
-      useProjectStore.getState().setRunning(true);
+      useProjectStore.getState().startRun();
       showToast("Running verification suite...");
       const result = await ipc.sqitchVerify(project.path, target);
       setResults((result as any).events || []);

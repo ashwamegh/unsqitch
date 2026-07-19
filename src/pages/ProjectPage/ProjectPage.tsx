@@ -46,9 +46,18 @@ export function ProjectPage() {
         markStatusStale();
       }
     });
+    // Feed streamed sqitch stdout into the progress event list so the
+    // change-by-change Progress UI updates in real time during deploy/revert/verify.
+    const unsubscribeStream = ipc.onSqitchStream((event) => {
+      const project = projects.find((p) => p.id === currentProjectId);
+      if (!project || event.projectPath === project.path) {
+        useProjectStore.getState().ingestStream(event.data);
+      }
+    });
     return () => {
       unsubscribeStale();
       unsubscribeWatch();
+      unsubscribeStream();
     };
   }, [ipc, markStatusStale, currentProjectId, projects]);
 

@@ -32,7 +32,7 @@ export function DeployView() {
     if (!project || !target) return;
     setConfirmedTarget(target);
     try {
-      useProjectStore.getState().setRunning(true);
+      useProjectStore.getState().startRun();
       showToast("Starting deployment...");
       await ipc.sqitchDeploy(project.path, target, toChange || undefined);
       // Refresh status after deploy

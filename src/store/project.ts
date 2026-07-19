@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { coalesceEvents, parseSqitchOutput } from "../lib/sqitch-parser";
 import type { ConfigEntry } from "../types/config";
 import type { DeploymentStatus, LogEntry } from "../types/deployment";
 import type { AppError } from "../types/error";
@@ -36,6 +37,8 @@ interface ProjectActions {
   setConfig: (config: ConfigEntry[]) => void;
   addEvent: (event: SqitchEvent) => void;
   clearEvents: () => void;
+  startRun: () => void;
+  ingestStream: (data: string) => void;
   setError: (error: AppError | null) => void;
   setRunning: (running: boolean) => void;
   setStatusStale: (stale: boolean) => void;
@@ -58,6 +61,10 @@ const initialState: ProjectState = {
   lastStatusRefresh: null,
 };
 
+// Accumulates raw sqitch stdout across stream chunks for the active command so
+// each chunk can be re-parsed into an up-to-date coalesced event list.
+let streamBuffer = "";
+
 export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
   ...initialState,
 
@@ -69,6 +76,14 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
   setConfig: (config) => set({ config }),
   addEvent: (event) => set((state) => ({ events: [...state.events, event] })),
   clearEvents: () => set({ events: [] }),
+  startRun: () => {
+    streamBuffer = "";
+    set({ events: [], error: null, isRunning: true });
+  },
+  ingestStream: (data) => {
+    streamBuffer += data;
+    set({ events: coalesceEvents(parseSqitchOutput(streamBuffer).events) });
+  },
   setError: (error) => set({ error }),
   setRunning: (running) => set({ isRunning: running }),
   setStatusStale: (stale) => set({ statusStale: stale }),

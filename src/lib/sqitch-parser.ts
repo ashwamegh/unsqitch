@@ -110,3 +110,35 @@ export function parseSqitchOutput(output: string): SqitchParsedOutput {
 
   return { events, rawOutput: output, exitCode: null };
 }
+
+/**
+ * Collapse the raw event stream into one entry per change, keyed by type+change.
+ * A later result line (ok/not_ok/failed) supersedes the earlier "running" header
+ * for the same change, so the progress list shows a single, up-to-date row per
+ * change instead of a running row followed by a duplicate completed row.
+ */
+export function coalesceEvents(events: SqitchEvent[]): SqitchEvent[] {
+  const order: string[] = [];
+  const byKey = new Map<string, SqitchEvent>();
+
+  for (const event of events) {
+    const key = `${event.type}:${event.change}`;
+    const prev = byKey.get(key);
+
+    if (!prev) {
+      order.push(key);
+      byKey.set(key, event);
+      continue;
+    }
+
+    // Never downgrade a finished change back to "running".
+    if (event.status === "running" && prev.status !== "running") continue;
+
+    const merged: SqitchEvent = { ...prev, ...event };
+    // Keep a target discovered earlier if the superseding line omits it.
+    if (!event.target && prev.target) merged.target = prev.target;
+    byKey.set(key, merged);
+  }
+
+  return order.map((key) => byKey.get(key) as SqitchEvent);
+}

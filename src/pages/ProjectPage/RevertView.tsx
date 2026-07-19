@@ -80,7 +80,7 @@ export function RevertView() {
     if (!isProduction && requiresConfirm && confirmText !== String(changesToRevert.length)) return;
 
     try {
-      useProjectStore.getState().setRunning(true);
+      useProjectStore.getState().startRun();
       showToast("Reverting changes...");
       const toChangeArg =
         revertTo || (deployed.length <= 1 ? undefined : deployed[deployed.length - 2]?.name);
