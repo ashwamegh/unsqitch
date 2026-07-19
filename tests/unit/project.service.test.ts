@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ProjectService } from "../../electron/services/project.service";
+import { ProjectService, redactCommand } from "../../electron/services/project.service";
 
 const tmpDir = path.join(os.tmpdir(), `unsqitch-test-${Date.now()}`);
 
@@ -97,5 +97,55 @@ describe("ProjectService", () => {
     const service = createService();
     const id = service.addProject({ name: "app", path: "/a", engine: "pg" });
     expect(service.getTargetLabel(id, "mydb")).toBeUndefined();
+  });
+
+  it("finds a project by path", () => {
+    const service = createService();
+    const id = service.addProject({ name: "app", path: "/a", engine: "pg" });
+    expect(service.getProjectByPath("/a")?.id).toBe(id);
+    expect(service.getProjectByPath("/missing")).toBeUndefined();
+  });
+
+  it("updates engine, changeCount, and lastDeployment metadata", () => {
+    const service = createService();
+    const id = service.addProject({ name: "app", path: "/a", engine: "unknown" });
+    service.updateProjectMeta(id, { engine: "pg", changeCount: 3 });
+    let p = service.getProject(id)!;
+    expect(p).toMatchObject({ engine: "pg", changeCount: 3 });
+    service.updateProjectMeta(id, { lastDeployment: "2026-07-19T00:00:00Z" });
+    p = service.getProject(id)!;
+    expect(p.lastDeployment).toBe("2026-07-19T00:00:00Z");
+    expect(p.changeCount).toBe(3); // untouched fields preserved
+  });
+
+  it("records and retrieves recent commands, newest first", () => {
+    const service = createService();
+    const id = service.addProject({ name: "app", path: "/a", engine: "pg" });
+    service.recordCommand(id, "sqitch deploy mydb --verify", 0);
+    service.recordCommand(id, "sqitch revert mydb -y", 1);
+    const cmds = service.getRecentCommands(id);
+    expect(cmds).toHaveLength(2);
+    expect(cmds[0].command).toBe("sqitch revert mydb -y");
+    expect(cmds[0].exitCode).toBe(1);
+  });
+
+  it("redacts embedded credentials before storing a command", () => {
+    const service = createService();
+    const id = service.addProject({ name: "app", path: "/a", engine: "pg" });
+    service.recordCommand(id, "sqitch deploy db:pg://joe:s3cret@host/db --verify", 0);
+    expect(service.getRecentCommands(id)[0].command).not.toContain("s3cret");
+    expect(service.getRecentCommands(id)[0].command).toContain("***");
+  });
+});
+
+describe("redactCommand", () => {
+  it("masks user:password in a URI", () => {
+    expect(redactCommand("db:pg://joe:s3cret@host/db")).toBe("db:pg://***:***@host/db");
+  });
+  it("masks a lone user in a URI", () => {
+    expect(redactCommand("db:pg://joe@host/db")).toBe("db:pg://***@host/db");
+  });
+  it("leaves credential-free commands unchanged", () => {
+    expect(redactCommand("sqitch deploy mydb --verify")).toBe("sqitch deploy mydb --verify");
   });
 });

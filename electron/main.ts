@@ -5,7 +5,7 @@ import { parseLogOutput } from "../src/lib/log-parser";
 import { parsePlanFile } from "../src/lib/plan-parser";
 import { parseSqitchOutput } from "../src/lib/sqitch-parser";
 import { parseStatusOutput } from "../src/lib/status-parser";
-import { createAppError } from "../src/types/error";
+import { classifyError, createAppError, type ErrorType } from "../src/types/error";
 import { checkSqitchVersion, detectSqitchBinary } from "./services/binary-detector";
 import { ConfigService } from "./services/config.service";
 import { EditorService } from "./services/editor.service";
@@ -48,6 +48,61 @@ function createWindow() {
 function getTimeout(): number {
   const timeoutStr = projectService.getSetting("commandTimeout");
   return timeoutStr ? parseInt(timeoutStr, 10) : DEFAULT_TIMEOUT;
+}
+
+// Derive display metadata for a project directory without a DB connection:
+// engine from sqitch.conf's `engine = X`, change count from the plan file.
+function deriveProjectMeta(projectPath: string): { engine: string; changeCount: number } {
+  let engine = "unknown";
+  let changeCount = 0;
+  try {
+    const conf = fs.readFileSync(path.join(projectPath, "sqitch.conf"), "utf-8");
+    const match = conf.match(/^\s*engine\s*=\s*(\S+)/m);
+    if (match) engine = match[1];
+  } catch {
+    // no sqitch.conf — leave engine as "unknown"
+  }
+  try {
+    const plan = fs.readFileSync(path.join(projectPath, "sqitch.plan"), "utf-8");
+    changeCount = parsePlanFile(plan).changes.length;
+  } catch {
+    // no plan file — leave changeCount at 0
+  }
+  return { engine, changeCount };
+}
+
+// Spec: quick-check the binary exists at the cached path before every command.
+function ensureBinary(): void {
+  const found = detectSqitchBinary(sqitchService.binaryPath);
+  if (!found) {
+    throw createAppError(
+      "binary_not_found",
+      `Sqitch binary not found at "${sqitchService.binaryPath}". Set the correct path in Settings.`,
+    );
+  }
+}
+
+// Record a (credential-redacted) command in the project's history.
+function recordSqitchCommand(
+  projectPath: string,
+  commandArgs: string[],
+  exitCode: number | null,
+): void {
+  const project = projectService.getProjectByPath(projectPath);
+  if (!project) return;
+  projectService.recordCommand(project.id, `sqitch ${commandArgs.join(" ")}`, exitCode);
+}
+
+// Reuse a specific error type thrown upstream (timeout, binary_not_found); otherwise
+// infer the type from the sqitch stderr so the UI can offer the right recovery actions.
+function resolveErrorType(err: {
+  type?: ErrorType;
+  stderr?: string;
+  sqitchOutput?: string;
+  exitCode?: number;
+}): ErrorType {
+  if (err.type && err.type !== "sqitch_crash") return err.type;
+  return classifyError(err.stderr || err.sqitchOutput, err.exitCode ?? null);
 }
 
 function registerIpcHandlers() {
@@ -95,11 +150,16 @@ function registerIpcHandlers() {
         error: "Not a Sqitch project: no sqitch.plan or sqitch.conf found in directory",
       };
     }
-    const id = projectService.addProject({
-      name: path.basename(request.path),
-      path: request.path,
-      engine: "unknown",
-    });
+    const existing = projectService.getProjectByPath(request.path);
+    const id =
+      existing?.id ??
+      projectService.addProject({
+        name: path.basename(request.path),
+        path: request.path,
+        engine: "unknown",
+      });
+    // Populate engine + change count from the project files (no DB connection).
+    projectService.updateProjectMeta(id, deriveProjectMeta(request.path));
     fileWatcherService.start(request.path);
     return { project: projectService.getProject(id) };
   });
@@ -122,7 +182,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_DEPLOY, async (event, request) => {
+    const cmdArgs = ["deploy", request.target];
+    if (request.toChange) cmdArgs.push("--to", request.toChange);
+    cmdArgs.push("--verify");
     try {
+      ensureBinary();
       const sender = event.sender;
       const result = await sqitchService.deploy(
         request.projectPath,
@@ -144,6 +208,13 @@ function registerIpcHandlers() {
             }),
         },
       );
+      recordSqitchCommand(request.projectPath, cmdArgs, result.exitCode);
+      const project = projectService.getProjectByPath(request.projectPath);
+      if (project) {
+        projectService.updateProjectMeta(project.id, {
+          lastDeployment: new Date().toISOString(),
+        });
+      }
       const parsed = parseSqitchOutput(result.stdout);
       sender.send(IPC_CHANNELS.SQITCH_COMPLETE, {
         projectPath: request.projectPath,
@@ -152,7 +223,12 @@ function registerIpcHandlers() {
       });
       return parsed;
     } catch (err: any) {
-      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
+      recordSqitchCommand(request.projectPath, cmdArgs, err.exitCode ?? null);
+      const error = createAppError(
+        resolveErrorType(err),
+        err.message,
+        err.stderr || err.sqitchOutput,
+      );
       event.sender.send(IPC_CHANNELS.SQITCH_ERROR, {
         projectPath: request.projectPath,
         error: error.message,
@@ -163,7 +239,11 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_REVERT, async (event, request) => {
+    const cmdArgs = ["revert", request.target];
+    if (request.toChange) cmdArgs.push("--to", request.toChange);
+    cmdArgs.push("-y");
     try {
+      ensureBinary();
       const sender = event.sender;
       const result = await sqitchService.revert(
         request.projectPath,
@@ -185,6 +265,7 @@ function registerIpcHandlers() {
             }),
         },
       );
+      recordSqitchCommand(request.projectPath, cmdArgs, result.exitCode);
       sender.send(IPC_CHANNELS.SQITCH_COMPLETE, {
         projectPath: request.projectPath,
         exitCode: result.exitCode,
@@ -192,7 +273,12 @@ function registerIpcHandlers() {
       });
       return parseSqitchOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
+      recordSqitchCommand(request.projectPath, cmdArgs, err.exitCode ?? null);
+      const error = createAppError(
+        resolveErrorType(err),
+        err.message,
+        err.stderr || err.sqitchOutput,
+      );
       event.sender.send(IPC_CHANNELS.SQITCH_ERROR, {
         projectPath: request.projectPath,
         error: error.message,
@@ -204,6 +290,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_VERIFY, async (event, request) => {
     try {
+      ensureBinary();
       const sender = event.sender;
       const result = await sqitchService.verify(request.projectPath, request.target, getTimeout(), {
         onStdout: (data) =>
@@ -219,6 +306,7 @@ function registerIpcHandlers() {
             type: "stderr",
           }),
       });
+      recordSqitchCommand(request.projectPath, ["verify", request.target], result.exitCode);
       sender.send(IPC_CHANNELS.SQITCH_COMPLETE, {
         projectPath: request.projectPath,
         exitCode: result.exitCode,
@@ -226,7 +314,11 @@ function registerIpcHandlers() {
       });
       return parseSqitchOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
+      const error = createAppError(
+        resolveErrorType(err),
+        err.message,
+        err.stderr || err.sqitchOutput,
+      );
       event.sender.send(IPC_CHANNELS.SQITCH_ERROR, {
         projectPath: request.projectPath,
         error: error.message,
@@ -238,21 +330,21 @@ function registerIpcHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_STATUS, async (_event, request) => {
     try {
+      ensureBinary();
       const result = await sqitchService.status(request.projectPath, request.target, getTimeout());
       return parseStatusOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
-      throw error;
+      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
     }
   });
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_LOG, async (_event, request) => {
     try {
+      ensureBinary();
       const result = await sqitchService.log(request.projectPath, request.target, getTimeout());
       return parseLogOutput(result.stdout);
     } catch (err: any) {
-      const error = createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
-      throw error;
+      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
     }
   });
 
@@ -266,8 +358,23 @@ function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle(
+    IPC_CHANNELS.SCRIPT_READ,
+    async (_event, request: { projectPath: string; changeName: string; kind: string }) => {
+      const kind = ["deploy", "revert", "verify"].includes(request.kind) ? request.kind : "deploy";
+      const scriptPath = path.join(request.projectPath, kind, `${request.changeName}.sql`);
+      try {
+        const content = fs.readFileSync(scriptPath, "utf-8");
+        return { content, path: scriptPath, error: null };
+      } catch (err: any) {
+        return { content: null, path: scriptPath, error: err.message };
+      }
+    },
+  );
+
   ipcMain.handle(IPC_CHANNELS.SQITCH_ADD, async (_event, request) => {
     try {
+      ensureBinary();
       const result = await sqitchService.add(
         request.projectPath,
         request.name,
@@ -276,14 +383,20 @@ function registerIpcHandlers() {
         request.conflicts,
         getTimeout(),
       );
+      recordSqitchCommand(request.projectPath, ["add", request.name], result.exitCode);
+      // Change count changed — refresh cached project metadata.
+      const project = projectService.getProjectByPath(request.projectPath);
+      if (project)
+        projectService.updateProjectMeta(project.id, deriveProjectMeta(request.projectPath));
       return { success: true, stdout: result.stdout };
     } catch (err: any) {
-      throw createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
+      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
     }
   });
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_INIT, async (_event, request) => {
     try {
+      ensureBinary();
       if (!fs.existsSync(request.directory)) {
         fs.mkdirSync(request.directory, { recursive: true });
       }
@@ -298,8 +411,14 @@ function registerIpcHandlers() {
       );
       return { success: true, stdout: result.stdout };
     } catch (err: any) {
-      throw createAppError("sqitch_crash", err.message, err.stderr || err.sqitchOutput);
+      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
     }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.RECENT_COMMANDS, async (_event, request: { projectPath: string }) => {
+    const project = projectService.getProjectByPath(request.projectPath);
+    if (!project) return { commands: [] };
+    return { commands: projectService.getRecentCommands(project.id) };
   });
 
   ipcMain.handle(IPC_CHANNELS.ENGINE_ADD, async (_event, request) => {

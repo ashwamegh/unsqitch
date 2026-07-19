@@ -27,6 +27,42 @@ export interface AppError {
   actions: ErrorAction[];
 }
 
+/**
+ * Infer the most specific ErrorType from sqitch stderr + exit code so the UI can
+ * offer the right recovery actions (spec "Error Handling" table). Falls back to
+ * sqitch_crash for a generic non-zero exit, or unknown when nothing matches.
+ */
+export function classifyError(stderr: string | undefined, exitCode: number | null): ErrorType {
+  const s = (stderr || "").toLowerCase();
+  if (
+    /command not found|no such file or directory|enoent|is not recognized|cannot find the path/.test(
+      s,
+    ) &&
+    /sqitch/.test(s)
+  ) {
+    return "binary_not_found";
+  }
+  if (
+    /could not connect|connection refused|could not translate host|authentication failed|password authentication|role .* does not exist|database .* does not exist|access denied for user|can't connect|no such host|timeout expired|server closed the connection/.test(
+      s,
+    )
+  ) {
+    return "db_connection";
+  }
+  if (/permission denied|eacces|read-only file system|operation not permitted/.test(s)) {
+    return "file_permission";
+  }
+  if (
+    /is not the last change|requires .* to be deployed|cannot revert|partially deployed|middle of a deploy/.test(
+      s,
+    )
+  ) {
+    return "partial_deployment";
+  }
+  if (exitCode !== null && exitCode !== 0) return "sqitch_crash";
+  return "unknown";
+}
+
 export function createAppError(type: ErrorType, message: string, sqitchOutput?: string): AppError {
   const actionMap: Record<ErrorType, ErrorAction[]> = {
     sqitch_crash: [

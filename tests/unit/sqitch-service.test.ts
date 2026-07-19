@@ -50,7 +50,7 @@ describe("SqitchService", () => {
     const _result = await service.deploy("/project", "mydb");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["deploy", "mydb", "--verify"],
+      ["--chdir", "/project", "deploy", "mydb", "--verify"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -60,7 +60,7 @@ describe("SqitchService", () => {
     await service.deploy("/project", "mydb", "users");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["deploy", "mydb", "--to", "users", "--verify"],
+      ["--chdir", "/project", "deploy", "mydb", "--to", "users", "--verify"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -70,7 +70,7 @@ describe("SqitchService", () => {
     await service.revert("/project", "mydb", "users");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["revert", "mydb", "--to", "users", "-y"],
+      ["--chdir", "/project", "revert", "mydb", "--to", "users", "-y"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -80,7 +80,7 @@ describe("SqitchService", () => {
     await service.revert("/project", "mydb");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["revert", "mydb", "-y"],
+      ["--chdir", "/project", "revert", "mydb", "-y"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -90,7 +90,7 @@ describe("SqitchService", () => {
     await service.verify("/project", "mydb");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["verify", "mydb"],
+      ["--chdir", "/project", "verify", "mydb"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -100,7 +100,16 @@ describe("SqitchService", () => {
     await service.status("/project", "mydb");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["status", "mydb", "--show-changes", "--show-tags", "--date-format", "raw"],
+      [
+        "--chdir",
+        "/project",
+        "status",
+        "mydb",
+        "--show-changes",
+        "--show-tags",
+        "--date-format",
+        "raw",
+      ],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -110,7 +119,7 @@ describe("SqitchService", () => {
     await service.log("/project", "mydb");
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["log", "mydb"],
+      ["--chdir", "/project", "log", "mydb"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -120,7 +129,7 @@ describe("SqitchService", () => {
     await service.add("/project", "users", "Add users table", ["appschema"], []);
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["add", "users", "-n", "Add users table", "-r", "appschema"],
+      ["--chdir", "/project", "add", "users", "-n", "Add users table", "-r", "appschema"],
       expect.objectContaining({ cwd: "/project" }),
     );
   });
@@ -130,7 +139,18 @@ describe("SqitchService", () => {
     await service.add("/project", "new_auth", "New auth", ["users"], ["legacy_auth"]);
     expect(spawnMock).toHaveBeenCalledWith(
       "/usr/local/bin/sqitch",
-      ["add", "new_auth", "-n", "New auth", "-r", "users", "-x", "legacy_auth"],
+      [
+        "--chdir",
+        "/project",
+        "add",
+        "new_auth",
+        "-n",
+        "New auth",
+        "-r",
+        "users",
+        "-x",
+        "legacy_auth",
+      ],
       expect.objectContaining({ cwd: "/project" }),
     );
   });

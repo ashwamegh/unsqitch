@@ -57,6 +57,10 @@ export const IPC_CHANNELS = {
   // Editor integration
   EDITOR_OPEN_FILE: "editor:openFile",
   EDITOR_DETECT: "editor:detect",
+
+  // Read-only script content + command history
+  SCRIPT_READ: "script:read",
+  RECENT_COMMANDS: "commands:recent",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

@@ -37,7 +37,11 @@ export class SqitchService {
     streams?: StreamCallbacks,
   ): Promise<SqitchResult> {
     return new Promise((resolve, reject) => {
-      const child = this._spawn(this._binaryPath, args, { cwd });
+      // `--chdir` is a top-level sqitch option; passing it (in addition to the
+      // spawn cwd) matches the spec's command templates and keeps sqitch pointed
+      // at the project directory regardless of the child's inherited cwd.
+      const fullArgs = ["--chdir", cwd, ...args];
+      const child = this._spawn(this._binaryPath, fullArgs, { cwd });
       this.activeProcess = child;
 
       let stdout = "";

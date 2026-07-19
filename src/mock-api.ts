@@ -494,4 +494,16 @@ export const mockUnsqitchAPI: any = {
   editorDetect: async () => {
     return { command: "code", name: "VS Code" };
   },
+
+  scriptRead: async (_projectPath: string, changeName: string, kind: string) => {
+    return {
+      content: `-- ${kind} script for ${changeName}\nBEGIN;\n\n-- (mock content)\n\nCOMMIT;\n`,
+      path: `${kind}/${changeName}.sql`,
+      error: null,
+    };
+  },
+
+  recentCommands: async (projectPath: string) => {
+    return { commands: getStorage(`unsqitch_recent_${projectPath}`, []) };
+  },
 };

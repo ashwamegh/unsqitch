@@ -190,6 +190,13 @@ const api = {
     ipcRenderer.invoke(IPC_CHANNELS.EDITOR_OPEN_FILE, { filePath }),
 
   editorDetect: () => ipcRenderer.invoke(IPC_CHANNELS.EDITOR_DETECT),
+
+  // Read-only script content + redacted command history
+  scriptRead: (projectPath: string, changeName: string, kind: "deploy" | "revert" | "verify") =>
+    ipcRenderer.invoke(IPC_CHANNELS.SCRIPT_READ, { projectPath, changeName, kind }),
+
+  recentCommands: (projectPath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.RECENT_COMMANDS, { projectPath }),
 };
 
 contextBridge.exposeInMainWorld("unsqitch", api);

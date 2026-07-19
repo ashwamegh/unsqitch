@@ -14,6 +14,22 @@ export interface ProjectRecord {
   lastDeployment?: string;
 }
 
+export interface RecentCommand {
+  id: number;
+  projectId: string;
+  command: string;
+  timestamp: string;
+  exitCode: number | null;
+}
+
+/** Strip embedded credentials from a command string before persisting it. */
+export function redactCommand(command: string): string {
+  // db:pg://user:pass@host -> db:pg://***:***@host  (and user@host -> ***@host)
+  return command
+    .replace(/(:\/\/)[^:@/\s]+:[^@/\s]+@/g, "$1***:***@")
+    .replace(/(:\/\/)[^:@/\s]+@/g, "$1***@");
+}
+
 export class ProjectService {
   private db: Database.Database;
 
@@ -89,10 +105,53 @@ export class ProjectService {
     return row as unknown as ProjectRecord;
   }
 
+  getProjectByPath(projectPath: string): ProjectRecord | undefined {
+    return this.db.prepare("SELECT * FROM projects WHERE path = ?").get(projectPath) as
+      | ProjectRecord
+      | undefined;
+  }
+
   listProjects(): ProjectRecord[] {
     return this.db
       .prepare("SELECT * FROM projects ORDER BY lastOpened DESC")
       .all() as unknown as ProjectRecord[];
+  }
+
+  updateProjectMeta(
+    id: string,
+    meta: { engine?: string; changeCount?: number; lastDeployment?: string },
+  ): void {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    if (meta.engine !== undefined) {
+      sets.push("engine = ?");
+      values.push(meta.engine);
+    }
+    if (meta.changeCount !== undefined) {
+      sets.push("changeCount = ?");
+      values.push(meta.changeCount);
+    }
+    if (meta.lastDeployment !== undefined) {
+      sets.push("lastDeployment = ?");
+      values.push(meta.lastDeployment);
+    }
+    if (sets.length === 0) return;
+    values.push(id);
+    this.db.prepare(`UPDATE projects SET ${sets.join(", ")} WHERE id = ?`).run(...values);
+  }
+
+  recordCommand(projectId: string, command: string, exitCode: number | null): void {
+    this.db
+      .prepare(
+        "INSERT INTO recent_commands (projectId, command, timestamp, exitCode) VALUES (?, ?, ?, ?)",
+      )
+      .run(projectId, redactCommand(command), new Date().toISOString(), exitCode);
+  }
+
+  getRecentCommands(projectId: string, limit = 20): RecentCommand[] {
+    return this.db
+      .prepare("SELECT * FROM recent_commands WHERE projectId = ? ORDER BY id DESC LIMIT ?")
+      .all(projectId, limit) as unknown as RecentCommand[];
   }
 
   removeProject(id: string): void {
