@@ -150,11 +150,16 @@ const api = {
   },
 
   onSqitchError: (
-    callback: (event: { projectPath: string; error: string; type: string }) => void,
+    callback: (event: {
+      projectPath: string;
+      error: string;
+      type: string;
+      sqitchOutput?: string;
+    }) => void,
   ) => {
     const handler = (
       _event: Electron.IpcRendererEvent,
-      data: { projectPath: string; error: string; type: string },
+      data: { projectPath: string; error: string; type: string; sqitchOutput?: string },
     ) => callback(data);
     ipcRenderer.on(IPC_CHANNELS.SQITCH_ERROR, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.SQITCH_ERROR, handler);

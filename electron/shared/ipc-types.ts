@@ -157,6 +157,7 @@ export interface SqitchErrorEvent {
   projectPath: string;
   error: string;
   type: string;
+  sqitchOutput?: string;
 }
 
 export interface TargetAddRequest {

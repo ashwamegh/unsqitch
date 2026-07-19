@@ -233,6 +233,7 @@ function registerIpcHandlers() {
         projectPath: request.projectPath,
         error: error.message,
         type: error.type,
+        sqitchOutput: error.sqitchOutput,
       });
       throw error;
     }
@@ -283,6 +284,7 @@ function registerIpcHandlers() {
         projectPath: request.projectPath,
         error: error.message,
         type: error.type,
+        sqitchOutput: error.sqitchOutput,
       });
       throw error;
     }
@@ -323,6 +325,7 @@ function registerIpcHandlers() {
         projectPath: request.projectPath,
         error: error.message,
         type: error.type,
+        sqitchOutput: error.sqitchOutput,
       });
       throw error;
     }
