@@ -1,34 +1,35 @@
 import { RefreshCw, Sliders, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
+import { useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 import type { ConfigEntry } from "../../types/config";
 
 export function ConfigView() {
-  const { currentProjectId, projects } = useProjectStore();
+  const { currentProjectId, projects, config, setConfig } = useProjectStore();
+  const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
   const project = projects.find((p) => p.id === currentProjectId);
-  const [entries, setEntries] = useState<ConfigEntry[]>([]);
   const [activeSection, setActiveSection] = useState<string>("all");
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const sections = useMemo(() => {
-    const s = new Set(entries.map((e) => e.section));
-    return ["all", ...Array.from(s).sort()];
-  }, [entries]);
+  // Spec: fixed visual groupings of the flat key=value list, not derived tabs.
+  const sections = ["all", "core", "engine", "target", "user"];
 
+  // Config is cached in the store after first read; invalidated on write + focus.
   const filtered =
-    activeSection === "all" ? entries : entries.filter((e) => e.section === activeSection);
+    activeSection === "all" ? config : config.filter((e) => e.section === activeSection);
 
   const handleList = async () => {
     if (!project) return;
     setLoading(true);
     try {
-      const result = await ipc.configList(project.path);
-      setEntries(result as any);
+      const result = (await ipc.configList(project.path)) as ConfigEntry[];
+      setConfig(result);
     } catch (err: any) {
       console.error("List config failed:", err);
       showToast(err.message || "Failed to load configs", "error");
@@ -63,12 +64,19 @@ export function ConfigView() {
     }
   };
 
-  // Auto load on mount
+  // Load once from cache miss; refetch on window focus (cache invalidation).
   useEffect(() => {
-    if (project) {
+    if (project && config.length === 0) handleList();
+  }, [project]);
+
+  useEffect(() => {
+    const unsubscribe = ipc.onStatusStale(() => {
       handleList();
-    }
-  }, [project, handleList]);
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [ipc, project]);
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -89,24 +97,22 @@ export function ConfigView() {
         </button>
       </div>
 
-      {/* Tabs */}
-      {sections.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-          {sections.map((s) => (
-            <button
-              key={s}
-              onClick={() => setActiveSection(s)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer ${
-                activeSection === s
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                  : "border-border/60 hover:bg-accent/40 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Tabs — fixed core/engine/target/user groupings */}
+      <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+        {sections.map((s) => (
+          <button
+            key={s}
+            onClick={() => setActiveSection(s)}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer ${
+              activeSection === s
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "border-border/60 hover:bg-accent/40 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
 
       {/* Set configuration card */}
       <div className="glass-panel rounded-2xl p-5 border border-border/80 shadow-md space-y-3">
@@ -134,6 +140,9 @@ export function ConfigView() {
             Save Value
           </button>
         </div>
+        {showCommands && (newKey || newValue) && (
+          <CommandPreview command={`sqitch config ${newKey || "<key>"} ${newValue || "<value>"}`} />
+        )}
       </div>
 
       {/* Configuration values table */}

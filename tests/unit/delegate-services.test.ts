@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ConfigService } from "../../electron/services/config.service";
 import { EngineService } from "../../electron/services/engine.service";
-import { TargetService } from "../../electron/services/target.service";
 import type { SqitchService } from "../../electron/services/sqitch.service";
+import { TargetService } from "../../electron/services/target.service";
 
 function mockSqitch(stdout: string, stderr = "") {
   return {
@@ -23,10 +23,7 @@ describe("ConfigService", () => {
     const sqitch = mockSqitch("");
     const service = new ConfigService(sqitch);
     await service.set("/project", "core.engine", "pg");
-    expect(sqitch.runCommand).toHaveBeenCalledWith(
-      ["config", "core.engine", "pg"],
-      "/project",
-    );
+    expect(sqitch.runCommand).toHaveBeenCalledWith(["config", "core.engine", "pg"], "/project");
   });
 
   it("unsets a config value", async () => {
@@ -46,15 +43,7 @@ describe("EngineService", () => {
     const service = new EngineService(sqitch);
     await service.add("/project", "pg", "db:pg://localhost/mydb", "psql");
     expect(sqitch.runCommand).toHaveBeenCalledWith(
-      [
-        "engine",
-        "add",
-        "pg",
-        "--target",
-        "db:pg://localhost/mydb",
-        "--client",
-        "psql",
-      ],
+      ["engine", "add", "pg", "--target", "db:pg://localhost/mydb", "--client", "psql"],
       "/project",
     );
   });
@@ -63,10 +52,7 @@ describe("EngineService", () => {
     const sqitch = mockSqitch("");
     const service = new EngineService(sqitch);
     await service.remove("/project", "pg");
-    expect(sqitch.runCommand).toHaveBeenCalledWith(
-      ["engine", "remove", "pg"],
-      "/project",
-    );
+    expect(sqitch.runCommand).toHaveBeenCalledWith(["engine", "remove", "pg"], "/project");
   });
 });
 
@@ -75,8 +61,9 @@ describe("TargetService", () => {
     const sqitch = mockSqitch("");
     const service = new TargetService(sqitch);
     await service.add("/project", "mydb", "db:pg://localhost/mydb");
+    // Real sqitch takes the URI positionally; `--uri` here is a usage error.
     expect(sqitch.runCommand).toHaveBeenCalledWith(
-      ["target", "add", "mydb", "--uri", "db:pg://localhost/mydb"],
+      ["target", "add", "mydb", "db:pg://localhost/mydb"],
       "/project",
     );
   });
@@ -85,9 +72,6 @@ describe("TargetService", () => {
     const sqitch = mockSqitch("");
     const service = new TargetService(sqitch);
     await service.remove("/project", "mydb");
-    expect(sqitch.runCommand).toHaveBeenCalledWith(
-      ["target", "remove", "mydb"],
-      "/project",
-    );
+    expect(sqitch.runCommand).toHaveBeenCalledWith(["target", "remove", "mydb"], "/project");
   });
 });

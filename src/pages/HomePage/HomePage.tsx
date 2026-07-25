@@ -62,8 +62,7 @@ export function HomePage() {
             Welcome to UnSqitch
           </h2>
           <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-[280px] mx-auto font-medium">
-            Manage your database migrations effortlessly. Open an existing Sqitch project directory
-            to begin.
+            Open a directory containing a Sqitch project to get started.
           </p>
 
           <div className="flex flex-col gap-3">
@@ -76,10 +75,10 @@ export function HomePage() {
             </button>
             <button
               onClick={() => setInitOpen(true)}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 border border-border bg-card/40 hover:bg-accent/50 text-foreground font-medium rounded-xl transition-all duration-200 cursor-pointer active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-1.5 px-5 py-2 text-sm text-muted-foreground hover:text-primary font-medium transition-colors cursor-pointer"
             >
-              <Plus size={16} />
-              Create New Project
+              <Plus size={14} />
+              or create a new project
             </button>
           </div>
         </div>

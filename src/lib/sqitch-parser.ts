@@ -1,8 +1,10 @@
 import type { SqitchEvent, SqitchEventStatus, SqitchParsedOutput } from "../types/sqitch-event";
 
-const DEPLOY_LINE_RE = /^\s*\+\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/;
-const REVERT_LINE_RE = /^\s*-\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/;
-const VERIFY_LINE_RE = /^\s*\*\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/;
+// Real sqitch pads change names with dots for alignment and may append the
+// change's tag, e.g. "  + appschema ...... ok" and "  + users @v1.0.0 .. ok".
+const DEPLOY_LINE_RE = /^\s*\+\s+(\S+)(?:\s+@(\S+))?\s+\.{2,}\s+(ok|not ok|FAILED)/;
+const REVERT_LINE_RE = /^\s*-\s+(\S+)(?:\s+@(\S+))?\s+\.{2,}\s+(ok|not ok|FAILED)/;
+const VERIFY_LINE_RE = /^\s*\*\s+(\S+)(?:\s+@(\S+))?\s+\.{2,}\s+(ok|not ok|FAILED)/;
 
 const DEPLOY_HEADER_RE = /^Deploying change (\S+) to (\S+)/;
 const REVERT_HEADER_RE = /^Reverting change (\S+) from (\S+)/;
@@ -80,7 +82,7 @@ export function parseSqitchOutput(output: string): SqitchParsedOutput {
         type: "deploy",
         change: deployLine[1],
         target: currentTarget,
-        status: mapStatus(deployLine[2]),
+        status: mapStatus(deployLine[3]),
         rawLine: line,
       });
       continue;
@@ -91,7 +93,7 @@ export function parseSqitchOutput(output: string): SqitchParsedOutput {
         type: "revert",
         change: revertLine[1],
         target: currentTarget,
-        status: mapStatus(revertLine[2]),
+        status: mapStatus(revertLine[3]),
         rawLine: line,
       });
       continue;
@@ -102,11 +104,43 @@ export function parseSqitchOutput(output: string): SqitchParsedOutput {
         type: "verify",
         change: verifyLine[1],
         target: currentTarget,
-        status: mapStatus(verifyLine[2]),
+        status: mapStatus(verifyLine[3]),
         rawLine: line,
       });
     }
   }
 
   return { events, rawOutput: output, exitCode: null };
+}
+
+/**
+ * Collapse the raw event stream into one entry per change, keyed by type+change.
+ * A later result line (ok/not_ok/failed) supersedes the earlier "running" header
+ * for the same change, so the progress list shows a single, up-to-date row per
+ * change instead of a running row followed by a duplicate completed row.
+ */
+export function coalesceEvents(events: SqitchEvent[]): SqitchEvent[] {
+  const order: string[] = [];
+  const byKey = new Map<string, SqitchEvent>();
+
+  for (const event of events) {
+    const key = `${event.type}:${event.change}`;
+    const prev = byKey.get(key);
+
+    if (!prev) {
+      order.push(key);
+      byKey.set(key, event);
+      continue;
+    }
+
+    // Never downgrade a finished change back to "running".
+    if (event.status === "running" && prev.status !== "running") continue;
+
+    const merged: SqitchEvent = { ...prev, ...event };
+    // Keep a target discovered earlier if the superseding line omits it.
+    if (!event.target && prev.target) merged.target = prev.target;
+    byKey.set(key, merged);
+  }
+
+  return order.map((key) => byKey.get(key) as SqitchEvent);
 }

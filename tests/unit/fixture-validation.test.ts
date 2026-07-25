@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
-import { resolve } from "path";
-import { parsePlanFile } from "../../src/lib/plan-parser";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
 import { parseConfigList } from "../../src/lib/config-parser";
+import { parseLogOutput } from "../../src/lib/log-parser";
+import { parsePlanFile } from "../../src/lib/plan-parser";
 import { parseSqitchOutput } from "../../src/lib/sqitch-parser";
 import { parseStatusOutput } from "../../src/lib/status-parser";
-import { parseLogOutput } from "../../src/lib/log-parser";
 
 const fixturesDir = resolve(__dirname, "../fixtures");
 
@@ -20,16 +20,22 @@ describe("fixture validation", () => {
       const result = parsePlanFile(content);
 
       expect(result.pragmas["syntax-version"]).toBe("1.0.0");
-      expect(result.pragmas["project"]).toBe("test-project");
-      expect(result.pragmas["uri"]).toBe(
-        "https://github.com/example/test-project",
-      );
+      expect(result.pragmas.project).toBe("test-project");
+      expect(result.pragmas.uri).toBe("https://github.com/example/test-project");
 
-      expect(result.changes).toHaveLength(2);
+      expect(result.changes).toHaveLength(3);
       expect(result.changes[0].name).toBe("appschema");
       expect(result.changes[0].requires).toEqual([]);
       expect(result.changes[1].name).toBe("users");
       expect(result.changes[1].requires).toEqual(["appschema"]);
+      expect(result.changes[2].name).toBe("orders");
+      expect(result.changes[2].requires).toEqual(["users"]);
+      // The fixture project must stay deployable by real sqitch, so it declares no
+      // conflicts (conflict parsing is covered by plan-parser tests).
+      expect(result.changes[2].conflicts).toEqual([]);
+
+      expect(result.tags).toHaveLength(1);
+      expect(result.tags[0].name).toBe("v1.0.0");
 
       expect(result.unparseableLines).toHaveLength(0);
     });
@@ -65,91 +71,72 @@ describe("fixture validation", () => {
         key: "plan_file",
         value: "sqitch.plan",
       });
-      expect(result).toContainEqual({
-        section: "engine",
-        subsection: "pg",
-        key: "target",
-        value: "db:pg://localhost/sqitch_test",
-      });
-      expect(result).toContainEqual({
-        section: "engine",
-        subsection: "pg",
-        key: "client",
-        value: "psql",
-      });
+      expect(
+        result.find((e) => e.section === "engine" && e.subsection === "pg" && e.key === "target")
+          ?.value,
+      ).toContain("db:pg://");
     });
   });
 
   describe("sqitch output parser", () => {
-    it("parses deploy.txt fixture", () => {
-      const content = readFixture("sqitch-output", "deploy.txt");
-      const result = parseSqitchOutput(content);
+    it("parses deploy.txt fixture (dot-padded names and a tagged change)", () => {
+      const result = parseSqitchOutput(readFixture("sqitch-output", "deploy.txt"));
 
-      expect(result.events).toHaveLength(2);
-      expect(result.events[0].type).toBe("deploy");
-      expect(result.events[0].change).toBe("appschema");
-      expect(result.events[0].status).toBe("ok");
-      expect(result.events[1].change).toBe("users");
-      expect(result.events[1].status).toBe("ok");
+      expect(result.events.map((e) => e.change)).toEqual(["appschema", "users", "orders"]);
+      expect(result.events.every((e) => e.type === "deploy")).toBe(true);
+      expect(result.events.every((e) => e.status === "ok")).toBe(true);
     });
 
     it("parses revert.txt fixture", () => {
-      const content = readFixture("sqitch-output", "revert.txt");
-      const result = parseSqitchOutput(content);
+      const result = parseSqitchOutput(readFixture("sqitch-output", "revert.txt"));
 
-      expect(result.events).toHaveLength(2);
-      expect(result.events[0].type).toBe("revert");
-      expect(result.events[0].change).toBe("users");
-      expect(result.events[0].status).toBe("ok");
-      expect(result.events[1].type).toBe("revert");
-      expect(result.events[1].change).toBe("appschema");
+      expect(result.events.map((e) => e.change)).toEqual(["orders", "users", "appschema"]);
+      expect(result.events.every((e) => e.type === "revert")).toBe(true);
     });
 
     it("parses verify.txt fixture", () => {
-      const content = readFixture("sqitch-output", "verify.txt");
-      const result = parseSqitchOutput(content);
+      const result = parseSqitchOutput(readFixture("sqitch-output", "verify.txt"));
 
-      expect(result.events).toHaveLength(2);
-      expect(result.events[0].type).toBe("verify");
-      expect(result.events[0].change).toBe("appschema");
-      expect(result.events[0].status).toBe("ok");
-      expect(result.events[1].type).toBe("verify");
-      expect(result.events[1].change).toBe("users");
+      expect(result.events.map((e) => e.change)).toEqual(["appschema", "users", "orders"]);
+      expect(result.events.every((e) => e.type === "verify")).toBe(true);
     });
   });
 
   describe("status parser", () => {
-    it("parses status.txt fixture", () => {
-      const content = readFixture("sqitch-output", "status.txt");
-      const result = parseStatusOutput(content);
+    // These fixtures are real `sqitch status` captures against a Dockerised
+    // PostgreSQL, so they exercise the "# "-prefixed format sqitch emits.
+    it("parses the up-to-date status.txt fixture", () => {
+      const result = parseStatusOutput(readFixture("sqitch-output", "status.txt"));
 
-      expect(result.target).toBe("sqitch_test");
+      expect(result.target).toContain("db:pg://");
       expect(result.engine).toBe("pg");
-      expect(result.deployed).toHaveLength(2);
-      expect(result.deployed[0].name).toBe("appschema");
-      expect(result.deployed[0].changeId).toBe("a1b2c3d4e5f6");
-      expect(result.deployed[0].tags).toEqual(["v1.0.0"]);
-      expect(result.deployed[1].name).toBe("users");
-      expect(result.deployed[1].requires).toEqual(["appschema"]);
+      expect(result.project).toBe("test-project");
+      expect(result.deployed.map((c) => c.name)).toEqual(["appschema", "users", "orders"]);
+      expect(result.deployed[0].deployedBy).toContain("<");
+      expect(result.pending).toEqual([]);
+      expect(result.lastChange).toBe("orders");
+      expect(result.lastTag).toEqual(["v1.0.0"]);
+    });
+
+    it("parses the partially deployed status-partial.txt fixture", () => {
+      const result = parseStatusOutput(readFixture("sqitch-output", "status-partial.txt"));
+
+      expect(result.deployed.map((c) => c.name)).toEqual(["appschema", "users"]);
       expect(result.pending).toEqual(["orders"]);
-      expect(result.lastDeployTime).toBe("2024-01-15T10:30:00Z");
     });
   });
 
   describe("log parser", () => {
-    it("parses log.txt fixture", () => {
-      const content = readFixture("sqitch-output", "log.txt");
-      const result = parseLogOutput(content);
+    it("parses log.txt fixture (newest first, deploy and revert events)", () => {
+      const result = parseLogOutput(readFixture("sqitch-output", "log.txt"));
 
-      expect(result).toHaveLength(2);
-      expect(result[0].change).toBe("appschema");
-      expect(result[0].changeId).toBe("a1b2c3d4e5f6");
-      expect(result[0].action).toBe("deploy");
-      expect(result[0].committer.name).toBe("Test User");
-      expect(result[0].committer.email).toBe("test@example.com");
-      expect(result[0].tags).toEqual(["v1.0.0"]);
-      expect(result[1].change).toBe("users");
-      expect(result[1].requires).toEqual(["appschema"]);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.every((e) => e.change !== "")).toBe(true);
+      expect(result.every((e) => /^[0-9a-f]{6,40}$/.test(e.changeId))).toBe(true);
+      expect(result.every((e) => e.action === "deploy" || e.action === "revert")).toBe(true);
+      expect(result.some((e) => e.action === "deploy")).toBe(true);
+      expect(result[0].committer.name).not.toBe("");
+      expect(result[0].timestamp).not.toBe("");
     });
   });
 });

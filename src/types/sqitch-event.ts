@@ -7,6 +7,8 @@ export interface SqitchEvent {
   target?: string;
   status: SqitchEventStatus;
   rawLine: string;
+  // Wall-clock duration for this change, filled in by the store as events stream.
+  durationMs?: number;
 }
 
 export interface SqitchParsedOutput {

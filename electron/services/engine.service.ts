@@ -1,4 +1,4 @@
-import { SqitchService } from "./sqitch.service";
+import type { SqitchService } from "./sqitch.service";
 
 export interface EngineInfo {
   name: string;
@@ -15,9 +15,11 @@ export class EngineService {
     name: string,
     uri: string,
     client?: string,
+    registry?: string,
   ): Promise<void> {
     const args = ["engine", "add", name, "--target", uri];
     if (client) args.push("--client", client);
+    if (registry) args.push("--registry", registry);
     await this.sqitch.runCommand(args, projectPath);
   }
 
@@ -26,24 +28,20 @@ export class EngineService {
   }
 
   async list(projectPath: string): Promise<EngineInfo[]> {
-    const result = await this.sqitch.runCommand(
-      ["engine", "list"],
-      projectPath,
-    );
+    // `engine list` prints only the engine name; --verbose adds the target,
+    // tab-separated ("pg\tdb:pg://...").
+    const result = await this.sqitch.runCommand(["engine", "list", "--verbose"], projectPath);
     return this.parseEngineList(result.stdout);
   }
 
-  private parseEngineList(output: string): EngineInfo[] {
+  parseEngineList(output: string): EngineInfo[] {
     const engines: EngineInfo[] = [];
-    const lines = output.split("\n");
-    for (const line of lines) {
-      const match = line.match(/^(\S+)\s+(\S+)(?:\s+(.+))?$/);
-      if (match) {
-        engines.push({
-          name: match[1],
-          target: match[2],
-        });
-      }
+    for (const line of output.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed === "") continue;
+      const [name, target] = trimmed.split(/\s+/, 2);
+      if (!name) continue;
+      engines.push({ name, target: target ?? "" });
     }
     return engines;
   }

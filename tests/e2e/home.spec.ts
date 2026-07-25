@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
-import { launchApp, closeApp } from "./helpers";
+import { expect, test } from "@playwright/test";
 import type { ElectronApplication, Page } from "playwright";
+import { closeApp, launchApp } from "./helpers";
 
 let app: ElectronApplication;
 let page: Page;
@@ -29,6 +29,9 @@ test.skip("shows New Project link", async () => {
   // Only visible when projects exist
 });
 
-test("sidebar shows UnSqitch branding", async () => {
-  await expect(page.locator('text="UnSqitch"')).toBeVisible();
+test("sidebar shows UnSqitch branding when expanded", async () => {
+  // The sidebar starts collapsed (icons only) on the home screen, so the
+  // textual branding is revealed only after expanding it.
+  await page.getByTitle("Expand Sidebar").first().click();
+  await expect(page.locator('text="UnSqitch"').first()).toBeVisible();
 });

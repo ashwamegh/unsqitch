@@ -1,95 +1,87 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseLogOutput } from "../../src/lib/log-parser";
 
-const LOG_OUTPUT = `On database mydb
-Change: appschema
-  ID: abc123def456
-  Action: deploy
-  Committed by Marge <marge@example.com>
-  Date: 2024-01-15T10:00:00Z
-  Note: Add schema for all flipr objects
-  Tags: @v1.0.0
-  Requires:
-  Conflicts:
+// Captured from `sqitch log <target> --date-format raw` (sqitch 1.6.1).
+// One block per event, newest first, with the note as an indented paragraph.
+const LOG_OUTPUT = `On database db:pg://sqitch@localhost:54231/sqitch_test
+Revert ed042459e67b75f039d9d33e1297e44a2bf462d2
+Name:      orders
+Committer: System Administrator <root@host.local>
+Date:      2026-07-25T15:03:27Z
 
-Change: users
-  ID: def789ghi012
-  Action: deploy
-  Committed by Marge <marge@example.com>
-  Date: 2024-01-15T10:30:00Z
-  Note: Creates table to track our users
-  Tags:
-  Requires: appschema
-  Conflicts:
+    Creates orders table.
 
-Change: users
-  ID: def789ghi012
-  Action: revert
-  Committed by Marge <marge@example.com>
-  Date: 2024-01-16T08:00:00Z
-  Note: Reverting users
-  Tags:
-  Requires: appschema
-  Conflicts:`;
+Deploy ed042459e67b75f039d9d33e1297e44a2bf462d2
+Name:      orders
+Committer: System Administrator <root@host.local>
+Date:      2026-07-25T15:02:57Z
+
+    Creates orders table.
+
+Deploy ac8858ba8264f6776ecac405b79a05203d589937
+Name:      users
+Committer: System Administrator <root@host.local>
+Date:      2026-07-25T15:02:57Z
+
+    Creates users table.
+`;
 
 describe("parseLogOutput", () => {
-  it("parses all log entries", () => {
-    const result = parseLogOutput(LOG_OUTPUT);
-    expect(result).toHaveLength(3);
+  it("parses one entry per event block", () => {
+    expect(parseLogOutput(LOG_OUTPUT)).toHaveLength(3);
   });
 
-  it("parses deploy action", () => {
+  it("parses the revert action from the block header", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].change).toBe("appschema");
-    expect(result[0].action).toBe("deploy");
+    expect(result[0].action).toBe("revert");
+    expect(result[0].change).toBe("orders");
   });
 
-  it("parses revert action", () => {
+  it("parses the deploy action", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[2].change).toBe("users");
-    expect(result[2].action).toBe("revert");
+    expect(result[1].action).toBe("deploy");
+    expect(result[1].change).toBe("orders");
   });
 
-  it("parses change ID", () => {
-    const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].changeId).toBe("abc123def456");
+  it("parses the change id from the block header", () => {
+    expect(parseLogOutput(LOG_OUTPUT)[0].changeId).toBe("ed042459e67b75f039d9d33e1297e44a2bf462d2");
   });
 
-  it("parses committer", () => {
-    const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].committer).toEqual({
-      name: "Marge",
-      email: "marge@example.com",
+  it("parses the committer name and email", () => {
+    expect(parseLogOutput(LOG_OUTPUT)[0].committer).toEqual({
+      name: "System Administrator",
+      email: "root@host.local",
     });
   });
 
-  it("parses timestamp", () => {
-    const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].timestamp).toBe("2024-01-15T10:00:00Z");
+  it("parses the timestamp", () => {
+    expect(parseLogOutput(LOG_OUTPUT)[0].timestamp).toBe("2026-07-25T15:03:27Z");
   });
 
-  it("parses note", () => {
-    const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].note).toBe("Add schema for all flipr objects");
+  it("parses the indented note paragraph", () => {
+    expect(parseLogOutput(LOG_OUTPUT)[0].note).toBe("Creates orders table.");
   });
 
-  it("parses tags", () => {
-    const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[0].tags).toEqual(["v1.0.0"]);
+  it("treats a Fail event as a deploy attempt", () => {
+    const failed = `Fail abc123def4567890abc123def4567890abc123de
+Name:      orders
+Committer: Someone <s@example.com>
+Date:      2026-07-25T15:10:00Z
+
+    Broke.
+`;
+    const result = parseLogOutput(failed);
+    expect(result).toHaveLength(1);
+    expect(result[0].action).toBe("deploy");
+    expect(result[0].change).toBe("orders");
   });
 
-  it("parses empty tags", () => {
+  it("does not treat the 'On database' line as an entry", () => {
     const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[1].tags).toEqual([]);
-  });
-
-  it("parses requires", () => {
-    const result = parseLogOutput(LOG_OUTPUT);
-    expect(result[1].requires).toEqual(["appschema"]);
+    expect(result.every((e) => e.change !== "")).toBe(true);
   });
 
   it("handles empty output", () => {
-    const result = parseLogOutput("");
-    expect(result).toEqual([]);
+    expect(parseLogOutput("")).toEqual([]);
   });
 });

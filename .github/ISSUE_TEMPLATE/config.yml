@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ashwamegh/unsqitch/security/advisories/new
+    about: Report security issues privately — never in a public issue.
+  - name: Sqitch itself
+    url: https://github.com/sqitchers/sqitch/issues
+    about: For bugs in the Sqitch CLI rather than this GUI.
+  - name: Contributing guide
+    url: https://github.com/ashwamegh/unsqitch/blob/main/CONTRIBUTING.md
+    about: Setup, architecture, testing and commit conventions.

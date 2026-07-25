@@ -1,0 +1,85 @@
+name: Bug report
+description: Something in UnSqitch behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do **not** use this form for security issues —
+        see [SECURITY.md](https://github.com/ashwamegh/unsqitch/blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        I opened the Status view for a project with nothing deployed and it showed
+        an error panel. I expected it to show 0 deployed and the pending changes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: >
+        If you can reproduce it with `tests/fixtures/test-project` (or a small project
+        you can share), that speeds up a fix enormously.
+      placeholder: |
+        1. Open project X
+        2. Go to Deploy
+        3. Enter target `db:pg://…`
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Sqitch output
+      description: >
+        Copy the contents of the Sqitch Output panel, or the error details via
+        "Copy Error Details". Redact any credentials.
+      render: shell
+
+  - type: input
+    id: sqitch-version
+    attributes:
+      label: Sqitch version
+      description: Output of `sqitch --version`
+      placeholder: sqitch (App::Sqitch) v1.6.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Database engine
+      options:
+        - PostgreSQL
+        - SQLite
+        - MySQL
+        - CockroachDB
+        - YugabyteDB
+        - Not engine-specific / unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: UnSqitch version or commit
+      placeholder: 1.0.0 or a commit SHA
+    validations:
+      required: true

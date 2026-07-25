@@ -18,6 +18,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { useState } from "react";
+import { useIpc } from "../../hooks/useIpc";
 import { type Section, useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 import { AddChangeForm } from "../plan/AddChangeForm";
@@ -27,21 +28,23 @@ interface SectionConfig {
   id: Section;
   label: string;
   icon: any;
+  /** Plain-language hint shown as a tooltip so the CLI verbs are self-explanatory. */
+  hint: string;
 }
 
 const devSections: SectionConfig[] = [
-  { id: "plan", label: "Plan", icon: FileText },
-  { id: "deploy", label: "Deploy", icon: Layers },
-  { id: "revert", label: "Revert", icon: RotateCcw },
-  { id: "status", label: "Status", icon: Activity },
-  { id: "verify", label: "Verify", icon: CheckCircle2 },
-  { id: "log", label: "Log", icon: History },
+  { id: "plan", label: "Plan", icon: FileText, hint: "The changes in this project, in order" },
+  { id: "deploy", label: "Deploy", icon: Layers, hint: "Apply pending changes to a database" },
+  { id: "revert", label: "Revert", icon: RotateCcw, hint: "Undo changes already applied" },
+  { id: "status", label: "Status", icon: Activity, hint: "What is deployed right now" },
+  { id: "verify", label: "Verify", icon: CheckCircle2, hint: "Check deployed changes are correct" },
+  { id: "log", label: "Log", icon: History, hint: "History of past deploys and reverts" },
 ];
 
 const setupSections: SectionConfig[] = [
-  { id: "engine", label: "Engine", icon: Database },
-  { id: "target", label: "Target", icon: Target },
-  { id: "config", label: "Config", icon: Sliders },
+  { id: "engine", label: "Engine", icon: Database, hint: "Database engines for this project" },
+  { id: "target", label: "Target", icon: Target, hint: "Named database connections" },
+  { id: "config", label: "Config", icon: Sliders, hint: "Sqitch settings for this project" },
 ];
 
 export function Sidebar() {
@@ -54,15 +57,34 @@ export function Sidebar() {
     toggleShowCommands,
     commandTooltipDismissed,
     dismissCommandTooltip,
+    setCommandTooltipDismissed,
     sidebarCollapsed,
     toggleSidebar,
+    pulsedSections,
   } = useNavigationStore();
 
   const currentProject = useProjectStore((s) =>
     s.projects.find((p) => p.id === s.currentProjectId),
   );
+  const ipc = useIpc();
   const [addChangeOpen, setAddChangeOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Turning Show-Commands on for the first time permanently dismisses the tooltip
+  // (persisted), so it never reappears after a restart (spec).
+  const handleToggleShowCommands = () => {
+    const turningOn = !showCommands;
+    toggleShowCommands();
+    if (turningOn && !commandTooltipDismissed) {
+      setCommandTooltipDismissed(true);
+      ipc.settingsSet("commandTooltipDismissed", "true").catch(() => {});
+    }
+  };
+
+  const handleDismissTooltip = () => {
+    dismissCommandTooltip();
+    ipc.settingsSet("commandTooltipDismissed", "true").catch(() => {});
+  };
 
   // --- Render for Home Page (Project Selector) ---
   if (view === "home") {
@@ -197,8 +219,8 @@ export function Sidebar() {
                 <button
                   key={s.id}
                   onClick={() => setSection(s.id)}
-                  title={sidebarCollapsed ? s.label : undefined}
-                  className={`flex items-center transition-all cursor-pointer ${
+                  title={sidebarCollapsed ? `${s.label} — ${s.hint}` : s.hint}
+                  className={`relative flex items-center transition-all cursor-pointer ${
                     sidebarCollapsed
                       ? `w-10 h-10 justify-center rounded-xl ${
                           section === s.id
@@ -214,6 +236,9 @@ export function Sidebar() {
                 >
                   <Icon size={16} className={section === s.id ? "stroke-[2.2]" : "stroke-[1.8]"} />
                   {!sidebarCollapsed && s.label}
+                  {pulsedSections.includes(s.id) && section !== s.id && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  )}
                 </button>
               );
             })}
@@ -234,8 +259,8 @@ export function Sidebar() {
                 <button
                   key={s.id}
                   onClick={() => setSection(s.id)}
-                  title={sidebarCollapsed ? s.label : undefined}
-                  className={`flex items-center transition-all cursor-pointer ${
+                  title={sidebarCollapsed ? `${s.label} — ${s.hint}` : s.hint}
+                  className={`relative flex items-center transition-all cursor-pointer ${
                     sidebarCollapsed
                       ? `w-10 h-10 justify-center rounded-xl ${
                           section === s.id
@@ -251,6 +276,9 @@ export function Sidebar() {
                 >
                   <Icon size={16} className={section === s.id ? "stroke-[2.2]" : "stroke-[1.8]"} />
                   {!sidebarCollapsed && s.label}
+                  {pulsedSections.includes(s.id) && section !== s.id && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  )}
                 </button>
               );
             })}
@@ -285,7 +313,7 @@ export function Sidebar() {
         {/* CLI Inspector Toggle */}
         <div className={sidebarCollapsed ? "w-full flex justify-center" : "relative"}>
           <button
-            onClick={toggleShowCommands}
+            onClick={handleToggleShowCommands}
             title={sidebarCollapsed ? "Show Commands" : undefined}
             className={`flex items-center justify-center transition-all cursor-pointer ${
               sidebarCollapsed
@@ -312,7 +340,7 @@ export function Sidebar() {
                   CLI Inspector
                 </span>
                 <button
-                  onClick={dismissCommandTooltip}
+                  onClick={handleDismissTooltip}
                   className="text-muted-foreground hover:text-foreground cursor-pointer text-xs font-bold p-0.5 rounded-md hover:bg-accent/40"
                 >
                   ✕

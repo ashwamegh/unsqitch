@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useProjectStore } from "./project";
 
 export type View = "home" | "project";
 export type Section =
@@ -19,6 +20,13 @@ interface NavigationState {
   showCommands: boolean;
   commandTooltipDismissed: boolean;
   sidebarCollapsed: boolean;
+  // Sections that received new data from the file watcher (show a pulse dot).
+  pulsedSections: Section[];
+  /**
+   * Change (or tag) the user asked to revert to from another view, e.g. clicking
+   * "Revert to here" in Status or Plan. Consumed by the Revert view.
+   */
+  revertRequest: string | null;
 }
 
 interface NavigationActions {
@@ -26,9 +34,16 @@ interface NavigationActions {
   openProject: (projectId: string) => void;
   setSection: (section: Section) => void;
   toggleShowCommands: () => void;
+  setShowCommands: (value: boolean) => void;
   dismissCommandTooltip: () => void;
+  setCommandTooltipDismissed: (value: boolean) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  pulseSection: (section: Section) => void;
+  clearPulse: (section: Section) => void;
+  /** Jump to the Revert view pre-targeted at a change or tag. */
+  requestRevertTo: (change: string) => void;
+  clearRevertRequest: () => void;
 }
 
 export const useNavigationStore = create<NavigationState & NavigationActions>((set) => ({
@@ -38,17 +53,53 @@ export const useNavigationStore = create<NavigationState & NavigationActions>((s
   showCommands: false,
   commandTooltipDismissed: false,
   sidebarCollapsed: true,
+  pulsedSections: [],
+  revertRequest: null,
 
-  goHome: () => set({ view: "home", projectId: null, section: null, sidebarCollapsed: true }),
+  goHome: () => {
+    // Keep the project store's active project in sync with navigation.
+    useProjectStore.getState().setCurrentProject(null);
+    set({ view: "home", projectId: null, section: null, sidebarCollapsed: true });
+  },
 
-  openProject: (projectId) =>
-    set({ view: "project", projectId, section: "plan", sidebarCollapsed: false }),
+  openProject: (projectId) => {
+    useProjectStore.getState().setCurrentProject(projectId);
+    set({ view: "project", projectId, section: "plan", sidebarCollapsed: false });
+  },
 
-  setSection: (section) => set({ section }),
+  // Opening a section clears its pending "new data" pulse.
+  setSection: (section) =>
+    set((state) => ({
+      section,
+      pulsedSections: state.pulsedSections.filter((s) => s !== section),
+    })),
+
+  pulseSection: (section) =>
+    set((state) =>
+      state.pulsedSections.includes(section)
+        ? {}
+        : { pulsedSections: [...state.pulsedSections, section] },
+    ),
+
+  clearPulse: (section) =>
+    set((state) => ({ pulsedSections: state.pulsedSections.filter((s) => s !== section) })),
+
+  requestRevertTo: (change) =>
+    set((state) => ({
+      revertRequest: change,
+      section: "revert",
+      pulsedSections: state.pulsedSections.filter((s) => s !== "revert"),
+    })),
+
+  clearRevertRequest: () => set({ revertRequest: null }),
 
   toggleShowCommands: () => set((state) => ({ showCommands: !state.showCommands })),
 
+  setShowCommands: (showCommands) => set({ showCommands }),
+
   dismissCommandTooltip: () => set({ commandTooltipDismissed: true }),
+
+  setCommandTooltipDismissed: (commandTooltipDismissed) => set({ commandTooltipDismissed }),
 
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 

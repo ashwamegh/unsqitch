@@ -1,8 +1,8 @@
+import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import Database from "better-sqlite3";
-import path from "path";
-import os from "os";
-import fs from "fs";
-import { randomUUID } from "crypto";
 
 export interface ProjectRecord {
   id: string;
@@ -14,12 +14,51 @@ export interface ProjectRecord {
   lastDeployment?: string;
 }
 
+export interface RecentCommand {
+  id: number;
+  projectId: string;
+  command: string;
+  timestamp: string;
+  exitCode: number | null;
+}
+
+/**
+ * Strip embedded credentials from a command string before persisting it.
+ *
+ * db:pg://user:pass@host -> db:pg://***:***@host  (and user@host -> ***@host)
+ *
+ * Works per whitespace-separated token, splitting each at its LAST "@". A previous
+ * version matched the userinfo with a character class that excluded "/", so a password
+ * containing a slash — which is legal, and common in generated passwords — did not match
+ * and was written to the database in cleartext.
+ *
+ * Splitting at the last "@" means a URI whose *path* contains an "@" gets over-redacted
+ * rather than under-redacted. That is the right way round to be wrong: this text is only
+ * ever displayed as history, so losing a hostname is cosmetic, while leaking a password
+ * is not.
+ */
+export function redactCommand(command: string): string {
+  return command
+    .split(/(\s+)/)
+    .map((token) => {
+      const schemeEnd = token.indexOf("://");
+      if (schemeEnd === -1) return token;
+
+      const authorityStart = schemeEnd + 3;
+      const at = token.lastIndexOf("@");
+      if (at <= authorityStart) return token;
+
+      const mask = token.slice(authorityStart, at).includes(":") ? "***:***" : "***";
+      return `${token.slice(0, authorityStart)}${mask}@${token.slice(at + 1)}`;
+    })
+    .join("");
+}
+
 export class ProjectService {
   private db: Database.Database;
 
   constructor(dbPath?: string) {
-    const resolvedPath =
-      dbPath || path.join(os.homedir(), ".unsqitch", "app.db");
+    const resolvedPath = dbPath || path.join(os.homedir(), ".unsqitch", "app.db");
     const dir = path.dirname(resolvedPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -80,9 +119,9 @@ export class ProjectService {
   }
 
   getProject(id: string): ProjectRecord | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM projects WHERE id = ?")
-      .get(id) as Record<string, unknown> | undefined;
+    const row = this.db.prepare("SELECT * FROM projects WHERE id = ?").get(id) as
+      | Record<string, unknown>
+      | undefined;
     if (!row) return undefined;
     this.db
       .prepare("UPDATE projects SET lastOpened = ? WHERE id = ?")
@@ -90,10 +129,55 @@ export class ProjectService {
     return row as unknown as ProjectRecord;
   }
 
+  getProjectByPath(projectPath: string): ProjectRecord | undefined {
+    return this.db.prepare("SELECT * FROM projects WHERE path = ?").get(projectPath) as
+      | ProjectRecord
+      | undefined;
+  }
+
   listProjects(): ProjectRecord[] {
+    // Name breaks ties: projects opened in the same millisecond would otherwise
+    // come back in an arbitrary order.
     return this.db
-      .prepare("SELECT * FROM projects ORDER BY lastOpened DESC")
+      .prepare("SELECT * FROM projects ORDER BY lastOpened DESC, name ASC")
       .all() as unknown as ProjectRecord[];
+  }
+
+  updateProjectMeta(
+    id: string,
+    meta: { engine?: string; changeCount?: number; lastDeployment?: string },
+  ): void {
+    const sets: string[] = [];
+    const values: unknown[] = [];
+    if (meta.engine !== undefined) {
+      sets.push("engine = ?");
+      values.push(meta.engine);
+    }
+    if (meta.changeCount !== undefined) {
+      sets.push("changeCount = ?");
+      values.push(meta.changeCount);
+    }
+    if (meta.lastDeployment !== undefined) {
+      sets.push("lastDeployment = ?");
+      values.push(meta.lastDeployment);
+    }
+    if (sets.length === 0) return;
+    values.push(id);
+    this.db.prepare(`UPDATE projects SET ${sets.join(", ")} WHERE id = ?`).run(...values);
+  }
+
+  recordCommand(projectId: string, command: string, exitCode: number | null): void {
+    this.db
+      .prepare(
+        "INSERT INTO recent_commands (projectId, command, timestamp, exitCode) VALUES (?, ?, ?, ?)",
+      )
+      .run(projectId, redactCommand(command), new Date().toISOString(), exitCode);
+  }
+
+  getRecentCommands(projectId: string, limit = 20): RecentCommand[] {
+    return this.db
+      .prepare("SELECT * FROM recent_commands WHERE projectId = ? ORDER BY id DESC LIMIT ?")
+      .all(projectId, limit) as unknown as RecentCommand[];
   }
 
   removeProject(id: string): void {
@@ -103,23 +187,19 @@ export class ProjectService {
   }
 
   getSetting(key: string): string | undefined {
-    const row = this.db
-      .prepare("SELECT value FROM settings WHERE key = ?")
-      .get(key) as Record<string, string> | undefined;
+    const row = this.db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as
+      | Record<string, string>
+      | undefined;
     return row?.value;
   }
 
   setSetting(key: string, value: string): void {
-    this.db
-      .prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)")
-      .run(key, value);
+    this.db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(key, value);
   }
 
   getTargetLabel(projectId: string, targetName: string): string | undefined {
     const row = this.db
-      .prepare(
-        "SELECT label FROM target_labels WHERE projectId = ? AND targetName = ?",
-      )
+      .prepare("SELECT label FROM target_labels WHERE projectId = ? AND targetName = ?")
       .get(projectId, targetName) as Record<string, string> | undefined;
     return row?.label;
   }

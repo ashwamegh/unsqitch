@@ -12,6 +12,8 @@ export function TerminalPanel() {
   const fitRef = useRef<FitAddon | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [height, setHeight] = useState(200);
+  // Until a command runs there is nothing to show; keep the bar quiet.
+  const [hasOutput, setHasOutput] = useState(false);
   const ipc = useIpc();
 
   const writeLine = useCallback((data: string, type: "stdout" | "stderr") => {
@@ -72,15 +74,20 @@ export function TerminalPanel() {
   useEffect(() => {
     const unsubStream = ipc.onSqitchStream((event) => {
       setIsOpen(true);
+      setHasOutput(true);
       const lines = event.data.split("\n");
       for (const line of lines) {
         if (line.trim()) writeLine(line, event.type);
       }
     });
 
-    const unsubComplete = ipc.onSqitchComplete(() => {
+    const unsubComplete = ipc.onSqitchComplete((event) => {
       if (xtermRef.current) {
         xtermRef.current.writeln("\x1b[32m✔ CLI Command Completed successfully ---\x1b[0m");
+      }
+      // Spec: terminal auto-closes on a successful command; stays open on failure.
+      if (event.exitCode === 0) {
+        setTimeout(() => setIsOpen(false), 1200);
       }
     });
 
@@ -113,7 +120,7 @@ export function TerminalPanel() {
 
       const onMouseMove = (moveEvent: MouseEvent) => {
         const delta = startY - moveEvent.clientY;
-        const newHeight = Math.max(120, Math.min(window.innerHeight * 0.55, startHeight + delta));
+        const newHeight = Math.max(150, Math.min(window.innerHeight * 0.5, startHeight + delta));
         setHeight(newHeight);
       };
 
@@ -140,10 +147,18 @@ export function TerminalPanel() {
         onClick={handleToggle}
       >
         <div className="flex items-center gap-2">
-          <TerminalIcon size={14} className="text-primary" />
+          <TerminalIcon
+            size={14}
+            className={hasOutput ? "text-primary" : "text-muted-foreground"}
+          />
           <span className="text-xs font-bold text-foreground/80 uppercase tracking-widest">
-            Console Logs
+            Sqitch Output
           </span>
+          {!hasOutput && (
+            <span className="text-[10px] text-muted-foreground font-medium normal-case tracking-normal">
+              — appears when a command runs
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {isOpen && (

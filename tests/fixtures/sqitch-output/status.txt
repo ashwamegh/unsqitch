@@ -1,18 +1,16 @@
-On database sqitch_test
-Deployed changes:
-  appschema - 2024-01-15T10:00:00Z - Test User <test@example.com>
-    Change: a1b2c3d4e5f6
-    Note: Add schema for test
-    Tags: @v1.0.0
-    Requires:
-    Conflicts:
-  users - 2024-01-15T10:30:00Z - Test User <test@example.com>
-    Change: f6e5d4c3b2a1
-    Note: Creates users table
-    Tags:
-    Requires: appschema
-    Conflicts:
-Undeployed changes:
-  orders
-Last deployed: 2024-01-15T10:30:00Z
-Engine: pg
+# On database db:pg://sqitch@localhost:54231/sqitch_test
+# Project:  test-project
+# Change:   ed042459e67b75f039d9d33e1297e44a2bf462d2
+# Name:     orders
+# Deployed: 2026-07-25T15:06:29Z
+# By:       System Administrator <root@host.local>
+# 
+# Changes:
+#   orders    - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
+#   users     - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
+#   appschema - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
+# 
+# Tag:
+#   @v1.0.0 - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
+# 
+Nothing to deploy (up-to-date)

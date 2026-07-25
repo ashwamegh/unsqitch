@@ -1,9 +1,11 @@
-import { watch, FSWatcher } from "chokidar";
-import path from "path";
+import { type FSWatcher, watch } from "chokidar";
 import type { WatchEventPayload } from "../shared/ipc-types";
+import { resolveProjectLayout } from "./project-layout";
 
 export class FileWatcherService {
   private watchers: Map<string, FSWatcher> = new Map();
+  /** Resolved plan-file path per project, used to classify watch events. */
+  private planFiles: Map<string, string> = new Map();
   private onEvent: (event: WatchEventPayload) => void;
 
   constructor(onEvent: (event: WatchEventPayload) => void) {
@@ -13,12 +15,11 @@ export class FileWatcherService {
   start(projectPath: string): void {
     if (this.watchers.has(projectPath)) return;
 
-    const watchPaths = [
-      path.join(projectPath, "sqitch.plan"),
-      path.join(projectPath, "deploy"),
-      path.join(projectPath, "revert"),
-      path.join(projectPath, "verify"),
-    ];
+    // Honor core.top_dir / core.plan_file — scripts and the plan may live in a
+    // subdirectory (e.g. top_dir = sql).
+    const layout = resolveProjectLayout(projectPath);
+    this.planFiles.set(projectPath, layout.planFile);
+    const watchPaths = [layout.planFile, layout.deployDir, layout.revertDir, layout.verifyDir];
 
     const watcher = watch(watchPaths, {
       ignoreInitial: true,
@@ -50,6 +51,7 @@ export class FileWatcherService {
       watcher.close();
       this.watchers.delete(projectPath);
     }
+    this.planFiles.delete(projectPath);
   }
 
   stopAll(): void {
@@ -57,6 +59,7 @@ export class FileWatcherService {
       watcher.close();
     }
     this.watchers.clear();
+    this.planFiles.clear();
   }
 
   private emitEvent(
@@ -64,9 +67,11 @@ export class FileWatcherService {
     filePath: string,
     action: WatchEventPayload["action"],
   ): void {
-    const type: WatchEventPayload["type"] = filePath.endsWith("sqitch.plan")
-      ? "plan"
-      : "script";
+    // The plan file is not always named sqitch.plan (core.plan_file), so compare
+    // against the resolved path and fall back to the conventional name.
+    const planFile = this.planFiles.get(projectPath);
+    const isPlan = planFile ? filePath === planFile : filePath.endsWith("sqitch.plan");
+    const type: WatchEventPayload["type"] = isPlan ? "plan" : "script";
     this.onEvent({ projectPath, type, filePath, action });
   }
 }

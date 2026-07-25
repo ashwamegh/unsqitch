@@ -11,6 +11,7 @@ import { ConfigView } from "./ConfigView";
 import { DeployView } from "./DeployView";
 import { EngineView } from "./EngineView";
 import { LogView } from "./LogView";
+import { RevertView } from "./RevertView";
 import { StatusView } from "./StatusView";
 import { TargetView } from "./TargetView";
 import { VerifyView } from "./VerifyView";
@@ -35,19 +36,52 @@ export function ProjectPage() {
     }
   }, [currentProjectId, section, projects, ipc, setPlan]);
 
+  // Discover the project's configured targets so the target fields come
+  // pre-filled instead of asking a new user to guess.
   useEffect(() => {
-    const unsubscribeStale = ipc.onStatusStale(() => {
-      markStatusStale();
+    const project = projects.find((p) => p.id === currentProjectId);
+    if (!project) return;
+    ipc
+      .projectTargets(project.path)
+      .then((result) => {
+        const store = useProjectStore.getState();
+        store.setKnownTargets(result.targets ?? []);
+        if (!store.lastTarget && result.defaultTarget) {
+          store.setLastTarget(result.defaultTarget);
+        }
+      })
+      .catch(() => {});
+  }, [currentProjectId, projects, ipc]);
+
+  useEffect(() => {
+    const unsubscribeStale = ipc.onStatusStale((payload) => {
+      // Only flag stale on focus if the cached status is older than the threshold.
+      const last = useProjectStore.getState().lastStatusRefresh;
+      const threshold = payload?.threshold ?? 5 * 60 * 1000;
+      if (last === null || Date.now() - last > threshold) {
+        markStatusStale();
+      }
     });
     const unsubscribeWatch = ipc.onWatchEvent((event) => {
       const project = projects.find((p) => p.id === currentProjectId);
       if (project && event.projectPath === project.path) {
         markStatusStale();
+        // Plan + script changes surface in the Plan view — pulse its sidebar dot.
+        useNavigationStore.getState().pulseSection("plan");
+      }
+    });
+    // Feed streamed sqitch stdout into the progress event list so the
+    // change-by-change Progress UI updates in real time during deploy/revert/verify.
+    const unsubscribeStream = ipc.onSqitchStream((event) => {
+      const project = projects.find((p) => p.id === currentProjectId);
+      if (!project || event.projectPath === project.path) {
+        useProjectStore.getState().ingestStream(event.data);
       }
     });
     return () => {
       unsubscribeStale();
       unsubscribeWatch();
+      unsubscribeStream();
     };
   }, [ipc, markStatusStale, currentProjectId, projects]);
 
@@ -68,6 +102,8 @@ export function ProjectPage() {
         return <LogView />;
       case "deploy":
         return <DeployView />;
+      case "revert":
+        return <RevertView />;
       case "engine":
         return <EngineView />;
       case "target":
@@ -82,11 +118,12 @@ export function ProjectPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <StaleBanner />
+      {/* Spec: Progress UI sits at the top of the main panel during operations. */}
+      <ProgressUI />
       <div className="flex-1 p-6 overflow-y-auto">
         <h2 className="text-xl font-semibold mb-4 capitalize">{section ?? "Select a section"}</h2>
         {renderSection()}
       </div>
-      <ProgressUI />
       <TerminalPanel />
     </div>
   );

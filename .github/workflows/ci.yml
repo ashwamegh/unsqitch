@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# The default token needs nothing beyond reading the repository; jobs that need
+# more request it explicitly.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Bun is the package manager and script runner. Node is still installed on purpose:
+# vitest, electron-vite, electron-builder, playwright and node-gyp all execute on
+# Node, and the native module (better-sqlite3) is compiled against a specific Node
+# ABI — bun ships its own, different, Node version, so the pinned .nvmrc Node is
+# what must be present.
+
+jobs:
+  check:
+    name: Lint, typecheck and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      # postinstall builds better-sqlite3 for Electron; the unit tests need the
+      # Node ABI instead, which the pretest hook takes care of.
+      - run: bun install --frozen-lockfile
+
+      - run: bun run lint
+
+      - run: bun run typecheck
+
+      # `bun run test`, never `bun test` — the latter starts Bun's own test runner,
+      # which ignores both vitest and the pretest ABI rebuild.
+      - run: bun run test
+
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - run: bun install --frozen-lockfile
+
+      # Typechecks then bundles main, preload and renderer. Does not package
+      # installers — that happens in the release workflow.
+      - run: bun run build
+
+  integration:
+    name: Integration tests (PostgreSQL + Sqitch)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sqitch
+          POSTGRES_PASSWORD: sqitch
+          POSTGRES_DB: sqitch_test
+        ports:
+          - 54231:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      # sqitch-pg pulls in the Perl driver and the psql client that Sqitch needs
+      # to run deploy scripts.
+      - name: Install Sqitch
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends sqitch libdbd-pg-perl postgresql-client
+          sqitch --version
+
+      - run: bun install --frozen-lockfile
+
+      - name: Run integration tests
+        env:
+          RUN_INTEGRATION: "1"
+          TEST_PROJECT_PATH: ${{ github.workspace }}/tests/fixtures/test-project
+        run: bun run test:integration
+
+  e2e:
+    name: E2E (Electron)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - run: bun install --frozen-lockfile
+
+      # Electron needs a display; xvfb-run provides a virtual one.
+      - name: Run Playwright E2E
+        run: xvfb-run --auto-servernum bun run test:e2e

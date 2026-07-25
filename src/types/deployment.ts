@@ -12,6 +12,8 @@ export interface DeployedChange {
 export interface DeploymentStatus {
   target: string;
   engine: string;
+  /** Project name reported by `sqitch status`. */
+  project?: string;
   deployed: DeployedChange[];
   pending: string[];
   lastChange: string;

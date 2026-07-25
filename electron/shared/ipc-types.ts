@@ -43,6 +43,7 @@ export const IPC_CHANNELS = {
 
   // Native dialogs (main → renderer request, main handles)
   DIALOG_OPEN_DIRECTORY: "dialog:openDirectory",
+  DIALOG_OPEN_FILE: "dialog:openFile",
 
   // Stream events (main → renderer)
   SQITCH_STREAM: "sqitch:stream",
@@ -57,6 +58,14 @@ export const IPC_CHANNELS = {
   // Editor integration
   EDITOR_OPEN_FILE: "editor:openFile",
   EDITOR_DETECT: "editor:detect",
+
+  // Read-only script content + command history
+  SCRIPT_READ: "script:read",
+  SCRIPT_PATH: "script:path",
+  RECENT_COMMANDS: "commands:recent",
+
+  // Target discovery (works without the CLI by reading sqitch.conf)
+  PROJECT_TARGETS: "project:targets",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
@@ -153,6 +162,7 @@ export interface SqitchErrorEvent {
   projectPath: string;
   error: string;
   type: string;
+  sqitchOutput?: string;
 }
 
 export interface TargetAddRequest {

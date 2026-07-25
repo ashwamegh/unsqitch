@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # "bun" is its own ecosystem (driven by bun.lock) — not a flavour of "npm".
+  #
+  # Trade-off to be aware of: GitHub's ecosystem table lists Bun as "Supported" for
+  # version updates but "Not supported" for security updates, so Dependabot will NOT
+  # raise automatic PRs for advisories the way it does for npm. Dependabot *alerts*
+  # still fire, and the blocking `bun audit` gate in security.yml still fails the build
+  # on high/critical advisories in shipped dependencies — but the fix has to be applied
+  # by a human or arrive via one of the weekly version-update PRs below. That is why
+  # the interval here is weekly rather than monthly.
+  - package-ecosystem: bun
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Electron, Vite and the toolchain move together; one PR is easier to verify
+      # than five, because each needs a native rebuild and a smoke test.
+      build-toolchain:
+        patterns:
+          - "electron*"
+          - "vite"
+          - "@vitejs/*"
+          - "electron-vite"
+          - "electron-builder"
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "playwright"
+          - "@playwright/*"
+          - "@testing-library/*"
+      linting:
+        patterns:
+          - "@biomejs/*"
+          - "@commitlint/*"
+          - "husky"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

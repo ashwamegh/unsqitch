@@ -28,6 +28,7 @@ interface Engine {
   name: string;
   uri: string;
   client?: string;
+  registry?: string;
 }
 
 interface Target {
@@ -49,45 +50,66 @@ const defaultProjects: Project[] = [
     name: "test-project",
     path: "/tmp/unsqitch-test-project",
     engine: "pg",
-    changeCount: 2,
+    changeCount: 3,
     lastDeployment: new Date().toISOString(),
     lastOpened: new Date().toISOString(),
   },
 ];
 
+const planner = { name: "Test User", email: "test@example.com" };
+const planChanges = [
+  {
+    name: "appschema",
+    requires: [] as string[],
+    conflicts: [] as string[],
+    note: "Add schema for all application objects",
+    timestamp: "2026-05-31T06:00:00Z",
+    planner,
+  },
+  {
+    name: "users",
+    requires: ["appschema"] as string[],
+    conflicts: [] as string[],
+    note: "Add users table with auth tokens",
+    timestamp: "2026-05-31T06:10:00Z",
+    planner,
+  },
+  {
+    name: "orders",
+    requires: ["users"] as string[],
+    conflicts: ["legacy_orders"] as string[],
+    note: "Add orders table with foreign key to users",
+    timestamp: "2026-05-31T06:30:00Z",
+    planner,
+  },
+];
+const planTags = [
+  { name: "v1.0.0", timestamp: "2026-05-31T06:15:00Z", planner, note: "First release" },
+];
+
+// A full PlanFile shape (entries preserve file order for the timeline).
 const defaultPlan = {
+  entries: [
+    { type: "pragma", index: 0, pragma: { key: "syntax-version", value: "1.0.0" } },
+    { type: "pragma", index: 1, pragma: { key: "project", value: "test-project" } },
+    {
+      type: "pragma",
+      index: 2,
+      pragma: { key: "uri", value: "https://github.com/example/test-project" },
+    },
+    { type: "change", index: 3, change: planChanges[0] },
+    { type: "change", index: 4, change: planChanges[1] },
+    { type: "tag", index: 5, tag: planTags[0] },
+    { type: "change", index: 6, change: planChanges[2] },
+  ],
   pragmas: {
     "syntax-version": "1.0.0",
     project: "test-project",
     uri: "https://github.com/example/test-project",
   },
-  changes: [
-    {
-      name: "appschema",
-      requires: [] as string[],
-      conflicts: [] as string[],
-      note: "Add schema for all application objects",
-      timestamp: "2026-05-31T06:00:00Z",
-      planner: { name: "Test User", email: "test@example.com" },
-    },
-    {
-      name: "users",
-      requires: ["appschema"] as string[],
-      conflicts: [] as string[],
-      note: "Add users table with auth tokens",
-      timestamp: "2026-05-31T06:10:00Z",
-      planner: { name: "Test User", email: "test@example.com" },
-    },
-  ],
-  tags: [
-    {
-      name: "v1.0.0",
-      change: "users",
-      timestamp: "2026-05-31T06:15:00Z",
-      planner: { name: "Test User", email: "test@example.com" },
-    },
-  ],
-  unparseableLines: [],
+  changes: planChanges,
+  tags: planTags,
+  unparseableLines: [] as Array<{ line: string; index: number }>,
 };
 
 const defaultLog = [
@@ -258,10 +280,30 @@ export const mockUnsqitchAPI: any = {
       target: target || "local_pg",
       engine: "pg",
       deployed: [
-        { name: "appschema", changeId: "a1b2c3d4e5f6", tags: [] },
-        { name: "users", changeId: "f6e5d4c3b2a1", tags: ["v1.0.0"], requires: ["appschema"] },
+        {
+          name: "appschema",
+          changeId: "a1b2c3d4e5f6",
+          deployedAt: "2026-05-31T06:20:00Z",
+          deployedBy: "Test User",
+          tags: [],
+          note: "Add schema for all application objects",
+          requires: [],
+          conflicts: [],
+        },
+        {
+          name: "users",
+          changeId: "f6e5d4c3b2a1",
+          deployedAt: "2026-05-31T06:25:00Z",
+          deployedBy: "Test User",
+          tags: ["v1.0.0"],
+          note: "Add users table with auth tokens",
+          requires: ["appschema"],
+          conflicts: [],
+        },
       ],
-      pending: [],
+      pending: ["orders"],
+      lastChange: "users",
+      lastTag: ["v1.0.0"],
       lastDeployTime: new Date().toISOString(),
     } as any;
   },
@@ -291,6 +333,7 @@ export const mockUnsqitchAPI: any = {
       planner: { name: "Mock User", email: "mock@example.com" },
     };
     plan.changes.push(newChange);
+    plan.entries.push({ type: "change", index: plan.entries.length, change: newChange } as any);
     setStorage(`unsqitch_plan_${projectPath}`, plan);
     return { success: true, stdout: `Created ${name}` };
   },
@@ -307,10 +350,16 @@ export const mockUnsqitchAPI: any = {
   },
 
   // Engine/Target/Config
-  engineAdd: async (projectPath: string, name: string, uri: string, client?: string) => {
+  engineAdd: async (
+    projectPath: string,
+    name: string,
+    uri: string,
+    client?: string,
+    registry?: string,
+  ) => {
     const key = `unsqitch_engines_${projectPath}`;
     const list = getStorage<Engine[]>(key, defaultEngines);
-    list.push({ name, uri, client });
+    list.push({ name, uri, client, registry });
     setStorage(key, list);
     return { success: true };
   },
@@ -418,7 +467,7 @@ export const mockUnsqitchAPI: any = {
 
   // Native dialogs
   dialogOpenDirectory: async () => {
-    const defaultPath = "/home/ashwaspare/Studio/labs/coding/unsqitch/tests/fixtures/test-project";
+    const defaultPath = "tests/fixtures/test-project";
     const path = window.prompt(
       "UnSqitch Mock API (Browser Mode)\nEnter directory path for mock database project:",
       defaultPath,
@@ -427,6 +476,12 @@ export const mockUnsqitchAPI: any = {
       return { canceled: true, path: null };
     }
     return { canceled: false, path: path || defaultPath };
+  },
+
+  dialogOpenFile: async () => {
+    const path = window.prompt("UnSqitch Mock API (Browser Mode)\nEnter a file path:", "");
+    if (path === null) return { canceled: true, path: null };
+    return { canceled: false, path };
   },
 
   // Stream listeners
@@ -488,10 +543,34 @@ export const mockUnsqitchAPI: any = {
   // Editor integration
   editorOpenFile: async (filePath: string) => {
     console.log("Opening file in editor:", filePath);
-    return { success: true };
+    return { editorName: "VS Code" };
   },
 
   editorDetect: async () => {
-    return { found: true, name: "VS Code" };
+    return { command: "code", name: "VS Code" };
+  },
+
+  scriptPath: async (projectPath: string, changeName: string, kind: string) => {
+    return { path: `${projectPath}/${kind}/${changeName}.sql` };
+  },
+
+  scriptRead: async (_projectPath: string, changeName: string, kind: string) => {
+    return {
+      content: `-- ${kind} script for ${changeName}\nBEGIN;\n\n-- (mock content)\n\nCOMMIT;\n`,
+      path: `${kind}/${changeName}.sql`,
+      error: null,
+    };
+  },
+
+  projectTargets: async (_projectPath: string) => {
+    return {
+      defaultTarget: "local_pg",
+      engine: "pg",
+      targets: [{ name: "local_pg", uri: "db:pg://sqitch:sqitch@localhost:54231/sqitch_test" }],
+    };
+  },
+
+  recentCommands: async (projectPath: string) => {
+    return { commands: getStorage(`unsqitch_recent_${projectPath}`, []) };
   },
 };

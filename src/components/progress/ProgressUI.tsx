@@ -1,18 +1,27 @@
-import { Ban, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 import { useIpc } from "../../hooks/useIpc";
 import { useProjectStore } from "../../store/project";
 import { showToast } from "../shared/Toast";
 
+function formatDuration(ms: number | undefined): string {
+  if (ms === undefined) return "";
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 export function ProgressUI() {
-  const { events, isRunning } = useProjectStore();
+  const { events, expectedChanges, isRunning } = useProjectStore();
   const ipc = useIpc();
 
   if (events.length === 0 && !isRunning) return null;
 
+  const seen = new Set(events.map((e) => e.change));
+  const queued = expectedChanges.filter((c) => !seen.has(c));
+
   const completed = events.filter(
     (e) => e.status === "ok" || e.status === "not_ok" || e.status === "failed",
   ).length;
-  const total = events.length || 1;
+  const total = events.length + queued.length || 1;
   const progress = (completed / total) * 100;
   const hasFailed = events.some((e) => e.status === "failed");
 
@@ -23,7 +32,7 @@ export function ProgressUI() {
   };
 
   return (
-    <div className="border-t border-border bg-card/40 backdrop-blur-md p-4 animate-in slide-in-from-bottom duration-300">
+    <div className="border-b border-border bg-card/40 backdrop-blur-md p-4 animate-in slide-in-from-top duration-300">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {isRunning ? (
@@ -72,11 +81,29 @@ export function ProgressUI() {
               </span>
               <span className="font-bold text-foreground/80 truncate">{event.change}</span>
             </div>
-            {event.target && (
-              <span className="text-muted-foreground shrink-0 text-[9px] bg-muted/30 px-1.5 py-0.5 rounded">
-                → {event.target}
-              </span>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {event.durationMs !== undefined && event.durationMs > 0 && (
+                <span className="text-muted-foreground text-[9px]">
+                  {formatDuration(event.durationMs)}
+                </span>
+              )}
+              {event.target && (
+                <span className="text-muted-foreground text-[9px] bg-muted/30 px-1.5 py-0.5 rounded">
+                  → {event.target}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+        {/* Queued (not yet started) changes */}
+        {queued.map((change) => (
+          <div
+            key={`queued-${change}`}
+            className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/70"
+          >
+            <Clock size={11} className="shrink-0" />
+            <span className="truncate">{change}</span>
+            <span className="text-[9px] uppercase tracking-wider ml-auto">queued</span>
           </div>
         ))}
       </div>

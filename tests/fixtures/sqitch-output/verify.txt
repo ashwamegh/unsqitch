@@ -1,3 +1,5 @@
-Verifying changes to db:pg://sqitch@localhost:54231/sqitch_test
-  * appschema .. ok
-  * users     .. ok
+Verifying db:pg://sqitch@localhost:54231/sqitch_test
+  * appschema ...... ok
+  * users @v1.0.0 .. ok
+  * orders ......... ok
+Verify successful

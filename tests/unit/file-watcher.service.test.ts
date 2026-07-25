@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("chokidar", () => ({
   default: {
@@ -28,21 +28,12 @@ describe("FileWatcherService", () => {
   it("starts watching a project directory", () => {
     service.start("/project");
     expect(watch).toHaveBeenCalledWith(
-      [
-        "/project/sqitch.plan",
-        "/project/deploy",
-        "/project/revert",
-        "/project/verify",
-      ],
+      ["/project/sqitch.plan", "/project/deploy", "/project/revert", "/project/verify"],
       expect.objectContaining({
         ignoreInitial: true,
         atomic: true,
         awaitWriteFinish: { stabilityThreshold: 500 },
-        ignored: expect.arrayContaining([
-          "**/.git/**",
-          "**/node_modules/**",
-          "**/*.tmp",
-        ]),
+        ignored: expect.arrayContaining(["**/.git/**", "**/node_modules/**", "**/*.tmp"]),
       }),
     );
   });

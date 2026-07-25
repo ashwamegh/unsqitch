@@ -1,5 +1,7 @@
 import { AlertCircle, AlertOctagon, CheckCircle2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
+import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useNavigationStore } from "../../store/navigation";
@@ -9,10 +11,8 @@ export function VerifyView() {
   const { currentProjectId, projects, isRunning } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState("");
-  const [results, setResults] = useState<Array<{ change: string; status: string; raw: string }>>(
-    [],
-  );
+  const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
+  const [results, setResults] = useState<Array<{ change: string; status: string }>>([]);
   const [error, setError] = useState<string | null>(null);
 
   const project = projects.find((p) => p.id === currentProjectId);
@@ -20,11 +20,16 @@ export function VerifyView() {
   const handleVerify = async () => {
     if (!project || !target) return;
     setError(null);
+    useProjectStore.getState().setLastTarget(target);
     try {
-      useProjectStore.getState().setRunning(true);
+      useProjectStore
+        .getState()
+        .startRun(useProjectStore.getState().status?.deployed.map((c) => c.name) ?? []);
       showToast("Running verification suite...");
       const result = await ipc.sqitchVerify(project.path, target);
-      setResults((result as any).events || []);
+      const events = ((result as any).events || []) as Array<{ change: string; status: string }>;
+      setResults(events);
+      useProjectStore.getState().setVerifyResults(events);
       showToast("Verification completed", "success");
     } catch (err: any) {
       setError(err.message || "Verify failed");
@@ -46,13 +51,7 @@ export function VerifyView() {
         </div>
 
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            placeholder="Target Database (e.g. pg, my_target)"
-            className="flex-1 border border-border bg-card/65 focus:bg-background rounded-xl px-4 py-2.5 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
-          />
+          <TargetPicker value={target} onChange={setTarget} />
           <button
             onClick={handleVerify}
             disabled={isRunning || !target}
@@ -70,9 +69,7 @@ export function VerifyView() {
         </div>
 
         {showCommands && target && (
-          <div className="mt-4 p-2 bg-black/40 border border-border/50 rounded-lg text-[10px] font-mono text-muted-foreground">
-            sqitch verify {target}
-          </div>
+          <CommandPreview command={`sqitch verify ${target}`} className="mt-4" />
         )}
       </div>
 

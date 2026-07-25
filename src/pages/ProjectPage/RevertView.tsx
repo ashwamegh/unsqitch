@@ -1,5 +1,7 @@
 import { AlertOctagon, AlertTriangle, Check, History, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
+import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useNavigationStore } from "../../store/navigation";
@@ -10,16 +12,43 @@ export function RevertView() {
   const { status, currentProjectId, projects, isRunning, setStatus } = useProjectStore();
   const showCommands = useNavigationStore((s) => s.showCommands);
   const ipc = useIpc();
-  const [target, setTarget] = useState("");
+  const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [confirmedTarget, setConfirmedTarget] = useState("");
   const [revertTo, setRevertTo] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [productionLabel, setProductionLabel] = useState<string | undefined>(undefined);
 
+  const revertRequest = useNavigationStore((s) => s.revertRequest);
+  const clearRevertRequest = useNavigationStore((s) => s.clearRevertRequest);
+  const [revertThreshold, setRevertThreshold] = useState(5);
+  const [revertAll, setRevertAll] = useState(false);
+
   const project = projects.find((p) => p.id === currentProjectId);
   const deployed = status?.deployed ?? [];
-  const LARGE_REVERT_THRESHOLD = 5;
+
+  // Honor a "Revert to here" click from Status or Plan (a change name or @tag).
+  useEffect(() => {
+    if (!revertRequest) return;
+    setRevertAll(false);
+    setRevertTo(revertRequest);
+    if (!target) {
+      const fromStore = useProjectStore.getState().lastTarget;
+      if (fromStore) setTarget(fromStore);
+    }
+    clearRevertRequest();
+  }, [revertRequest, clearRevertRequest, target]);
+
+  // Large-revert threshold is user-configurable (Settings > Large revert warning).
+  useEffect(() => {
+    ipc
+      .settingsGet("revertThreshold")
+      .then((r: any) => {
+        const n = Number.parseInt(r?.value ?? "", 10);
+        if (!Number.isNaN(n)) setRevertThreshold(n);
+      })
+      .catch(() => {});
+  }, [ipc]);
 
   // Check if target is labeled production
   useEffect(() => {
@@ -37,8 +66,9 @@ export function RevertView() {
 
   // Determine what would be reverted
   const revertToIndex = deployed.findIndex((c) => c.name === revertTo);
-  const changesToRevert =
-    revertToIndex >= 0
+  const changesToRevert = revertAll
+    ? deployed
+    : revertToIndex >= 0
       ? deployed.slice(revertToIndex + 1)
       : revertTo
         ? deployed
@@ -47,10 +77,15 @@ export function RevertView() {
           : deployed;
 
   const remainingCount = deployed.length - changesToRevert.length;
-  const requiresConfirm = changesToRevert.length >= LARGE_REVERT_THRESHOLD;
+  // Spec: reverting MORE THAN the (configurable) threshold requires typed confirmation.
+  const requiresConfirm = changesToRevert.length > revertThreshold;
 
   // Dependency-aware blocking
-  const remainingChanges = revertToIndex >= 0 ? deployed.slice(0, revertToIndex + 1) : [];
+  const remainingChanges = revertAll
+    ? []
+    : revertToIndex >= 0
+      ? deployed.slice(0, revertToIndex + 1)
+      : [];
   const blockedByDeps: string[] = [];
   for (const remaining of remainingChanges) {
     for (const req of remaining.requires) {
@@ -76,14 +111,16 @@ export function RevertView() {
   const handleRevert = async () => {
     if (!project || !target) return;
     setConfirmedTarget(target);
+    useProjectStore.getState().setLastTarget(target);
     if (isProduction && confirmText !== "REVERT PRODUCTION") return;
     if (!isProduction && requiresConfirm && confirmText !== String(changesToRevert.length)) return;
 
     try {
-      useProjectStore.getState().setRunning(true);
+      useProjectStore.getState().startRun(changesToRevert.map((c) => c.name));
       showToast("Reverting changes...");
-      const toChangeArg =
-        revertTo || (deployed.length <= 1 ? undefined : deployed[deployed.length - 2]?.name);
+      const toChangeArg = revertAll
+        ? undefined
+        : revertTo || (deployed.length <= 1 ? undefined : deployed[deployed.length - 2]?.name);
       await ipc.sqitchRevert(project.path, target, toChangeArg);
       const result = await ipc.sqitchStatus(project.path, target);
       setStatus(result as DeploymentStatus);
@@ -104,6 +141,21 @@ export function RevertView() {
     setConfirming(true);
   };
 
+  // Pull the blocking dependents into the revert set by moving the target earlier
+  // than the earliest blocker (or reverting everything if it is the first change).
+  const handleRevertDependents = () => {
+    const earliest = Math.min(
+      ...blockedByDeps.map((name) => deployed.findIndex((c) => c.name === name)),
+    );
+    if (earliest <= 0) {
+      setRevertAll(true);
+      setRevertTo("");
+    } else {
+      setRevertAll(false);
+      setRevertTo(deployed[earliest - 1].name);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="glass-panel rounded-2xl p-6 border border-border/80 relative overflow-hidden shadow-lg">
@@ -119,13 +171,7 @@ export function RevertView() {
             Target Database
           </label>
           <div className="flex gap-3">
-            <input
-              type="text"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              placeholder="e.g., mydb"
-              className="flex-1 border border-border bg-card/65 focus:bg-background rounded-xl px-4 py-2.5 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
-            />
+            <TargetPicker value={target} onChange={setTarget} />
             {target && (
               <button
                 onClick={() => setConfirmedTarget(target)}
@@ -139,17 +185,34 @@ export function RevertView() {
 
         {deployed.length > 0 && (
           <div className="border border-border/60 bg-black/10 rounded-xl p-5 mb-6">
-            <div className="flex items-center gap-2 mb-3 text-xs font-bold text-foreground/80 uppercase tracking-wider">
-              <History size={14} className="text-muted-foreground" />
-              <span>
-                Select Revert Target (Change will remain deployed, subsequent ones reverted)
-              </span>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground/80 uppercase tracking-wider">
+                <History size={14} className="text-muted-foreground" />
+                <span>Select Revert Target (it stays deployed, later changes are reverted)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setRevertAll(true);
+                  setRevertTo("");
+                }}
+                className={`shrink-0 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+                  revertAll
+                    ? "bg-destructive/15 border-destructive/40 text-destructive"
+                    : "border-border hover:bg-accent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Revert Everything
+              </button>
             </div>
             <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
               {deployed.map((change) => (
                 <div
                   key={change.changeId}
-                  onClick={() => setRevertTo(change.name)}
+                  onClick={() => {
+                    setRevertAll(false);
+                    setRevertTo(change.name);
+                  }}
                   className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-mono cursor-pointer transition-all border ${
                     revertTo === change.name
                       ? "bg-destructive/10 border-destructive/40 text-destructive-foreground font-bold shadow-sm"
@@ -171,7 +234,7 @@ export function RevertView() {
           </div>
         )}
 
-        {revertTo && (
+        {(revertTo || revertAll || deployed.length === 1) && (
           <div
             className={`border rounded-xl p-5 mb-6 ${
               isProduction ? "border-red-500/30 bg-red-500/5" : "border-amber-500/25 bg-amber-500/5"
@@ -190,8 +253,13 @@ export function RevertView() {
                   Revert Impact Analysis
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  This action will undo {changesToRevert.length} changes. {remainingCount} changes
-                  will remain deployed, including "{revertTo}".
+                  This action will undo {changesToRevert.length} change
+                  {changesToRevert.length === 1 ? "" : "s"}.{" "}
+                  {revertAll
+                    ? "No changes will remain deployed."
+                    : `${remainingCount} change${remainingCount === 1 ? "" : "s"} will remain deployed${
+                        revertTo ? `, including "${revertTo}"` : ""
+                      }.`}
                 </p>
               </div>
             </div>
@@ -211,9 +279,15 @@ export function RevertView() {
                 </p>
                 <p className="text-muted-foreground">
                   The following active changes depend on the changes you are reverting:{" "}
-                  <strong className="text-foreground">{blockedByDeps.join(", ")}</strong>. You must
-                  revert these dependent changes first.
+                  <strong className="text-foreground">{blockedByDeps.join(", ")}</strong>.
                 </p>
+                <button
+                  type="button"
+                  onClick={handleRevertDependents}
+                  className="mt-2 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 transition-all cursor-pointer"
+                >
+                  Revert dependents too
+                </button>
               </div>
             )}
 
@@ -230,11 +304,11 @@ export function RevertView() {
             </div>
 
             {showCommands && (
-              <div className="p-2.5 bg-black/40 border border-border/60 rounded-lg text-[10px] font-mono text-muted-foreground flex items-center justify-between gap-3">
-                <span className="truncate">
-                  sqitch revert {target} --to {revertTo} -y
-                </span>
-              </div>
+              <CommandPreview
+                command={`sqitch revert ${target}${
+                  revertAll ? "" : ` --to ${revertTo || deployed[deployed.length - 2]?.name || ""}`
+                } -y`}
+              />
             )}
           </div>
         )}
@@ -273,7 +347,12 @@ export function RevertView() {
           {!confirming ? (
             <button
               onClick={handlePreview}
-              disabled={isRunning || !target || !revertTo || hasDepBlockers}
+              disabled={
+                isRunning ||
+                !target ||
+                (!revertTo && !revertAll && deployed.length !== 1) ||
+                hasDepBlockers
+              }
               className="flex items-center justify-center gap-2 px-5 py-3 bg-destructive hover:bg-destructive/90 disabled:bg-muted text-destructive-foreground font-bold rounded-xl text-xs shadow-md shadow-destructive/10 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={13} />

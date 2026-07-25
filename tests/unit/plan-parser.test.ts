@@ -1,6 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parsePlanFile } from "../../src/lib/plan-parser";
-import type { PlanFile } from "../../src/types/plan";
 
 const BASIC_PLAN = `%syntax-version=1.0.0
 %project=my-app

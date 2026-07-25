@@ -1,3 +1,4 @@
-Reverting changes from db:pg://sqitch@localhost:54231/sqitch_test
-  - users     .. ok
-  - appschema .. ok
+Reverting all changes from db:pg://sqitch@localhost:54231/sqitch_test
+  - orders ......... ok
+  - users @v1.0.0 .. ok
+  - appschema ...... ok

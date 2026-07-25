@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { parseSqitchOutput } from "../../src/lib/sqitch-parser";
+import { describe, expect, it } from "vitest";
+import { coalesceEvents, parseSqitchOutput } from "../../src/lib/sqitch-parser";
+import type { SqitchEvent } from "../../src/types/sqitch-event";
 
 const DEPLOY_OUTPUT = `Deploying changes to db:pg://localhost/mydb
   + appschema  .. ok
@@ -97,5 +98,43 @@ describe("parseSqitchOutput", () => {
   it("preserves raw output", () => {
     const result = parseSqitchOutput(DEPLOY_OUTPUT);
     expect(result.rawOutput).toBe(DEPLOY_OUTPUT);
+  });
+});
+
+describe("coalesceEvents", () => {
+  it("collapses a running header + completed line into one row per change", () => {
+    // Simulates the incremental stream: header ("running") then the result line.
+    const events = parseSqitchOutput("Deploying change users to mydb\n  + users .. ok").events;
+    const coalesced = coalesceEvents(events);
+    expect(coalesced).toHaveLength(1);
+    expect(coalesced[0]).toMatchObject({ change: "users", status: "ok" });
+  });
+
+  it("keeps a change as running until its result line arrives", () => {
+    const events = parseSqitchOutput("Deploying change users to mydb").events;
+    const coalesced = coalesceEvents(events);
+    expect(coalesced).toHaveLength(1);
+    expect(coalesced[0]).toMatchObject({ change: "users", status: "running" });
+  });
+
+  it("never downgrades a finished change back to running", () => {
+    const events: SqitchEvent[] = [
+      { type: "deploy", change: "users", status: "ok", rawLine: "" },
+      { type: "deploy", change: "users", status: "running", rawLine: "" },
+    ];
+    expect(coalesceEvents(events)[0].status).toBe("ok");
+  });
+
+  it("preserves an earlier target when a later line omits it", () => {
+    const events: SqitchEvent[] = [
+      { type: "deploy", change: "users", target: "mydb", status: "running", rawLine: "" },
+      { type: "deploy", change: "users", status: "ok", rawLine: "" },
+    ];
+    expect(coalesceEvents(events)[0]).toMatchObject({ target: "mydb", status: "ok" });
+  });
+
+  it("preserves distinct changes in first-seen order", () => {
+    const coalesced = coalesceEvents(parseSqitchOutput(DEPLOY_OUTPUT).events);
+    expect(coalesced.map((e) => e.change)).toEqual(["appschema", "users", "emails", "@v1.0.0"]);
   });
 });

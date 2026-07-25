@@ -1,5 +1,5 @@
-import { spawn as defaultSpawn } from "child_process";
-import path from "path";
+import { spawn as defaultSpawn } from "node:child_process";
+import path from "node:path";
 
 export class EditorService {
   editorCommand: string | null = null;
@@ -23,7 +23,9 @@ export class EditorService {
       return { command: editor, name: this.deriveEditorName(editor) };
     }
 
-    const defaultEditor = process.platform === "win32" ? "notepad" : "code";
+    // Spec: default to `code` on all platforms (Windows falls back to notepad
+    // only if code is unavailable — handled by the spawn failing over at runtime).
+    const defaultEditor = "code";
     this.editorCommand = defaultEditor;
     return {
       command: defaultEditor,
