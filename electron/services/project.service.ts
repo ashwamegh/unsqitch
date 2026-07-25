@@ -112,8 +112,10 @@ export class ProjectService {
   }
 
   listProjects(): ProjectRecord[] {
+    // Name breaks ties: projects opened in the same millisecond would otherwise
+    // come back in an arbitrary order.
     return this.db
-      .prepare("SELECT * FROM projects ORDER BY lastOpened DESC")
+      .prepare("SELECT * FROM projects ORDER BY lastOpened DESC, name ASC")
       .all() as unknown as ProjectRecord[];
   }
 
