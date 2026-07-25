@@ -95,8 +95,8 @@
     "@types/node": "^22.19.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "electron": "^39.2.6",
+    "@vitejs/plugin-react": "^6.0.4",
+    "electron": "^43.2.0",
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "husky": "^9.1.7",
@@ -105,7 +105,7 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "typescript": "^7.0.2",
-    "vite": "^7.2.6",
+    "vite": "^8.1.5",
     "vitest": "^4.1.7"
   }
 }
