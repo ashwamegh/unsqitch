@@ -12,6 +12,7 @@ import { EditorService } from "./services/editor.service";
 import { EngineService } from "./services/engine.service";
 import { FileWatcherService } from "./services/file-watcher.service";
 import { ProjectService } from "./services/project.service";
+import { resolveProjectLayout, scriptPathFor } from "./services/project-layout";
 import { SqitchService } from "./services/sqitch.service";
 import { TargetService } from "./services/target.service";
 import { IPC_CHANNELS } from "./shared/ipc-types";
@@ -63,7 +64,8 @@ function deriveProjectMeta(projectPath: string): { engine: string; changeCount: 
     // no sqitch.conf — leave engine as "unknown"
   }
   try {
-    const plan = fs.readFileSync(path.join(projectPath, "sqitch.plan"), "utf-8");
+    // Honor core.top_dir / core.plan_file — the plan is not always at the root.
+    const plan = fs.readFileSync(resolveProjectLayout(projectPath).planFile, "utf-8");
     changeCount = parsePlanFile(plan).changes.length;
   } catch {
     // no plan file — leave changeCount at 0
@@ -360,7 +362,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.SQITCH_PLAN, async (_event, request) => {
     try {
-      const planPath = path.join(request.projectPath, "sqitch.plan");
+      const planPath = resolveProjectLayout(request.projectPath).planFile;
       const content = fs.readFileSync(planPath, "utf-8");
       return parsePlanFile(content);
     } catch (err: any) {
@@ -371,14 +373,26 @@ function registerIpcHandlers() {
   ipcMain.handle(
     IPC_CHANNELS.SCRIPT_READ,
     async (_event, request: { projectPath: string; changeName: string; kind: string }) => {
-      const kind = ["deploy", "revert", "verify"].includes(request.kind) ? request.kind : "deploy";
-      const scriptPath = path.join(request.projectPath, kind, `${request.changeName}.sql`);
+      const kind = (
+        ["deploy", "revert", "verify"].includes(request.kind) ? request.kind : "deploy"
+      ) as "deploy" | "revert" | "verify";
+      const scriptPath = scriptPathFor(request.projectPath, request.changeName, kind);
       try {
         const content = fs.readFileSync(scriptPath, "utf-8");
         return { content, path: scriptPath, error: null };
       } catch (err: any) {
         return { content: null, path: scriptPath, error: err.message };
       }
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SCRIPT_PATH,
+    async (_event, request: { projectPath: string; changeName: string; kind: string }) => {
+      const kind = (
+        ["deploy", "revert", "verify"].includes(request.kind) ? request.kind : "deploy"
+      ) as "deploy" | "revert" | "verify";
+      return { path: scriptPathFor(request.projectPath, request.changeName, kind) };
     },
   );
 

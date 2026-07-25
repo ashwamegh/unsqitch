@@ -550,6 +550,10 @@ export const mockUnsqitchAPI: any = {
     return { command: "code", name: "VS Code" };
   },
 
+  scriptPath: async (projectPath: string, changeName: string, kind: string) => {
+    return { path: `${projectPath}/${kind}/${changeName}.sql` };
+  },
+
   scriptRead: async (_projectPath: string, changeName: string, kind: string) => {
     return {
       content: `-- ${kind} script for ${changeName}\nBEGIN;\n\n-- (mock content)\n\nCOMMIT;\n`,

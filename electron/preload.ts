@@ -203,6 +203,9 @@ const api = {
   scriptRead: (projectPath: string, changeName: string, kind: "deploy" | "revert" | "verify") =>
     ipcRenderer.invoke(IPC_CHANNELS.SCRIPT_READ, { projectPath, changeName, kind }),
 
+  scriptPath: (projectPath: string, changeName: string, kind: "deploy" | "revert" | "verify") =>
+    ipcRenderer.invoke(IPC_CHANNELS.SCRIPT_PATH, { projectPath, changeName, kind }),
+
   recentCommands: (projectPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.RECENT_COMMANDS, { projectPath }),
 };

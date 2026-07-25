@@ -61,6 +61,7 @@ export const IPC_CHANNELS = {
 
   // Read-only script content + command history
   SCRIPT_READ: "script:read",
+  SCRIPT_PATH: "script:path",
   RECENT_COMMANDS: "commands:recent",
 } as const;
 

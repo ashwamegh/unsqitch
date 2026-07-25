@@ -76,9 +76,10 @@ export function PlanEntry({ entry, showCommand, projectPath, changeNumber }: Pla
 
   if (entry.type === "change") {
     const change = entry.change!;
-    const scriptPath = `${projectPath}/deploy/${change.name}.sql`;
 
     const handleOpenInEditor = async () => {
+      // Resolve through the main process so core.top_dir is honored.
+      const { path: scriptPath } = await ipc.scriptPath(projectPath, change.name, "deploy");
       const result = await ipc.editorOpenFile(scriptPath);
       if (result.editorName) {
         showToast(`Opened in ${result.editorName}`);
