@@ -61,8 +61,9 @@ describe("TargetService", () => {
     const sqitch = mockSqitch("");
     const service = new TargetService(sqitch);
     await service.add("/project", "mydb", "db:pg://localhost/mydb");
+    // Real sqitch takes the URI positionally; `--uri` here is a usage error.
     expect(sqitch.runCommand).toHaveBeenCalledWith(
-      ["target", "add", "mydb", "--uri", "db:pg://localhost/mydb"],
+      ["target", "add", "mydb", "db:pg://localhost/mydb"],
       "/project",
     );
   });
