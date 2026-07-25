@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { parseConfigList } from "../src/lib/config-parser";
 import { parseLogOutput } from "../src/lib/log-parser";
 import { parsePlanFile } from "../src/lib/plan-parser";
 import { parseSqitchOutput } from "../src/lib/sqitch-parser";
@@ -15,6 +16,7 @@ import { ProjectService } from "./services/project.service";
 import { resolveProjectLayout, scriptPathFor } from "./services/project-layout";
 import { SqitchService } from "./services/sqitch.service";
 import { TargetService } from "./services/target.service";
+import { resolveTargets, resolveTargetsFromDisk } from "./services/target-resolver";
 import { IPC_CHANNELS } from "./shared/ipc-types";
 
 let mainWindow: BrowserWindow | null = null;
@@ -436,6 +438,19 @@ function registerIpcHandlers() {
       return { success: true, stdout: result.stdout };
     } catch (err: any) {
       throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROJECT_TARGETS, async (_event, request: { projectPath: string }) => {
+    // Prefer the CLI (authoritative, per spec); fall back to reading sqitch.conf
+    // so target discovery still works before sqitch is installed.
+    try {
+      ensureBinary();
+      const result = await sqitchService.runCommand(["config", "--list"], request.projectPath);
+      // `sqitch config --list` is flat (section.subsection.key=value).
+      return resolveTargets(parseConfigList(result.stdout));
+    } catch {
+      return resolveTargetsFromDisk(request.projectPath);
     }
   });
 

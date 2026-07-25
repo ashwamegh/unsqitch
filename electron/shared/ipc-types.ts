@@ -63,6 +63,9 @@ export const IPC_CHANNELS = {
   SCRIPT_READ: "script:read",
   SCRIPT_PATH: "script:path",
   RECENT_COMMANDS: "commands:recent",
+
+  // Target discovery (works without the CLI by reading sqitch.conf)
+  PROJECT_TARGETS: "project:targets",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

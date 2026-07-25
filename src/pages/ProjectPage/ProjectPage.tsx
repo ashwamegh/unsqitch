@@ -36,6 +36,23 @@ export function ProjectPage() {
     }
   }, [currentProjectId, section, projects, ipc, setPlan]);
 
+  // Discover the project's configured targets so the target fields come
+  // pre-filled instead of asking a new user to guess.
+  useEffect(() => {
+    const project = projects.find((p) => p.id === currentProjectId);
+    if (!project) return;
+    ipc
+      .projectTargets(project.path)
+      .then((result) => {
+        const store = useProjectStore.getState();
+        store.setKnownTargets(result.targets ?? []);
+        if (!store.lastTarget && result.defaultTarget) {
+          store.setLastTarget(result.defaultTarget);
+        }
+      })
+      .catch(() => {});
+  }, [currentProjectId, projects, ipc]);
+
   useEffect(() => {
     const unsubscribeStale = ipc.onStatusStale((payload) => {
       // Only flag stale on focus if the cached status is older than the threshold.

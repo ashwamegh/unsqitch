@@ -208,6 +208,9 @@ const api = {
 
   recentCommands: (projectPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.RECENT_COMMANDS, { projectPath }),
+
+  projectTargets: (projectPath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_TARGETS, { projectPath }),
 };
 
 contextBridge.exposeInMainWorld("unsqitch", api);

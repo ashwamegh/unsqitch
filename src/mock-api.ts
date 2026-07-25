@@ -562,6 +562,14 @@ export const mockUnsqitchAPI: any = {
     };
   },
 
+  projectTargets: async (_projectPath: string) => {
+    return {
+      defaultTarget: "local_pg",
+      engine: "pg",
+      targets: [{ name: "local_pg", uri: "db:pg://sqitch:sqitch@localhost:54231/sqitch_test" }],
+    };
+  },
+
   recentCommands: async (projectPath: string) => {
     return { commands: getStorage(`unsqitch_recent_${projectPath}`, []) };
   },

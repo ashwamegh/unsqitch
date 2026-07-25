@@ -2,6 +2,7 @@ import { Play, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommandErrorPanel } from "../../components/progress/CommandErrorPanel";
 import { DeployPreview } from "../../components/progress/DeployPreview";
+import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { pendingChanges } from "../../lib/plan-status-diff";
@@ -114,13 +115,7 @@ export function DeployView() {
             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">
               Target Database
             </label>
-            <input
-              type="text"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              placeholder="e.g., mydb"
-              className="w-full border border-border bg-card/65 focus:bg-background rounded-xl px-4 py-2.5 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
-            />
+            <TargetPicker value={target} onChange={setTarget} />
           </div>
           <div>
             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">

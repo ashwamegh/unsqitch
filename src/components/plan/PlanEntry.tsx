@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { useIpc } from "../../hooks/useIpc";
 import type { PlanEntry as PlanEntryType } from "../../types/plan";
+import { SqlBlock } from "../shared/SqlBlock";
 import { showToast } from "../shared/Toast";
 
 interface PlanEntryProps {
@@ -19,12 +20,31 @@ interface PlanEntryProps {
   showCommand: boolean;
   projectPath: string;
   changeNumber?: number;
+  /** Deployment state from the last status refresh, when known. */
+  deployState?: "deployed" | "pending" | "unknown";
 }
+
+const DEPLOY_BADGE: Record<string, { label: string; className: string }> = {
+  deployed: {
+    label: "Deployed",
+    className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  },
+  pending: {
+    label: "Pending",
+    className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  },
+};
 
 type ScriptKind = "deploy" | "revert" | "verify";
 const SCRIPT_KINDS: ScriptKind[] = ["deploy", "revert", "verify"];
 
-export function PlanEntry({ entry, showCommand, projectPath, changeNumber }: PlanEntryProps) {
+export function PlanEntry({
+  entry,
+  showCommand,
+  projectPath,
+  changeNumber,
+  deployState,
+}: PlanEntryProps) {
   const ipc = useIpc();
   const [copied, setCopied] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
@@ -137,6 +157,13 @@ export function PlanEntry({ entry, showCommand, projectPath, changeNumber }: Pla
             >
               {change.name}
             </button>
+            {deployState && DEPLOY_BADGE[deployState] && (
+              <span
+                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${DEPLOY_BADGE[deployState].className}`}
+              >
+                {DEPLOY_BADGE[deployState].label}
+              </span>
+            )}
           </div>
 
           {/* Description */}
@@ -201,9 +228,11 @@ export function PlanEntry({ entry, showCommand, projectPath, changeNumber }: Pla
                   <X size={13} />
                 </button>
               </div>
-              <pre className="max-h-64 overflow-auto p-3 text-[10px] font-mono text-muted-foreground whitespace-pre-wrap">
-                {scriptLoading ? "Loading…" : (scriptContent ?? "")}
-              </pre>
+              {scriptLoading ? (
+                <p className="p-3 text-[11px] font-mono text-muted-foreground">Loading…</p>
+              ) : (
+                <SqlBlock content={scriptContent ?? ""} className="max-h-72" />
+              )}
             </div>
           )}
 

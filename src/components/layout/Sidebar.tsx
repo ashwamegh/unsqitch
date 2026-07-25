@@ -28,21 +28,23 @@ interface SectionConfig {
   id: Section;
   label: string;
   icon: any;
+  /** Plain-language hint shown as a tooltip so the CLI verbs are self-explanatory. */
+  hint: string;
 }
 
 const devSections: SectionConfig[] = [
-  { id: "plan", label: "Plan", icon: FileText },
-  { id: "deploy", label: "Deploy", icon: Layers },
-  { id: "revert", label: "Revert", icon: RotateCcw },
-  { id: "status", label: "Status", icon: Activity },
-  { id: "verify", label: "Verify", icon: CheckCircle2 },
-  { id: "log", label: "Log", icon: History },
+  { id: "plan", label: "Plan", icon: FileText, hint: "The changes in this project, in order" },
+  { id: "deploy", label: "Deploy", icon: Layers, hint: "Apply pending changes to a database" },
+  { id: "revert", label: "Revert", icon: RotateCcw, hint: "Undo changes already applied" },
+  { id: "status", label: "Status", icon: Activity, hint: "What is deployed right now" },
+  { id: "verify", label: "Verify", icon: CheckCircle2, hint: "Check deployed changes are correct" },
+  { id: "log", label: "Log", icon: History, hint: "History of past deploys and reverts" },
 ];
 
 const setupSections: SectionConfig[] = [
-  { id: "engine", label: "Engine", icon: Database },
-  { id: "target", label: "Target", icon: Target },
-  { id: "config", label: "Config", icon: Sliders },
+  { id: "engine", label: "Engine", icon: Database, hint: "Database engines for this project" },
+  { id: "target", label: "Target", icon: Target, hint: "Named database connections" },
+  { id: "config", label: "Config", icon: Sliders, hint: "Sqitch settings for this project" },
 ];
 
 export function Sidebar() {
@@ -217,7 +219,7 @@ export function Sidebar() {
                 <button
                   key={s.id}
                   onClick={() => setSection(s.id)}
-                  title={sidebarCollapsed ? s.label : undefined}
+                  title={sidebarCollapsed ? `${s.label} — ${s.hint}` : s.hint}
                   className={`relative flex items-center transition-all cursor-pointer ${
                     sidebarCollapsed
                       ? `w-10 h-10 justify-center rounded-xl ${
@@ -257,7 +259,7 @@ export function Sidebar() {
                 <button
                   key={s.id}
                   onClick={() => setSection(s.id)}
-                  title={sidebarCollapsed ? s.label : undefined}
+                  title={sidebarCollapsed ? `${s.label} — ${s.hint}` : s.hint}
                   className={`relative flex items-center transition-all cursor-pointer ${
                     sidebarCollapsed
                       ? `w-10 h-10 justify-center rounded-xl ${

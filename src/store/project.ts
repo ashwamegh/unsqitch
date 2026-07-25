@@ -32,6 +32,8 @@ interface ProjectState {
   lastStatusRefresh: number | null;
   // Last target the user acted on, shared across the target-based views.
   lastTarget: string;
+  // Targets discovered from the project's sqitch config (no CLI required).
+  knownTargets: Array<{ name: string; uri?: string }>;
 }
 
 interface ProjectActions {
@@ -52,6 +54,7 @@ interface ProjectActions {
   markStatusStale: () => void;
   setLastStatusRefresh: (timestamp: number) => void;
   setLastTarget: (target: string) => void;
+  setKnownTargets: (targets: Array<{ name: string; uri?: string }>) => void;
   reset: () => void;
 }
 
@@ -70,6 +73,7 @@ const initialState: ProjectState = {
   statusStale: false,
   lastStatusRefresh: null,
   lastTarget: "",
+  knownTargets: [],
 };
 
 // Accumulates raw sqitch stdout across stream chunks for the active command so
@@ -116,5 +120,6 @@ export const useProjectStore = create<ProjectState & ProjectActions>((set) => ({
   markStatusStale: () => set({ statusStale: true }),
   setLastStatusRefresh: (timestamp) => set({ lastStatusRefresh: timestamp, statusStale: false }),
   setLastTarget: (lastTarget) => set({ lastTarget }),
+  setKnownTargets: (knownTargets) => set({ knownTargets }),
   reset: () => set(initialState),
 }));

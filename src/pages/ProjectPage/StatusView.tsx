@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useProjectStore } from "../../store/project";
@@ -118,13 +119,7 @@ export function StatusView() {
           </h3>
         </div>
         <div className="flex gap-3">
-          <input
-            type="text"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            placeholder="Target Database (e.g. pg, my_target)"
-            className="flex-1 border border-border bg-card/65 focus:bg-background rounded-xl px-4 py-2.5 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all duration-200"
-          />
+          <TargetPicker value={target} onChange={setTarget} />
           <button
             type="button"
             onClick={handleRefresh}
