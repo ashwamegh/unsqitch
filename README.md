@@ -6,6 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](.nvmrc)
 [![Sqitch](https://img.shields.io/badge/sqitch-%E2%89%A51.0-orange.svg)](https://sqitch.org/)
+[![Security audit](https://github.com/ashwamegh/unsqitch/actions/workflows/security.yml/badge.svg)](https://github.com/ashwamegh/unsqitch/actions/workflows/security.yml)
+[![CodeQL](https://github.com/ashwamegh/unsqitch/actions/workflows/codeql.yml/badge.svg)](https://github.com/ashwamegh/unsqitch/actions/workflows/codeql.yml)
 
 UnSqitch brings the power of [Sqitch](https://sqitch.org/) database migrations to a premium, cross-platform desktop application. Built with Electron, React, TypeScript, and modern glassmorphic aesthetics, it provides database engineers with real-time migration tracking, step-by-step deploy/revert execution, and interactive configuration management.
 
@@ -157,6 +159,7 @@ of `.my.cnf`.
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Setup, architecture tour, the quirks that bite, testing, commit and PR conventions. |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the renderer, IPC layer, services and stores fit together, and how to add a capability. |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability, and the credential-handling guarantees. |
+| [docs/REPOSITORY-HARDENING.md](docs/REPOSITORY-HARDENING.md) | The automated security checks, and the repository settings to enable. |
 | [CHANGELOG.md](CHANGELOG.md) | Notable changes per release. |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Expected conduct in the project's spaces. |
 | [docs/superpowers/specs/](docs/superpowers/specs/) | The original design specification. Where it disagrees with the real Sqitch CLI, the CLI wins. |

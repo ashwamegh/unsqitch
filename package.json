@@ -35,6 +35,8 @@
     "format": "biome format --write .",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "audit": "npm audit --omit=dev --audit-level=high",
+    "test:security": "vitest run tests/unit/electron-security.test.ts",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
@@ -59,7 +61,8 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v && docker compose up -d",
-    "prepare": "husky"
+    "prepare": "husky",
+    "audit:all": "npm audit"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

@@ -60,6 +60,15 @@ to be untrue, that is a bug worth reporting:
   will write it into `sqitch.conf`. UnSqitch cannot prevent that and warns against it
   in the target form; prefer `.pgpass`, environment variables, or engine auth files.
 
+## Automated checks
+
+These properties are not just documented, they are enforced on every push and pull
+request: `tests/unit/electron-security.test.ts` asserts context isolation, the absence
+of Node integration, that Sqitch is spawned with an argument array rather than a shell
+string, and that command history goes through the redacting helper. CodeQL, `npm audit`
+and dependency review run alongside it — see
+[docs/REPOSITORY-HARDENING.md](docs/REPOSITORY-HARDENING.md).
+
 ## Out of scope
 
 - The app trusts the local user; it is not a multi-tenant boundary.

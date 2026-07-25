@@ -1,0 +1,101 @@
+name: Security audit
+
+# Supply-chain and hardening checks that run on every change, plus a weekly sweep
+# so a newly published advisory is noticed even if nobody touches the code.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Blocking gate: what actually ships to users. `dependencies` are bundled
+      # into the app, so a high advisory here is a real exposure.
+      - name: Audit shipped dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      # Informational: the dev toolchain (electron-builder, vite and friends)
+      # carries advisories that cannot currently be fixed forward — `npm audit fix
+      # --force` resolves electron-builder *backwards* to 22.x, which is far worse
+      # than the advisories it silences. Reported on every run so the situation is
+      # visible and can be revisited when upstream releases fixes.
+      - name: Report dev-dependency advisories (informational)
+        if: always()
+        run: npm audit || true
+
+  dependency-review:
+    name: Dependency review
+    # Pull requests only, and only once the repository is public — the action
+    # relies on the dependency graph, which needs Advanced Security when private.
+    if: ${{ github.event_name == 'pull_request' && github.event.repository.private != true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Review dependency changes in this PR
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+          # Copyleft licences would change this project's MIT terms, so a new
+          # dependency carrying one should be a deliberate decision.
+          deny-licenses: GPL-3.0, AGPL-3.0, LGPL-3.0, SSPL-1.0
+
+  hardening:
+    name: Workflow and Electron hardening
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Asserts the Electron security invariants (context isolation, no node
+      # integration, no shell-string command execution, redacted history) that
+      # SECURITY.md promises. Cheap, and it fails loudly if someone regresses one.
+      - name: Electron security invariants
+        run: npx vitest run tests/unit/electron-security.test.ts
+
+      - name: Every workflow declares least-privilege permissions
+        run: |
+          missing=0
+          for f in .github/workflows/*.yml; do
+            if ! grep -qE '^permissions:' "$f"; then
+              echo "::error file=$f::workflow has no top-level permissions block"
+              missing=1
+            fi
+          done
+          exit $missing
