@@ -125,3 +125,19 @@ UnSqitch has three layers of tests:
 - The app itself (`npm run dev`, `npm run start`, and production builds) uses the **Electron** ABI, set up by `postinstall` on a fresh `npm install`.
 
 If you switch between running the unit tests and launching the app manually and hit a `NODE_MODULE_VERSION` error, re-run the matching rebuild script (`npm run rebuild:node` or `npm run rebuild:electron`).
+
+### Engine notes
+
+Verified against Sqitch 1.6.1 with the databases from `docker-compose.yml`:
+
+| Engine | URI scheme | Notes |
+| ------ | ---------- | ----- |
+| PostgreSQL | `db:pg://` | Needs a `psql` client on `PATH`. |
+| SQLite | `db:sqlite:` | No server required. |
+| CockroachDB | `db:cockroach://` | Uses Sqitch's own `cockroach` engine — deploying it through `pg` fails while creating the registry. |
+| YugabyteDB | `db:pg://` | Sqitch has no `yugabyte` engine; it is driven through `pg`. |
+| MySQL | `db:mysql://` | Sqitch needs the `DBD::MariaDB` Perl driver, which the Homebrew build does not ship. Point **Settings → Sqitch path** at a build that has it (for example a wrapper around the `sqitch/sqitch` Docker image). Sqitch also stores its registry in a separate `sqitch` database by default — set `engine.mysql.registry` if the user cannot create it. |
+
+If a client rejects the server's self-signed TLS certificate (common with MySQL 8),
+configure the client rather than Sqitch — e.g. `skip-ssl` in a `[client]` section
+of `.my.cnf`.
