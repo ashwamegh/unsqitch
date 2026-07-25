@@ -106,7 +106,7 @@ Database credentials are session-only and never written to this database. See
 ## Native module ABI
 
 `better-sqlite3` must be compiled for the runtime that loads it — Node for Vitest,
-Electron for the app. The npm scripts rebuild it as needed; see
+Electron for the app. The package scripts rebuild it as needed; see
 [CONTRIBUTING.md](../CONTRIBUTING.md#1-the-native-module-has-two-abis).
 
 ## Testing strategy

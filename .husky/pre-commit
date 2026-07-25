@@ -1,2 +1,2 @@
-npx @biomejs/biome check .
-npm run typecheck
+bunx --no-install @biomejs/biome check .
+bun run typecheck

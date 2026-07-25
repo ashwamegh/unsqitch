@@ -29,6 +29,7 @@ UnSqitch brings the power of [Sqitch](https://sqitch.org/) database migrations t
 - **Core**: Electron, Vite, React (TypeScript), Zustand (State Management)
 - **Styling**: TailwindCSS, Lucide React (Icons), Glassmorphic Component Library
 - **Tooling & Code Quality**:
+  - **Bun**: The only supported package manager and script runner
   - **Biome**: Ultra-fast formatting and linting
   - **Husky**: Pre-commit quality assurance hooks
   - **Commitlint**: Strict compliance with the Conventional Commits specification
@@ -40,7 +41,8 @@ UnSqitch brings the power of [Sqitch](https://sqitch.org/) database migrations t
 ### Prerequisites
 
 Ensure you have the following installed on your local machine:
-- [Node.js](https://nodejs.org/) 22 or higher (see [`.nvmrc`](.nvmrc))
+- [Bun](https://bun.sh/) 1.2 or higher (see [`.bun-version`](.bun-version)) — the only supported package manager
+- [Node.js](https://nodejs.org/) 22 or higher (see [`.nvmrc`](.nvmrc)) — still required: vitest, electron-vite, electron-builder, Playwright and the native module all run on Node, and Bun's bundled Node version is a different ABI
 - [Sqitch CLI](https://sqitch.org/download/) 1.0 or higher
 - Git
 - Docker (optional — only for the integration tests)
@@ -55,14 +57,14 @@ Ensure you have the following installed on your local machine:
 
 2. Install dependencies:
    ```bash
-   npm install
+   bun install
    ```
 
 ### Development
 
 Start the development server with Electron hot-reloading:
 ```bash
-npm run dev
+bun run dev
 ```
 
 ### Production Build
@@ -70,12 +72,12 @@ npm run dev
 Compile, optimize, and build the Electron binaries:
 ```bash
 # Build for current OS
-npm run build
+bun run build
 
 # Build specific platform targets
-npm run build:linux
-npm run build:win
-npm run build:mac
+bun run build:linux
+bun run build:win
+bun run build:mac
 ```
 
 ---
@@ -87,8 +89,8 @@ We enforce modern code hygiene standards using pre-commit hooks to ensure qualit
 ### Linter & Formatter (Biome)
 
 We use **Biome** as our unified linting and formatting tool. It runs in microseconds and ensures clean syntax:
-- Run checks: `npm run lint`
-- Apply automatic fixes: `npm run lint:fix`
+- Run checks: `bun run lint`
+- Apply automatic fixes: `bun run lint:fix`
 
 ### Conventional Commit Message Standard
 
@@ -120,19 +122,24 @@ UnSqitch has three layers of tests:
 
 | Layer | Command | Notes |
 | ----- | ------- | ----- |
-| **Unit** | `npm test` | Vitest + jsdom. Covers parsers, services, and React view routing. No external dependencies. |
-| **E2E** | `npm run test:e2e` | Playwright drives the fully built Electron app. Automatically rebuilds native modules and runs `npm run build` first. |
-| **Integration** | `npm run test:integration` | Runs real Sqitch commands against live databases. Requires the [Sqitch CLI](https://sqitch.org/download/) and Docker (`npm run docker:up`). Skipped automatically when `RUN_INTEGRATION` is unset. |
+| **Unit** | `bun run test` | Vitest + jsdom. Covers parsers, services, and React view routing. No external dependencies. |
+| **E2E** | `bun run test:e2e` | Playwright drives the fully built Electron app. Automatically rebuilds native modules and runs `bun run build` first. |
+| **Integration** | `bun run test:integration` | Runs real Sqitch commands against live databases. Requires the [Sqitch CLI](https://sqitch.org/download/) and Docker (`bun run docker:up`). Skipped automatically when `RUN_INTEGRATION` is unset. |
 
 ### Native module note
 
 `better-sqlite3` is a native module and must be compiled against the ABI of whichever runtime loads it — **Node.js** for unit tests, **Electron** for the running app and E2E. This is handled automatically:
 
-- `npm test` rebuilds for the **Node** ABI first (via its `pretest` hook → `npm run rebuild:node`).
-- `npm run test:e2e` rebuilds for the **Electron** ABI and builds the app first (via its `pretest:e2e` hook → `npm run rebuild:electron`).
-- The app itself (`npm run dev`, `npm run start`, and production builds) uses the **Electron** ABI, set up by `postinstall` on a fresh `npm install`.
+- `bun run test` rebuilds for the **Node** ABI first (via its `pretest` hook → `bun run rebuild:node`).
+- `bun run test:e2e` rebuilds for the **Electron** ABI and builds the app first (via its `pretest:e2e` hook → `bun run rebuild:electron`).
+- The app itself (`bun run dev`, `bun run start`, and production builds) uses the **Electron** ABI, set up by `postinstall` on a fresh `bun install`.
 
-If you switch between running the unit tests and launching the app manually and hit a `NODE_MODULE_VERSION` error, re-run the matching rebuild script (`npm run rebuild:node` or `npm run rebuild:electron`).
+If you switch between running the unit tests and launching the app manually and hit a `NODE_MODULE_VERSION` error, re-run the matching rebuild script (`bun run rebuild:node` or `bun run rebuild:electron`). Both scripts delete the previous build and then verify the result by loading the addon, so a rebuild that silently does nothing fails loudly instead of surfacing later as a crash on launch.
+
+Two traps worth knowing about:
+
+- **Run `bun run test`, not `bun test`.** `bun test` starts Bun's own test runner, which ignores both vitest and the `pretest` ABI rebuild.
+- **The rebuild scripts must run on Node, not Bun.** Bun ships its own Node version with a different ABI, so a native module built under Bun cannot be loaded by the project's Node or by Electron. `scripts/rebuild-native.mjs` is invoked with `node` for exactly this reason.
 
 ### Engine notes
 
@@ -174,9 +181,9 @@ architecture, and two things that will otherwise cost you an afternoon (the nati
 module's dual ABI, and validating parsers against real Sqitch output).
 
 ```bash
-npm run lint        # Biome across the repo
-npm run typecheck   # main + renderer
-npm test            # unit tests
+bun run lint        # Biome across the repo
+bun run typecheck   # main + renderer
+bun run test            # unit tests
 ```
 
 Please open an issue before starting anything large, so the approach can be agreed first.

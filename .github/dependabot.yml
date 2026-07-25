@@ -1,6 +1,15 @@
 version: 2
 updates:
-  - package-ecosystem: npm
+  # "bun" is its own ecosystem (driven by bun.lock) — not a flavour of "npm".
+  #
+  # Trade-off to be aware of: GitHub's ecosystem table lists Bun as "Supported" for
+  # version updates but "Not supported" for security updates, so Dependabot will NOT
+  # raise automatic PRs for advisories the way it does for npm. Dependabot *alerts*
+  # still fire, and the blocking `bun audit` gate in security.yml still fails the build
+  # on high/critical advisories in shipped dependencies — but the fix has to be applied
+  # by a human or arrive via one of the weekly version-update PRs below. That is why
+  # the interval here is weekly rather than monthly.
+  - package-ecosystem: bun
     directory: "/"
     schedule:
       interval: weekly

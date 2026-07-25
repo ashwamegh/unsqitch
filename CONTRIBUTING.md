@@ -14,18 +14,19 @@ By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md)
 
 | Tool | Notes |
 | ---- | ----- |
-| Node.js 22+ | The version in [`.nvmrc`](.nvmrc) is what CI uses. |
+| Bun 1.2+ | The only supported package manager. The version in [`.bun-version`](.bun-version) is what CI uses, and `bun install` refuses to run under npm or yarn. |
+| Node.js 22+ | Still required alongside Bun: vitest, electron-vite, electron-builder, Playwright and `node-gyp` all execute on Node, and the native module is compiled against the ABI of the Node in [`.nvmrc`](.nvmrc) — which is not the Node version Bun bundles. |
 | [Sqitch CLI](https://sqitch.org/download/) 1.0+ | The app shells out to it; without it, only the file-based views work. |
 | Docker (optional) | Only needed for integration tests — see `docker-compose.yml`. |
 
 ```bash
 git clone https://github.com/ashwamegh/unsqitch.git
 cd unsqitch
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
-`npm run dev` starts Vite plus Electron with hot reload. You do not need a database
+`bun run dev` starts Vite plus Electron with hot reload. You do not need a database
 to work on the Plan view, the setup views, or anything file-based.
 
 ### Working without a real project
@@ -66,26 +67,44 @@ reference, but where it disagrees with the real Sqitch CLI, **the CLI wins** —
 ### 1. The native module has two ABIs
 
 `better-sqlite3` is compiled against whichever runtime loads it — **Node** for Vitest,
-**Electron** for the app and E2E. You cannot satisfy both at once. The npm scripts
+**Electron** for the app and E2E. You cannot satisfy both at once. The package scripts
 handle it:
 
 ```bash
-npm test              # rebuilds for Node first (pretest hook)
-npm run test:e2e      # rebuilds for Electron and builds the app first
-npm run dev           # rebuilds for Electron (predev hook)
+bun run test          # rebuilds for Node first (pretest hook)
+bun run test:e2e      # rebuilds for Electron and builds the app first
+bun run dev           # rebuilds for Electron (predev hook)
 ```
 
-If you see `NODE_MODULE_VERSION` mismatch, run `npm run rebuild:node` or
-`npm run rebuild:electron` to match what you are about to do. Let the rebuild finish —
+Use `bun run test`. Plain `bun test` starts Bun's own test runner, which ignores both
+vitest and the `pretest` rebuild.
+
+If you see a `NODE_MODULE_VERSION` mismatch, run `bun run rebuild:node` or
+`bun run rebuild:electron` to match what you are about to do. Let the rebuild finish —
 interrupting it can leave a corrupt binary that hangs on first use (delete
 `node_modules/better-sqlite3/build` and rebuild if that happens).
+
+Both rebuilds go through [`scripts/rebuild-native.mjs`](scripts/rebuild-native.mjs),
+which exists because two failure modes here are silent:
+
+- `@electron/rebuild` records the ABI it built for in `build/Release/.forge-meta` and
+  skips the rebuild when it matches. A Node-ABI rebuild replaces the binary *without*
+  updating that marker, so the next `electron-rebuild` reports "Rebuild Complete" and
+  does nothing — and the app then dies on launch. The script deletes the build directory
+  first, which removes the stale marker with it.
+- Running the rebuild under Bun produces a binary for Bun's bundled Node ABI, which
+  neither the project's Node nor Electron can load. The script is therefore invoked with
+  `node`, and it spawns its children with the same interpreter.
+
+After building, it loads the addon to confirm the ABI actually changed, so neither
+failure can reach you as a mysterious crash later.
 
 ### 2. Verify against real sqitch, never against assumed output
 
 Several early bugs came from parsers written against hand-written fixtures that did
 not match what Sqitch actually prints. If you touch a parser:
 
-1. Run the real command (`npm run docker:up` gives you databases).
+1. Run the real command (`bun run docker:up` gives you databases).
 2. Capture the output into `tests/fixtures/sqitch-output/`.
 3. Assert against that fixture.
 
@@ -106,14 +125,14 @@ data instead. This froze the app once.
 
 | Layer | Command | What it covers |
 | ----- | ------- | -------------- |
-| Unit | `npm test` | Parsers, services, stores, view routing. No external dependencies. |
-| Integration | `npm run docker:up && npm run test:integration` | Real Sqitch commands against real databases. Skipped unless `RUN_INTEGRATION=1`. |
-| E2E | `npm run test:e2e` | Playwright driving the built Electron app. |
+| Unit | `bun run test` | Parsers, services, stores, view routing. No external dependencies. |
+| Integration | `bun run docker:up && bun run test:integration` | Real Sqitch commands against real databases. Skipped unless `RUN_INTEGRATION=1`. |
+| E2E | `bun run test:e2e` | Playwright driving the built Electron app. |
 
 ```bash
-npm run lint        # Biome (whole repo)
-npm run lint:fix    # Biome with fixes
-npm run typecheck   # tsc for main + renderer
+bun run lint        # Biome (whole repo)
+bun run lint:fix    # Biome with fixes
+bun run typecheck   # tsc for main + renderer
 ```
 
 Please add a test with any bug fix — ideally one that fails before your change. Tests
@@ -149,7 +168,7 @@ Husky runs Biome and `typecheck` before each commit, and commitlint on the messa
 ## Pull requests
 
 1. Branch from `main`.
-2. Make sure `npm run lint`, `npm run typecheck` and `npm test` all pass.
+2. Make sure `bun run lint`, `bun run typecheck` and `bun run test` all pass.
 3. Fill in the PR template: what changed, why, and how you verified it.
 4. If the change is user-visible, include a screenshot or a short clip.
 5. Note anything you could **not** verify (a database you lack, an OS you cannot test)

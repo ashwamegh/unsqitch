@@ -16,7 +16,9 @@ permissions:
 
 jobs:
   audit:
-    name: npm audit
+    # Deliberately package-manager-neutral: this name is a required status check on
+    # main, and renaming it wedges every merge behind a check that never reports.
+    name: Audit dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -27,21 +29,29 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
-          cache: npm
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
 
       # Blocking gate: what actually ships to users. `dependencies` are bundled
       # into the app, so a high advisory here is a real exposure.
+      #
+      # `bun audit` has no --omit=dev equivalent and its output carries no prod/dev
+      # distinction, so scripts/audit-prod.mjs resolves a throwaway tree containing
+      # only `dependencies` and audits that. Needs no node_modules and no lockfile
+      # from this repo, hence no install step above it.
       - name: Audit shipped dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: bun run audit
 
       # Informational: the dev toolchain (electron-builder, vite and friends)
-      # carries advisories that cannot currently be fixed forward — `npm audit fix
-      # --force` resolves electron-builder *backwards* to 22.x, which is far worse
-      # than the advisories it silences. Reported on every run so the situation is
-      # visible and can be revisited when upstream releases fixes.
+      # carries advisories that cannot currently be fixed forward — resolving them
+      # drags electron-builder *backwards* to 22.x, which is far worse than the
+      # advisories it silences. Reported on every run so the situation stays visible
+      # and can be revisited when upstream releases fixes.
       - name: Report dev-dependency advisories (informational)
         if: always()
-        run: npm audit || true
+        run: bun audit || true
 
   dependency-review:
     name: Dependency review
@@ -79,15 +89,18 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .nvmrc
-          cache: npm
 
-      - run: npm ci
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - run: bun install --frozen-lockfile
 
       # Asserts the Electron security invariants (context isolation, no node
       # integration, no shell-string command execution, redacted history) that
       # SECURITY.md promises. Cheap, and it fails loudly if someone regresses one.
       - name: Electron security invariants
-        run: npx vitest run tests/unit/electron-security.test.ts
+        run: bun run test:security
 
       - name: Every workflow declares least-privilege permissions
         run: |
@@ -99,3 +112,29 @@ jobs:
             fi
           done
           exit $missing
+
+      # bun is the only supported package manager: a second lockfile makes
+      # electron-builder pick its package manager by scanning for lockfiles and
+      # rebuild the native module against the wrong tree.
+      - name: bun is the only package manager
+        run: |
+          problems=0
+          for f in package-lock.json npm-shrinkwrap.json yarn.lock pnpm-lock.yaml; do
+            if [ -e "$f" ]; then
+              echo "::error file=$f::$f must not be committed — this project installs with bun"
+              problems=1
+            fi
+          done
+          if [ ! -e bun.lock ]; then
+            echo "::error::bun.lock is missing; run bun install and commit it"
+            problems=1
+          fi
+          # .bun-version drives CI, packageManager documents it for tooling; drift
+          # between them means CI and contributors run different bun versions.
+          pinned=$(tr -d '[:space:]' < .bun-version)
+          declared=$(node -p "require('./package.json').packageManager.replace('bun@','')")
+          if [ "$pinned" != "$declared" ]; then
+            echo "::error::.bun-version ($pinned) and package.json packageManager ($declared) disagree"
+            problems=1
+          fi
+          exit $problems

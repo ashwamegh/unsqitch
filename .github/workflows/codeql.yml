@@ -43,12 +43,13 @@ jobs:
         uses: github/codeql-action/init@3b0bd1d116c0bde30213346b22d4f634d96a2fb0 # v3
         with:
           languages: ${{ matrix.language }}
+          # JavaScript and TypeScript are extracted from source, so there is nothing
+          # to compile. This replaces the Autobuild step, which has no bun awareness
+          # and would only try (and fail) to guess an install command.
+          build-mode: none
           # security-and-quality adds maintainability queries on top of the
           # default security ones.
           queries: security-and-quality
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@3b0bd1d116c0bde30213346b22d4f634d96a2fb0 # v3
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@3b0bd1d116c0bde30213346b22d4f634d96a2fb0 # v3

@@ -1,11 +1,9 @@
 # Repository hardening
 
 The automated checks live in `.github/workflows/`. A few protections are *repository
-settings* rather than code, and several of them are only available once the repository
-is **public** (on a free account, secret scanning, code scanning, private vulnerability
-reporting and the dependency graph for private repos all require GitHub Advanced
-Security). The workflows that depend on those are written to skip themselves while the
-repository is private and to start working the moment it is public — no edit needed.
+settings* rather than code; those are recorded here with the commands that set them, so
+the configuration is reviewable and reproducible rather than a series of clicks somebody
+made once.
 
 ## What runs automatically
 
@@ -15,27 +13,62 @@ repository is private and to start working the moment it is public — no edit n
 | Cross-platform build (macOS/Linux/Windows) | `ci.yml` | every push and PR |
 | Integration tests against real PostgreSQL + Sqitch | `ci.yml` | every push and PR |
 | E2E against the built Electron app | `ci.yml` | every push and PR |
-| `npm audit` (fails on high/critical) | `security.yml` | push, PR, weekly |
-| Dependency review of PR changes, with a copyleft-licence deny list | `security.yml` | PRs, once public |
+| Dependency audit of shipped deps (fails on high/critical) | `security.yml` | push, PR, weekly |
+| Dependency review of PR changes, with a copyleft-licence deny list | `security.yml` | PRs |
 | Electron security invariants + workflow permission audit | `security.yml` | push, PR, weekly |
-| CodeQL static analysis | `codeql.yml` | push, PR, weekly, once public |
-| OpenSSF Scorecard | `scorecard.yml` | push to main, weekly, once public |
-| Dependency updates, grouped | `dependabot.yml` | weekly (npm), monthly (actions) |
+| Single-package-manager check (no stray lockfiles, bun version pins agree) | `security.yml` | push, PR, weekly |
+| CodeQL static analysis | `codeql.yml` | push, PR, weekly |
+| OpenSSF Scorecard | `scorecard.yml` | push to main, weekly |
+| Dependency version updates, grouped | `dependabot.yml` | weekly (bun), monthly (actions) |
 
 Workflow hardening already applied: a top-level least-privilege `permissions` block in
 every workflow, all third-party actions pinned to commit SHAs (Dependabot bumps them),
 and `persist-credentials: false` on every checkout so the token is not written into
 `.git/config`.
 
-## Settings to enable after making the repository public
+## The audit gate, and why it is not just `bun audit`
 
-These need to be turned on once — from the web UI (Settings → Code security) or with the
-commands below.
+`bun audit` has no `--omit=dev` equivalent, and its JSON output carries no prod/dev
+distinction, so auditing the whole tree would fail the build on advisories in the build
+toolchain — which never ship to a user. A whole-tree gate would be permanently red, and a
+permanently red gate gets switched off.
+
+[`scripts/audit-prod.mjs`](../scripts/audit-prod.mjs) instead resolves a throwaway tree
+containing only the `dependencies` block and audits that (`bun install --lockfile-only`,
+so nothing is installed). That reproduces the previous `npm audit --omit=dev
+--audit-level=high` behaviour exactly. Dev-dependency advisories are still printed on
+every run by `bun run audit:all`, without failing the build.
+
+## Known gap: Dependabot security updates do not cover bun
+
+GitHub's [supported ecosystems table][ecosystems] lists Bun as **Supported** for version
+updates and **Not supported** for security updates. Because this project installs with
+bun and commits `bun.lock`, Dependabot will not open automatic PRs in response to
+advisories, as it does for npm projects.
+
+What still covers that gap:
+
+- **Dependabot alerts** are enabled and unaffected — advisories are still detected and
+  reported in the Security tab.
+- **The audit gate** in `security.yml` fails the build on high/critical advisories in
+  shipped dependencies, so an affected dependency cannot merge unnoticed.
+- **Weekly version-update PRs** pull most fixes in as ordinary bumps; the interval is
+  weekly rather than monthly for this reason.
+
+The remaining cost is that applying a security fix is a manual step. Revisit if GitHub
+adds bun to the security-updates column.
+
+[ecosystems]: https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories
+
+## Settings that are enabled
+
+Applied and verified on the public repository:
 
 ```bash
 REPO=ashwamegh/unsqitch
 
-# Dependabot alerts, and automatic PRs for vulnerable dependencies.
+# Dependabot alerts, and automatic PRs for vulnerable dependencies where the
+# ecosystem supports them (see the gap noted above for bun).
 gh api -X PUT "repos/$REPO/vulnerability-alerts"
 gh api -X PUT "repos/$REPO/automated-security-fixes"
 
@@ -46,19 +79,33 @@ gh api -X PUT "repos/$REPO/private-vulnerability-reporting"
 gh api -X PATCH "repos/$REPO" \
   -f 'security_and_analysis[secret_scanning][status]=enabled' \
   -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
+
+# Squash-only merges, with the PR title as the commit subject, and head branches
+# deleted on merge. Squash keeps main linear, which required_linear_history enforces.
+gh api -X PATCH "repos/$REPO" \
+  -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false \
+  -F delete_branch_on_merge=true \
+  -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY
 ```
 
-Verify afterwards:
+Verify:
 
 ```bash
-gh api "repos/$REPO" --jq '.security_and_analysis'
+gh api "repos/$REPO" --jq '.security_and_analysis, {squash:.allow_squash_merge, merge:.allow_merge_commit, rebase:.allow_rebase_merge}'
 gh api "repos/$REPO/vulnerability-alerts" -i --silent   # 204 = enabled
 ```
 
+Note that secret scanning, code scanning, private vulnerability reporting and the
+dependency graph are only free on **public** repositories; on a private repository
+without GitHub Advanced Security the same calls fail (and `secret_scanning` returns
+"Secret scanning is not available for this repository"). Branch protection and rulesets
+also return 403 on a private repository on a free plan.
+
 ## Protecting `main`
 
-Requires a public repository on a free account. Run this **after** the first CI run on
-`main`, so the status-check names already exist:
+Status-check contexts must match job names *exactly*: a context that never reports
+blocks every merge. Apply this only after the named jobs have each reported once on
+`main`.
 
 ```bash
 REPO=ashwamegh/unsqitch
@@ -74,7 +121,7 @@ gh api -X PUT "repos/$REPO/branches/main/protection" --input - <<'JSON'
       "Build (windows-latest)",
       "Integration tests (PostgreSQL + Sqitch)",
       "E2E (Electron)",
-      "npm audit",
+      "Audit dependencies",
       "Workflow and Electron hardening"
     ]
   },
@@ -93,18 +140,18 @@ gh api -X PUT "repos/$REPO/branches/main/protection" --input - <<'JSON'
 JSON
 ```
 
-Two deliberate choices there:
+Three deliberate choices:
 
 - **`enforce_admins: false`** — as the sole maintainer you can still merge your own work
   without a second reviewer. Set it to `true` once there is more than one maintainer.
-- **`contexts` must match job names exactly.** A context that never reports blocks every
-  merge, so add new required checks only after you have seen them run green once.
+- **`required_linear_history: true`** pairs with squash-only merging; both would fight a
+  merge commit.
+- **The audit job is named "Audit dependencies"**, deliberately not "npm audit" or "bun
+  audit". Renaming a required check silently blocks every merge, so the name is kept
+  free of the package manager.
 
-Also worth setting under Settings → General:
-
-- Allow squash merging only, and enable "automatically delete head branches".
-- Under Actions → General, set workflow permissions to **read-only** by default and
-  require approval for workflows from outside collaborators.
+Also worth setting under Settings → Actions → General: workflow permissions **read-only**
+by default, and require approval for workflows from outside collaborators.
 
 ## Release signing
 

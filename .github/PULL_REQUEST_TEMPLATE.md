@@ -24,9 +24,9 @@ test, a path that needs a real database. Say so rather than leaving it implied.
 
 ## Checklist
 
-- [ ] `npm run lint` passes
-- [ ] `npm run typecheck` passes
-- [ ] `npm test` passes
+- [ ] `bun run lint` passes
+- [ ] `bun run typecheck` passes
+- [ ] `bun run test` passes
 - [ ] Added or updated tests for the change
 - [ ] Commit messages follow Conventional Commits with a scope
 - [ ] Screenshot or clip included, if the change is user-visible
