@@ -32,8 +32,14 @@ export interface AppError {
  * offer the right recovery actions (spec "Error Handling" table). Falls back to
  * sqitch_crash for a generic non-zero exit, or unknown when nothing matches.
  */
-export function classifyError(stderr: string | undefined, exitCode: number | null): ErrorType {
-  const s = (stderr || "").toLowerCase();
+export function classifyError(
+  stderr: string | undefined,
+  exitCode: number | null,
+  stdout?: string,
+): ErrorType {
+  // sqitch reports some failures (notably connection errors) on stdout, so both
+  // streams must be considered.
+  const s = `${stderr || ""}\n${stdout || ""}`.toLowerCase();
   if (
     /command not found|no such file or directory|enoent|is not recognized|cannot find the path/.test(
       s,
@@ -61,6 +67,40 @@ export function classifyError(stderr: string | undefined, exitCode: number | nul
   }
   if (exitCode !== null && exitCode !== 0) return "sqitch_crash";
   return "unknown";
+}
+
+const ERROR_TYPES: ErrorType[] = [
+  "sqitch_crash",
+  "db_connection",
+  "file_permission",
+  "binary_not_found",
+  "partial_deployment",
+  "command_timeout",
+  "unknown",
+];
+
+/**
+ * Rebuild an AppError from an error thrown across Electron IPC.
+ *
+ * Electron drops custom properties and prefixes the message with
+ * "Error invoking remote method '<channel>':", so the type is encoded into the
+ * message as "<type>: <message>" by the main process and recovered here.
+ */
+export function parseIpcError(err: unknown, fallbackMessage = "Command failed"): AppError {
+  const raw = (err as { message?: string })?.message ?? String(err ?? "");
+  const withoutChannel = raw.replace(/^Error invoking remote method '[^']*':\s*/, "");
+  const cleaned = withoutChannel.replace(/^(?:Error|UnhandledError):\s*/, "");
+
+  const match = cleaned.match(/^([a-z_]+):\s*([\s\S]*)$/);
+  const type =
+    match && (ERROR_TYPES as string[]).includes(match[1]) ? (match[1] as ErrorType) : null;
+
+  const explicitType = (err as { type?: ErrorType })?.type;
+  return createAppError(
+    type ?? (explicitType && ERROR_TYPES.includes(explicitType) ? explicitType : "sqitch_crash"),
+    (type ? match?.[2] : cleaned) || fallbackMessage,
+    (err as { sqitchOutput?: string })?.sqitchOutput,
+  );
 }
 
 export function createAppError(type: ErrorType, message: string, sqitchOutput?: string): AppError {

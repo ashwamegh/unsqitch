@@ -9,7 +9,7 @@ import { pendingChanges } from "../../lib/plan-status-diff";
 import { useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 import type { DeploymentStatus } from "../../types/deployment";
-import { type AppError, createAppError, type ErrorType } from "../../types/error";
+import { type AppError, createAppError, type ErrorType, parseIpcError } from "../../types/error";
 import type { PlanFile } from "../../types/plan";
 
 export function DeployView() {
@@ -75,9 +75,7 @@ export function DeployView() {
       console.error("Deploy failed:", err);
       showToast(err.message || "Deployment failed", "error");
       // Fallback in case the stream error event did not arrive.
-      setDeployError(
-        (prev) => prev ?? createAppError("sqitch_crash", err.message || "Deploy failed"),
-      );
+      setDeployError((prev) => prev ?? parseIpcError(err, "Deploy failed"));
     } finally {
       useProjectStore.getState().setRunning(false);
     }

@@ -1,8 +1,10 @@
 import type { SqitchEvent, SqitchEventStatus, SqitchParsedOutput } from "../types/sqitch-event";
 
-const DEPLOY_LINE_RE = /^\s*\+\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/;
-const REVERT_LINE_RE = /^\s*-\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/;
-const VERIFY_LINE_RE = /^\s*\*\s+(\S+)\s+\.\.\s+(ok|not ok|FAILED)/;
+// Real sqitch pads change names with dots for alignment and may append the
+// change's tag, e.g. "  + appschema ...... ok" and "  + users @v1.0.0 .. ok".
+const DEPLOY_LINE_RE = /^\s*\+\s+(\S+)(?:\s+@(\S+))?\s+\.{2,}\s+(ok|not ok|FAILED)/;
+const REVERT_LINE_RE = /^\s*-\s+(\S+)(?:\s+@(\S+))?\s+\.{2,}\s+(ok|not ok|FAILED)/;
+const VERIFY_LINE_RE = /^\s*\*\s+(\S+)(?:\s+@(\S+))?\s+\.{2,}\s+(ok|not ok|FAILED)/;
 
 const DEPLOY_HEADER_RE = /^Deploying change (\S+) to (\S+)/;
 const REVERT_HEADER_RE = /^Reverting change (\S+) from (\S+)/;
@@ -80,7 +82,7 @@ export function parseSqitchOutput(output: string): SqitchParsedOutput {
         type: "deploy",
         change: deployLine[1],
         target: currentTarget,
-        status: mapStatus(deployLine[2]),
+        status: mapStatus(deployLine[3]),
         rawLine: line,
       });
       continue;
@@ -91,7 +93,7 @@ export function parseSqitchOutput(output: string): SqitchParsedOutput {
         type: "revert",
         change: revertLine[1],
         target: currentTarget,
-        status: mapStatus(revertLine[2]),
+        status: mapStatus(revertLine[3]),
         rawLine: line,
       });
       continue;
@@ -102,7 +104,7 @@ export function parseSqitchOutput(output: string): SqitchParsedOutput {
         type: "verify",
         change: verifyLine[1],
         target: currentTarget,
-        status: mapStatus(verifyLine[2]),
+        status: mapStatus(verifyLine[3]),
         rawLine: line,
       });
     }

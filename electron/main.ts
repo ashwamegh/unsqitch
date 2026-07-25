@@ -79,9 +79,11 @@ function deriveProjectMeta(projectPath: string): { engine: string; changeCount: 
 function ensureBinary(): void {
   const found = detectSqitchBinary(sqitchService.binaryPath);
   if (!found) {
-    throw createAppError(
-      "binary_not_found",
-      `Sqitch binary not found at "${sqitchService.binaryPath}". Set the correct path in Settings.`,
+    throw ipcError(
+      createAppError(
+        "binary_not_found",
+        `Sqitch binary not found at "${sqitchService.binaryPath}". Set the correct path in Settings.`,
+      ),
     );
   }
 }
@@ -97,16 +99,29 @@ function recordSqitchCommand(
   projectService.recordCommand(project.id, `sqitch ${commandArgs.join(" ")}`, exitCode);
 }
 
+/**
+ * Electron only serializes `Error` instances across IPC — throwing a plain
+ * AppError object reaches the renderer as "[object Object]". Wrap it in a real
+ * Error (message preserved) with the structured fields attached.
+ */
+function ipcError(appError: ReturnType<typeof createAppError>): Error {
+  const err = new Error(appError.message);
+  err.name = appError.type;
+  Object.assign(err, appError);
+  return err;
+}
+
 // Reuse a specific error type thrown upstream (timeout, binary_not_found); otherwise
 // infer the type from the sqitch stderr so the UI can offer the right recovery actions.
 function resolveErrorType(err: {
   type?: ErrorType;
   stderr?: string;
+  stdout?: string;
   sqitchOutput?: string;
   exitCode?: number;
 }): ErrorType {
   if (err.type && err.type !== "sqitch_crash") return err.type;
-  return classifyError(err.stderr || err.sqitchOutput, err.exitCode ?? null);
+  return classifyError(err.stderr || err.sqitchOutput, err.exitCode ?? null, err.stdout);
 }
 
 function registerIpcHandlers() {
@@ -246,7 +261,7 @@ function registerIpcHandlers() {
         type: error.type,
         sqitchOutput: error.sqitchOutput,
       });
-      throw error;
+      throw ipcError(error);
     }
   });
 
@@ -297,7 +312,7 @@ function registerIpcHandlers() {
         type: error.type,
         sqitchOutput: error.sqitchOutput,
       });
-      throw error;
+      throw ipcError(error);
     }
   });
 
@@ -338,7 +353,7 @@ function registerIpcHandlers() {
         type: error.type,
         sqitchOutput: error.sqitchOutput,
       });
-      throw error;
+      throw ipcError(error);
     }
   });
 
@@ -348,7 +363,9 @@ function registerIpcHandlers() {
       const result = await sqitchService.status(request.projectPath, request.target, getTimeout());
       return parseStatusOutput(result.stdout);
     } catch (err: any) {
-      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
     }
   });
 
@@ -358,7 +375,9 @@ function registerIpcHandlers() {
       const result = await sqitchService.log(request.projectPath, request.target, getTimeout());
       return parseLogOutput(result.stdout);
     } catch (err: any) {
-      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
     }
   });
 
@@ -368,7 +387,7 @@ function registerIpcHandlers() {
       const content = fs.readFileSync(planPath, "utf-8");
       return parsePlanFile(content);
     } catch (err: any) {
-      throw createAppError("file_permission", `Failed to read plan file: ${err.message}`);
+      throw ipcError(createAppError("file_permission", `Failed to read plan file: ${err.message}`));
     }
   });
 
@@ -416,7 +435,9 @@ function registerIpcHandlers() {
         projectService.updateProjectMeta(project.id, deriveProjectMeta(request.projectPath));
       return { success: true, stdout: result.stdout };
     } catch (err: any) {
-      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
     }
   });
 
@@ -437,7 +458,9 @@ function registerIpcHandlers() {
       );
       return { success: true, stdout: result.stdout };
     } catch (err: any) {
-      throw createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput);
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
     }
   });
 

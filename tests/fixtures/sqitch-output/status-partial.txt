@@ -1,16 +1,17 @@
 # On database db:pg://sqitch@localhost:54231/sqitch_test
 # Project:  test-project
-# Change:   ed042459e67b75f039d9d33e1297e44a2bf462d2
-# Name:     orders
+# Change:   ac8858ba8264f6776ecac405b79a05203d589937
+# Name:     users
+# Tag:      @v1.0.0
 # Deployed: 2026-07-25T15:06:29Z
 # By:       System Administrator <root@Shashanks-MacBook-Pro.local>
 # 
 # Changes:
-#   orders    - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
 #   users     - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
 #   appschema - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
 # 
 # Tag:
 #   @v1.0.0 - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
 # 
-Nothing to deploy (up-to-date)
+Undeployed change:
+  * orders

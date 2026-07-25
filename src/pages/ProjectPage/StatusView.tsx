@@ -10,17 +10,28 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CommandErrorPanel } from "../../components/progress/CommandErrorPanel";
 import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useProjectStore } from "../../store/project";
 import type { DeployedChange, DeploymentStatus, LogEntry } from "../../types/deployment";
+import { type AppError, parseIpcError } from "../../types/error";
+import type { PlanFile } from "../../types/plan";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export function StatusView() {
-  const { status, currentProjectId, projects, verifyResults, setStatus, setLastStatusRefresh } =
-    useProjectStore();
+  const {
+    status,
+    plan,
+    currentProjectId,
+    projects,
+    verifyResults,
+    setStatus,
+    setPlan,
+    setLastStatusRefresh,
+  } = useProjectStore();
   const ipc = useIpc();
   const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [confirmedTarget, setConfirmedTarget] = useState("");
@@ -29,9 +40,15 @@ export function StatusView() {
   const [loading, setLoading] = useState(false);
   const [revertedCount, setRevertedCount] = useState(0);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<AppError | null>(null);
   const project = projects.find((p) => p.id === currentProjectId);
 
-  const deployed = status?.deployed ?? [];
+  const planByName = new Map((plan?.changes ?? []).map((c) => [c.name, c]));
+  // sqitch status does not report dependencies, so merge them from the plan.
+  const deployed = (status?.deployed ?? []).map((c) => {
+    const planned = planByName.get(c.name);
+    return planned ? { ...c, requires: planned.requires, conflicts: planned.conflicts } : c;
+  });
   const pending = status?.pending ?? [];
   const deployedNames = new Set(deployed.map((c) => c.name));
   const verifiedCount = verifyResults.filter((r) => r.status === "ok").length;
@@ -47,6 +64,7 @@ export function StatusView() {
     if (!project || !target) return;
     setConfirmedTarget(target);
     useProjectStore.getState().setLastTarget(target);
+    setStatusError(null);
     setLoading(true);
     try {
       const result = (await ipc.sqitchStatus(project.path, target)) as DeploymentStatus;
@@ -62,20 +80,25 @@ export function StatusView() {
       showToast("Database status refreshed!");
     } catch (err: any) {
       console.error("Status refresh failed:", err);
-      showToast(err.message || "Failed to inspect database status", "error");
+      // Show the classified error with recovery actions rather than a raw toast.
+      setStatusError(parseIpcError(err, "Failed to inspect database status"));
+      showToast("Could not read database status", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Automatically refresh when the confirmed target changes. Depend only on
-  // project + confirmedTarget — handleRefresh is recreated each render and would
-  // otherwise cause an infinite update loop.
+  // Load the plan so dependencies can be cross-referenced, and refresh once when
+  // a target is already known. handleRefresh is deliberately not a dependency —
+  // it is recreated every render and would loop.
   useEffect(() => {
-    if (project && confirmedTarget) {
-      handleRefresh();
-    }
-  }, [confirmedTarget, project]);
+    if (!project) return;
+    ipc
+      .sqitchPlan(project.path)
+      .then((r) => setPlan(r as PlanFile))
+      .catch(() => {});
+    if (target && !confirmedTarget) handleRefresh();
+  }, [project]);
 
   const stats = [
     {
@@ -131,6 +154,14 @@ export function StatusView() {
           </button>
         </div>
       </div>
+
+      {statusError && (
+        <CommandErrorPanel
+          error={statusError}
+          onRetry={handleRefresh}
+          onDismiss={() => setStatusError(null)}
+        />
+      )}
 
       {status && (
         <>
