@@ -4,7 +4,8 @@
   "compilerOptions": {
     "composite": true,
     "jsx": "react-jsx",
-    "baseUrl": ".",
+    // No baseUrl: TypeScript 7 removed it (TS5102). The paths below are already written
+    // relative to this file, which is how they resolve without it.
     "paths": {
       "@shared": ["./electron/shared"],
       "@shared/*": ["./electron/shared/*"],
