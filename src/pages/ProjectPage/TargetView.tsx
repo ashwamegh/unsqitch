@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { CommandPreview } from "../../components/shared/CommandPreview";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
-import { buildUri, type EngineType, parseUri } from "../../lib/uri-builder";
+import { buildUri, type EngineType, parseUri, passwordFrom } from "../../lib/uri-builder";
 import { useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 
@@ -20,8 +20,25 @@ export function TargetView() {
   const [fields, setFields] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [editingName, setEditingName] = useState<string | null>(null);
+  // The URI being edited, kept verbatim. Editing rebuilds the URI from the form fields,
+  // which loses anything the form cannot represent — above all the password sqitch already
+  // stores for this target.
+  const [editingUri, setEditingUri] = useState<string | null>(null);
+  // Set when the stored URI is a form sqitch accepts but this builder cannot represent
+  // (e.g. `db:pg:mydb`). Editing then works on the raw text instead of silently rewriting
+  // the target to the placeholder defaults.
+  const [rawUri, setRawUri] = useState<string | null>(null);
 
-  const uri = buildUri(engine, fields);
+  const builtUri = buildUri(engine, fields);
+  // Re-attach the existing password when the user has not typed a new one, so saving an
+  // unrelated field (a port, say) does not strip the credentials off a working target.
+  const preservedPassword = editingUri && !fields.password ? passwordFrom(editingUri) : undefined;
+  const uri =
+    rawUri !== null
+      ? rawUri
+      : preservedPassword
+        ? builtUri.replace(/(:\/\/)([^:@/]+)@/, `$1$2:${preservedPassword}@`)
+        : builtUri;
 
   const handleList = async () => {
     if (!project) return;
@@ -64,6 +81,8 @@ export function TargetView() {
   const resetForm = () => {
     setAdding(false);
     setEditingName(null);
+    setEditingUri(null);
+    setRawUri(null);
     setTargetName("");
     setFields({});
   };
@@ -83,14 +102,18 @@ export function TargetView() {
     }
   };
 
-  // Editing repopulates the builder from the target's URI. The password is NOT
-  // restored (masked) — the user re-enters it only if changing it.
+  // Editing repopulates the builder from the target's URI. The password is not shown; it
+  // is re-attached on save from the stored URI unless the user types a new one.
   const startEdit = (t: { name: string; uri: string }) => {
     const parsed = parseUri(t.uri);
     setEngine(parsed.engine);
     setFields(parsed.fields as Record<string, string>);
     setTargetName(t.name);
     setEditingName(t.name);
+    setEditingUri(t.uri);
+    // A URI the builder cannot represent is edited as raw text, because rebuilding it from
+    // an empty field set would replace a working target with placeholder defaults.
+    setRawUri(parsed.parsed ? null : t.uri);
     setAdding(true);
   };
 
@@ -162,7 +185,9 @@ export function TargetView() {
           </div>
           {editingName && (
             <p className="text-[10px] text-muted-foreground -mt-2">
-              Password is hidden — re-enter it only if you want to change it.
+              {passwordFrom(editingUri ?? "")
+                ? "This target has a stored password. It stays as it is unless you type a new one."
+                : "Password is hidden — re-enter it only if you want to change it."}
             </p>
           )}
 
@@ -300,17 +325,39 @@ export function TargetView() {
             </>
           )}
 
-          <div className="p-3 bg-black/30 border border-border/60 rounded-xl">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-              Generated Connection URI
-            </span>
-            <div className="text-xs font-mono text-primary/95 break-all select-all font-semibold">
-              {uri}
+          {rawUri !== null ? (
+            <div className="p-3 bg-black/30 border border-amber-500/40 rounded-xl space-y-2">
+              <span className="text-[10px] font-bold text-amber-400/90 uppercase tracking-widest block">
+                Connection URI (edited directly)
+              </span>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                This target uses a URI form the field builder cannot represent, so it is editable as
+                text. Rebuilding it from the fields would replace it with defaults.
+              </p>
+              <input
+                value={rawUri}
+                onChange={(e) => setRawUri(e.target.value)}
+                spellCheck={false}
+                className="w-full bg-transparent border border-border/60 rounded-lg px-2 py-1.5 text-xs font-mono text-primary/95 break-all"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="p-3 bg-black/30 border border-border/60 rounded-xl">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
+                Generated Connection URI
+              </span>
+              <div className="text-xs font-mono text-primary/95 break-all select-all font-semibold">
+                {preservedPassword ? uri.replace(`:${preservedPassword}@`, ":********@") : uri}
+              </div>
+            </div>
+          )}
 
           {showCommands && (
-            <CommandPreview command={`sqitch target add ${targetName || "<name>"} ${uri}`} />
+            <CommandPreview
+              command={`sqitch target add ${targetName || "<name>"} ${
+                preservedPassword ? uri.replace(`:${preservedPassword}@`, ":********@") : uri
+              }`}
+            />
           )}
 
           <div className="flex gap-2 pt-2">

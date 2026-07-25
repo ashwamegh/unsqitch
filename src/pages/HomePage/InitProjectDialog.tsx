@@ -33,7 +33,9 @@ export function InitProjectDialog({ open, onClose }: { open: boolean; onClose: (
 
   // Project name defaults to the directory name until the user edits it.
   const effectiveName = nameEdited ? name : basename(directory);
-  const uri = buildUri(engine, fields);
+  // Password is stripped, not merely un-collected: sqitch writes this URI into
+  // sqitch.plan as "%uri=..." and that file is committed to version control.
+  const uri = buildUri(engine, { ...fields, password: undefined });
   const updateField = (key: keyof UriFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
 
@@ -169,7 +171,7 @@ export function InitProjectDialog({ open, onClose }: { open: boolean; onClose: (
                   className="w-full border rounded px-3 py-1.5 text-sm bg-background"
                 />
               </div>
-              <div>
+              <div className="col-span-2">
                 <label className="text-sm font-medium block mb-1">User</label>
                 <input
                   value={fields.user || ""}
@@ -178,17 +180,20 @@ export function InitProjectDialog({ open, onClose }: { open: boolean; onClose: (
                   className="w-full border rounded px-3 py-1.5 text-sm bg-background"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Password</label>
-                <input
-                  type="password"
-                  value={fields.password || ""}
-                  onChange={(e) => updateField("password", e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full border rounded px-3 py-1.5 text-sm bg-background"
-                />
-              </div>
             </div>
+          )}
+
+          {engine !== "sqlite" && (
+            /*
+             * Deliberately no password field. This URI is written to sqitch.plan as
+             * "%uri=...", and that file is committed to version control — a password typed
+             * here would be published. Verified against sqitch 1.6.1.
+             */
+            <p className="text-xs text-muted-foreground">
+              No password is collected here: this URI is recorded in <code>sqitch.plan</code>, which
+              you commit. Supply credentials at deploy time instead — via <code>.pgpass</code>, an
+              engine auth file, or environment variables.
+            </p>
           )}
 
           <div>

@@ -22,12 +22,36 @@ export interface RecentCommand {
   exitCode: number | null;
 }
 
-/** Strip embedded credentials from a command string before persisting it. */
+/**
+ * Strip embedded credentials from a command string before persisting it.
+ *
+ * db:pg://user:pass@host -> db:pg://***:***@host  (and user@host -> ***@host)
+ *
+ * Works per whitespace-separated token, splitting each at its LAST "@". A previous
+ * version matched the userinfo with a character class that excluded "/", so a password
+ * containing a slash — which is legal, and common in generated passwords — did not match
+ * and was written to the database in cleartext.
+ *
+ * Splitting at the last "@" means a URI whose *path* contains an "@" gets over-redacted
+ * rather than under-redacted. That is the right way round to be wrong: this text is only
+ * ever displayed as history, so losing a hostname is cosmetic, while leaking a password
+ * is not.
+ */
 export function redactCommand(command: string): string {
-  // db:pg://user:pass@host -> db:pg://***:***@host  (and user@host -> ***@host)
   return command
-    .replace(/(:\/\/)[^:@/\s]+:[^@/\s]+@/g, "$1***:***@")
-    .replace(/(:\/\/)[^:@/\s]+@/g, "$1***@");
+    .split(/(\s+)/)
+    .map((token) => {
+      const schemeEnd = token.indexOf("://");
+      if (schemeEnd === -1) return token;
+
+      const authorityStart = schemeEnd + 3;
+      const at = token.lastIndexOf("@");
+      if (at <= authorityStart) return token;
+
+      const mask = token.slice(authorityStart, at).includes(":") ? "***:***" : "***";
+      return `${token.slice(0, authorityStart)}${mask}@${token.slice(at + 1)}`;
+    })
+    .join("");
 }
 
 export class ProjectService {

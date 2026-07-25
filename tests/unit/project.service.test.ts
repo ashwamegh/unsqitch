@@ -58,7 +58,20 @@ describe("ProjectService", () => {
     service.addProject({ name: "app2", path: "/b", engine: "mysql" });
     const list = service.listProjects();
     expect(list).toHaveLength(2);
-    expect(list.map((p) => p.name)).toEqual(["app1", "app2"]);
+    // Order-agnostic on purpose: listProjects sorts by lastOpened DESC, and two projects
+    // added microseconds apart may or may not share a millisecond timestamp. Asserting a
+    // fixed order here made this test fail intermittently. The ordering contract itself is
+    // asserted below, where lastOpened is controlled.
+    expect(list.map((p) => p.name).sort()).toEqual(["app1", "app2"]);
+  });
+
+  it("lists the most recently opened project first", () => {
+    const service = createService();
+    const first = service.addProject({ name: "app1", path: "/a", engine: "pg" });
+    service.addProject({ name: "app2", path: "/b", engine: "mysql" });
+    // getProject stamps lastOpened, which is what the ordering is meant to reflect.
+    service.getProject(first);
+    expect(service.listProjects()[0].name).toBe("app1");
   });
 
   it("removes a project", () => {

@@ -62,22 +62,55 @@ export function defaultClient(engine: EngineType): string {
 }
 
 /**
- * Parse a sqitch target URI back into an engine + fields for editing. The
- * password is intentionally NOT returned — the field stays masked and the
- * existing value is preserved unless the user types a new one.
+ * Parse a sqitch target URI back into an engine + fields for editing. The password is
+ * intentionally NOT returned, so it never reaches the form state; use passwordFrom() when
+ * an existing target's URI has to be rebuilt without losing its credentials.
+ *
+ * `parsed` says whether the URI was actually understood. Callers must check it: sqitch
+ * accepts forms this builder cannot represent (`db:pg:mydb`, IPv6 literals, a URI with no
+ * database), and treating those as an empty field set silently rewrites a real target to
+ * the placeholder defaults `db:pg://localhost:5432/mydb`.
  */
-export function parseUri(uri: string): { engine: EngineType; fields: UriFields } {
+export function parseUri(uri: string): {
+  engine: EngineType;
+  fields: UriFields;
+  parsed: boolean;
+} {
   if (uri.startsWith("db:sqlite:")) {
-    return { engine: "sqlite", fields: { path: uri.slice("db:sqlite:".length) } };
+    return { engine: "sqlite", fields: { path: uri.slice("db:sqlite:".length) }, parsed: true };
   }
   const match = uri.match(
     /^db:(pg|mysql|cockroach):\/\/(?:([^:@/]+)(?::[^@/]+)?@)?([^:/]+)(?::(\d+))?\/(.+)$/,
   );
-  if (!match) return { engine: "pg", fields: {} };
+  if (!match) return { engine: "pg", fields: {}, parsed: false };
   const [, scheme, user, host, port, database] = match;
   const engine: EngineType =
     scheme === "mysql" ? "mysql" : scheme === "cockroach" ? "cockroach" : "pg";
-  return { engine, fields: { host, port, database, user } };
+  return { engine, fields: { host, port, database, user }, parsed: true };
+}
+
+/**
+ * The password embedded in a URI, if any.
+ *
+ * Exists so editing a target can preserve credentials that sqitch already stores: the
+ * edit flow rebuilds the URI from form fields, and without this the rebuilt URI would
+ * drop the password and quietly break the target. The value is only ever passed straight
+ * back into a URI — it is not put into form state and not displayed.
+ */
+export function passwordFrom(uri: string): string | undefined {
+  const schemeEnd = uri.indexOf("://");
+  if (schemeEnd === -1) return undefined;
+
+  // Split at the LAST "@", the same rule redactCommand uses. A character class that
+  // excluded "/" would miss passwords containing a slash, which are legal and common.
+  // The trade-off is that a URI with an "@" in its *path* is read as having userinfo;
+  // that form is not a valid sqitch target URI, so it is not worth more machinery.
+  const at = uri.lastIndexOf("@");
+  if (at <= schemeEnd + 3) return undefined;
+
+  const userinfo = uri.slice(schemeEnd + 3, at);
+  const separator = userinfo.indexOf(":");
+  return separator === -1 ? undefined : userinfo.slice(separator + 1);
 }
 
 /**

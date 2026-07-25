@@ -32,6 +32,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MODULE_DIR = join(ROOT, "node_modules", "better-sqlite3");
 const BUILD_DIR = join(MODULE_DIR, "build");
+const ADDON = join(BUILD_DIR, "Release", "better_sqlite3.node");
 
 const target = process.argv[2];
 if (target !== "node" && target !== "electron") {
@@ -108,6 +109,14 @@ if (target === "node") {
   if (status !== 0) {
     console.error("better-sqlite3 could not be built for Electron.");
     process.exit(status);
+  }
+
+  // "Node cannot load it" is also true when nothing was built at all — the build
+  // directory was just deleted — so check the addon exists before drawing conclusions
+  // from that. Otherwise a rebuild that produced no binary would report success.
+  if (!existsSync(ADDON)) {
+    console.error(`\nThe rebuild reported success but produced no addon at ${ADDON}.`);
+    process.exit(1);
   }
 
   // An Electron-ABI binary is deliberately unloadable in Node. If Node *can* load it,

@@ -4,6 +4,7 @@ import {
   defaultClient,
   defaultPort,
   parseUri,
+  passwordFrom,
   sqitchEngine,
 } from "../../src/lib/uri-builder";
 
@@ -103,6 +104,39 @@ describe("parseUri", () => {
     expect(parseUri("db:sqlite:/data/app.db")).toEqual({
       engine: "sqlite",
       fields: { path: "/data/app.db" },
+      parsed: true,
     });
+  });
+
+  /*
+   * These URI forms are all accepted by sqitch but cannot be represented by the field
+   * builder. They must report parsed: false, because a caller that rebuilds a URI from the
+   * returned (empty) fields would replace a working target with the placeholder defaults
+   * db:pg://localhost:5432/mydb — silently pointing it at a different database.
+   */
+  it.each([
+    ["a URI with no authority", "db:pg:mydb"],
+    ["an IPv6 literal host", "db:pg://[::1]:5432/app"],
+    ["a URI with no database", "db:pg://localhost:5432"],
+  ])("reports %s as unparsed rather than guessing", (_label, uri) => {
+    const result = parseUri(uri);
+    expect(result.parsed).toBe(false);
+    expect(result.fields).toEqual({});
+  });
+});
+
+describe("passwordFrom", () => {
+  it("extracts the password so an edit can preserve it", () => {
+    expect(passwordFrom("db:pg://joe:s3cret@host:5432/app")).toBe("s3cret");
+    // Slashes and at-signs are legal in a password; a character class excluding them is
+    // how the sibling redaction helper leaked credentials.
+    expect(passwordFrom("db:mysql://root:pa/ss@host/app")).toBe("pa/ss");
+    expect(passwordFrom("db:pg://joe:p@ss@host/app")).toBe("p@ss");
+  });
+
+  it("returns undefined when there is no password to preserve", () => {
+    expect(passwordFrom("db:pg://joe@host:5432/app")).toBeUndefined();
+    expect(passwordFrom("db:pg://host:5432/app")).toBeUndefined();
+    expect(passwordFrom("db:sqlite:/data/app.db")).toBeUndefined();
   });
 });

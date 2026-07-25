@@ -3,14 +3,14 @@
 # Change:   ed042459e67b75f039d9d33e1297e44a2bf462d2
 # Name:     orders
 # Deployed: 2026-07-25T15:06:29Z
-# By:       System Administrator <root@Shashanks-MacBook-Pro.local>
+# By:       System Administrator <root@host.local>
 # 
 # Changes:
-#   orders    - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
-#   users     - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
-#   appschema - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
+#   orders    - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
+#   users     - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
+#   appschema - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
 # 
 # Tag:
-#   @v1.0.0 - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
+#   @v1.0.0 - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
 # 
 Nothing to deploy (up-to-date)

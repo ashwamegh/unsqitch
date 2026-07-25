@@ -1,112 +1,112 @@
 On database db:pg://sqitch@localhost:54231/sqitch_test
 Deploy ed042459e67b75f039d9d33e1297e44a2bf462d2
 Name:      orders
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:06:29Z
 
     Creates orders table.
 
 Deploy ac8858ba8264f6776ecac405b79a05203d589937
 Name:      users
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:06:29Z
 
     Creates users table.
 
 Deploy ab5bf0214b87ed46fc5c6b23c210354f916078e7
 Name:      appschema
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:06:29Z
 
     Add schema for test.
 
 Revert ab5bf0214b87ed46fc5c6b23c210354f916078e7
 Name:      appschema
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:06:28Z
 
     Add schema for test.
 
 Revert ac8858ba8264f6776ecac405b79a05203d589937
 Name:      users
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:06:28Z
 
     Creates users table.
 
 Revert ed042459e67b75f039d9d33e1297e44a2bf462d2
 Name:      orders
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:06:28Z
 
     Creates orders table.
 
 Deploy ed042459e67b75f039d9d33e1297e44a2bf462d2
 Name:      orders
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:05:40Z
 
     Creates orders table.
 
 Revert ed042459e67b75f039d9d33e1297e44a2bf462d2
 Name:      orders
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:03:27Z
 
     Creates orders table.
 
 Deploy ed042459e67b75f039d9d33e1297e44a2bf462d2
 Name:      orders
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:57Z
 
     Creates orders table.
 
 Deploy ac8858ba8264f6776ecac405b79a05203d589937
 Name:      users
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:57Z
 
     Creates users table.
 
 Deploy ab5bf0214b87ed46fc5c6b23c210354f916078e7
 Name:      appschema
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:57Z
 
     Add schema for test.
 
 Revert ab5bf0214b87ed46fc5c6b23c210354f916078e7
 Name:      appschema
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:32Z
 
     Add schema for test.
 
 Revert ac8858ba8264f6776ecac405b79a05203d589937
 Name:      users
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:32Z
 
     Creates users table.
 
 Fail ed042459e67b75f039d9d33e1297e44a2bf462d2
 Name:      orders
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:32Z
 
     Creates orders table.
 
 Deploy ac8858ba8264f6776ecac405b79a05203d589937
 Name:      users
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:32Z
 
     Creates users table.
 
 Deploy ab5bf0214b87ed46fc5c6b23c210354f916078e7
 Name:      appschema
-Committer: System Administrator <root@Shashanks-MacBook-Pro.local>
+Committer: System Administrator <root@host.local>
 Date:      2026-07-25T15:02:32Z
 
     Add schema for test.

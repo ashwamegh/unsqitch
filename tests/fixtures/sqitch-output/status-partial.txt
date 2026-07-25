@@ -4,14 +4,14 @@
 # Name:     users
 # Tag:      @v1.0.0
 # Deployed: 2026-07-25T15:06:29Z
-# By:       System Administrator <root@Shashanks-MacBook-Pro.local>
+# By:       System Administrator <root@host.local>
 # 
 # Changes:
-#   users     - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
-#   appschema - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
+#   users     - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
+#   appschema - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
 # 
 # Tag:
-#   @v1.0.0 - 2026-07-25T15:06:29Z - System Administrator <root@Shashanks-MacBook-Pro.local>
+#   @v1.0.0 - 2026-07-25T15:06:29Z - System Administrator <root@host.local>
 # 
 Undeployed change:
   * orders

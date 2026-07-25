@@ -10,3 +10,5 @@ test-results/
 # Editor / agent tooling session artifacts
 .antigravitycli/
 .omo/
+# Local git identity — was committed by mistake and published personal data
+.gitconfig
