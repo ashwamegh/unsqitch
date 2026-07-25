@@ -58,6 +58,23 @@ What still covers that gap:
 The remaining cost is that applying a security fix is a manual step. Revisit if GitHub
 adds bun to the security-updates column.
 
+Alerts depend on GitHub parsing `bun.lock` into the dependency graph, and the graph is
+built from the **default branch** only. Confirm it after the bun change lands on `main`
+— the versions reported should match `bun.lock`, not the deleted `package-lock.json`:
+
+```bash
+gh api repos/ashwamegh/unsqitch/dependency-graph/sbom \
+  --jq '.sbom.packages[] | select(.name == "@biomejs/biome") | "\(.name) \(.versionInfo)"'
+```
+
+If the graph still reports the old versions well after the merge, it is not reading
+`bun.lock`; in that case alerts would only see the direct dependencies declared in
+`package.json`, and transitive advisories (the majority) would go unreported. The
+fallback is to submit the dependency graph explicitly from CI via the
+[dependency submission API][submission].
+
+[submission]: https://docs.github.com/en/rest/dependency-graph/dependency-submission
+
 [ecosystems]: https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories
 
 ## Settings that are enabled
@@ -101,11 +118,19 @@ without GitHub Advanced Security the same calls fail (and `secret_scanning` retu
 "Secret scanning is not available for this repository"). Branch protection and rulesets
 also return 403 on a private repository on a free plan.
 
+Also applied, so a compromised or careless workflow cannot write to the repository:
+
+```bash
+# The default GITHUB_TOKEN is read-only; jobs needing more request it explicitly.
+gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
+  -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false
+```
+
 ## Protecting `main`
 
-Status-check contexts must match job names *exactly*: a context that never reports
-blocks every merge. Apply this only after the named jobs have each reported once on
-`main`.
+Applied. Status-check contexts must match job names *exactly*: a context that never
+reports blocks every merge, so these were taken from a run that had actually reported
+them.
 
 ```bash
 REPO=ashwamegh/unsqitch
@@ -122,7 +147,8 @@ gh api -X PUT "repos/$REPO/branches/main/protection" --input - <<'JSON'
       "Integration tests (PostgreSQL + Sqitch)",
       "E2E (Electron)",
       "Audit dependencies",
-      "Workflow and Electron hardening"
+      "Workflow and Electron hardening",
+      "Analyze (javascript-typescript)"
     ]
   },
   "enforce_admins": false,
@@ -140,18 +166,28 @@ gh api -X PUT "repos/$REPO/branches/main/protection" --input - <<'JSON'
 JSON
 ```
 
-Three deliberate choices:
+Four deliberate choices:
 
 - **`enforce_admins: false`** — as the sole maintainer you can still merge your own work
-  without a second reviewer. Set it to `true` once there is more than one maintainer.
+  without a second reviewer, and you are not locked out of your own repository. Set it to
+  `true` once there is more than one maintainer.
 - **`required_linear_history: true`** pairs with squash-only merging; both would fight a
   merge commit.
 - **The audit job is named "Audit dependencies"**, deliberately not "npm audit" or "bun
   audit". Renaming a required check silently blocks every merge, so the name is kept
   free of the package manager.
+- **"Dependency review" is deliberately *not* required.** It runs on pull requests and is
+  worth reading, but on a pull request from a fork the token is read-only, so requiring it
+  risks blocking outside contributors on a check that cannot report. The blocking gate for
+  dependencies is the audit job, which has no such constraint.
 
-Also worth setting under Settings → Actions → General: workflow permissions **read-only**
-by default, and require approval for workflows from outside collaborators.
+One caveat to remember: "Analyze (javascript-typescript)" is required, and `codeql.yml`
+skips itself if the repository is ever made private again (code scanning needs Advanced
+Security there). A skipped required check does not report, which would block all merges —
+so if the repository goes private, drop that context from the list at the same time.
+
+Still worth setting by hand under Settings → Actions → General: require approval for
+workflows from first-time contributors.
 
 ## Release signing
 
