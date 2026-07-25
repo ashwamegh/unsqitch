@@ -310,7 +310,7 @@ export function TargetView() {
 
           {showCommands && (
             <div className="p-2.5 bg-black/40 border border-border/60 rounded-lg text-[10px] font-mono text-muted-foreground">
-              sqitch target add {targetName || "<name>"} --uri {uri}
+              sqitch target add {targetName || "<name>"} {uri}
             </div>
           )}
 

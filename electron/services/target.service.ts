@@ -9,7 +9,9 @@ export class TargetService {
   constructor(private sqitch: SqitchService) {}
 
   async add(projectPath: string, name: string, uri: string): Promise<void> {
-    await this.sqitch.runCommand(["target", "add", name, "--uri", uri], projectPath);
+    // Real sqitch takes the URI positionally: `sqitch target add <name> <uri>`.
+    // Passing it as --uri is a usage error (exit 2).
+    await this.sqitch.runCommand(["target", "add", name, uri], projectPath);
   }
 
   async remove(projectPath: string, name: string): Promise<void> {
@@ -17,18 +19,20 @@ export class TargetService {
   }
 
   async list(projectPath: string): Promise<TargetInfo[]> {
-    const result = await this.sqitch.runCommand(["target", "list"], projectPath);
+    // `target list` prints only the target name; --verbose adds the URI,
+    // tab-separated ("staging\tdb:pg://...").
+    const result = await this.sqitch.runCommand(["target", "list", "--verbose"], projectPath);
     return this.parseTargetList(result.stdout);
   }
 
-  private parseTargetList(output: string): TargetInfo[] {
+  parseTargetList(output: string): TargetInfo[] {
     const targets: TargetInfo[] = [];
-    const lines = output.split("\n");
-    for (const line of lines) {
-      const match = line.match(/^(\S+)\s+(\S+)$/);
-      if (match) {
-        targets.push({ name: match[1], uri: match[2] });
-      }
+    for (const line of output.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed === "") continue;
+      const [name, uri] = trimmed.split(/\s+/, 2);
+      if (!name) continue;
+      targets.push({ name, uri: uri ?? "" });
     }
     return targets;
   }

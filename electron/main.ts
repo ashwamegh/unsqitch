@@ -484,37 +484,73 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC_CHANNELS.ENGINE_ADD, async (_event, request) => {
-    await engineService.add(
-      request.projectPath,
-      request.name,
-      request.uri,
-      request.client,
-      request.registry,
-    );
-    return { success: true };
+    try {
+      await engineService.add(
+        request.projectPath,
+        request.name,
+        request.uri,
+        request.client,
+        request.registry,
+      );
+      return { success: true };
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.ENGINE_REMOVE, async (_event, request) => {
-    await engineService.remove(request.projectPath, request.name);
-    return { success: true };
+    try {
+      await engineService.remove(request.projectPath, request.name);
+      return { success: true };
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.ENGINE_LIST, async (_event, request) => {
-    return engineService.list(request.projectPath);
+    try {
+      return engineService.list(request.projectPath);
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.TARGET_ADD, async (_event, request) => {
-    await targetService.add(request.projectPath, request.name, request.uri);
-    return { success: true };
+    try {
+      await targetService.add(request.projectPath, request.name, request.uri);
+      return { success: true };
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.TARGET_REMOVE, async (_event, request) => {
-    await targetService.remove(request.projectPath, request.name);
-    return { success: true };
+    try {
+      await targetService.remove(request.projectPath, request.name);
+      return { success: true };
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.TARGET_LIST, async (_event, request) => {
-    return targetService.list(request.projectPath);
+    try {
+      return targetService.list(request.projectPath);
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.TARGET_GET_LABEL, async (_event, request) => {
@@ -528,17 +564,35 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC_CHANNELS.CONFIG_LIST, async (_event, request) => {
-    return configService.list(request.projectPath);
+    try {
+      return configService.list(request.projectPath);
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.CONFIG_SET, async (_event, request) => {
-    await configService.set(request.projectPath, request.key, request.value);
-    return { success: true };
+    try {
+      await configService.set(request.projectPath, request.key, request.value);
+      return { success: true };
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.CONFIG_UNSET, async (_event, request) => {
-    await configService.unset(request.projectPath, request.key);
-    return { success: true };
+    try {
+      await configService.unset(request.projectPath, request.key);
+      return { success: true };
+    } catch (err: any) {
+      throw ipcError(
+        createAppError(resolveErrorType(err), err.message, err.stderr || err.sqitchOutput),
+      );
+    }
   });
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, async (_event, request) => {
@@ -584,7 +638,9 @@ if (!gotTheLock) {
   app.whenReady().then(() => {
     const binaryPath = detectSqitchBinary() || "sqitch";
     sqitchService = new SqitchService(binaryPath);
-    projectService = new ProjectService();
+    // UNSQITCH_DB_PATH lets tests run against a throwaway database instead of the
+    // user's real ~/.unsqitch/app.db.
+    projectService = new ProjectService(process.env.UNSQITCH_DB_PATH || undefined);
     configService = new ConfigService(sqitchService);
     engineService = new EngineService(sqitchService);
     targetService = new TargetService(sqitchService);
