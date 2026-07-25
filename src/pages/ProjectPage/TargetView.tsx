@@ -1,5 +1,6 @@
 import { Network, Pencil, Plus, RefreshCw, Settings, ShieldAlert, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { buildUri, type EngineType, parseUri } from "../../lib/uri-builder";
@@ -309,9 +310,7 @@ export function TargetView() {
           </div>
 
           {showCommands && (
-            <div className="p-2.5 bg-black/40 border border-border/60 rounded-lg text-[10px] font-mono text-muted-foreground">
-              sqitch target add {targetName || "<name>"} {uri}
-            </div>
+            <CommandPreview command={`sqitch target add ${targetName || "<name>"} ${uri}`} />
           )}
 
           <div className="flex gap-2 pt-2">

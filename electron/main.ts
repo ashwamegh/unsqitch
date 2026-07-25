@@ -120,6 +120,7 @@ function resolveErrorType(err: {
   sqitchOutput?: string;
   exitCode?: number;
 }): ErrorType {
+  // Specific types set upstream (timeout, cancelled, binary_not_found) win.
   if (err.type && err.type !== "sqitch_crash") return err.type;
   return classifyError(err.stderr || err.sqitchOutput, err.exitCode ?? null, err.stdout);
 }

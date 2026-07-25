@@ -1,9 +1,11 @@
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   Clock,
   Database,
   GitBranch,
+  Play,
   RefreshCw,
   RotateCcw,
   ShieldCheck,
@@ -11,9 +13,11 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommandErrorPanel } from "../../components/progress/CommandErrorPanel";
+import { CommandPreview } from "../../components/shared/CommandPreview";
 import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
+import { useNavigationStore } from "../../store/navigation";
 import { useProjectStore } from "../../store/project";
 import type { DeployedChange, DeploymentStatus, LogEntry } from "../../types/deployment";
 import { type AppError, parseIpcError } from "../../types/error";
@@ -33,6 +37,9 @@ export function StatusView() {
     setLastStatusRefresh,
   } = useProjectStore();
   const ipc = useIpc();
+  const requestRevertTo = useNavigationStore((s) => s.requestRevertTo);
+  const showCommands = useNavigationStore((s) => s.showCommands);
+  const setSection = useNavigationStore((s) => s.setSection);
   const [target, setTarget] = useState(() => useProjectStore.getState().lastTarget);
   const [confirmedTarget, setConfirmedTarget] = useState("");
   const [page, setPage] = useState(0);
@@ -59,6 +66,9 @@ export function StatusView() {
   const selectedChange = deployed.find((c) => c.changeId === selectedChangeId) ?? null;
 
   const changesWithDeps = deployed.filter((c) => c.requires.length > 0);
+  // Spec ("Error Handling" / Status view): deployed but not at head is a distinct
+  // "partially deployed" state, with Deploy Remaining / Revert All offered.
+  const partiallyDeployed = deployed.length > 0 && pending.length > 0;
 
   const handleRefresh = async () => {
     if (!project || !target) return;
@@ -153,6 +163,9 @@ export function StatusView() {
             Inspect Status
           </button>
         </div>
+        {showCommands && target && (
+          <CommandPreview command={`sqitch status ${target}`} className="mt-4" />
+        )}
       </div>
 
       {statusError && (
@@ -186,6 +199,45 @@ export function StatusView() {
               );
             })}
           </div>
+
+          {partiallyDeployed && (
+            <div className="glass-panel rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-amber-400">Partially deployed</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {deployed.length} of {deployed.length + pending.length} changes are deployed on
+                    "{confirmedTarget}" — {pending.length} still pending.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    useProjectStore.getState().setLastTarget(confirmedTarget || target);
+                    setSection("deploy");
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground hover:bg-primary/95 font-semibold rounded-lg text-[11px] transition-all cursor-pointer"
+                >
+                  <Play size={11} />
+                  Deploy Remaining
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    useProjectStore.getState().setLastTarget(confirmedTarget || target);
+                    requestRevertTo(deployed[0].name);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-border hover:bg-accent text-foreground font-semibold rounded-lg text-[11px] transition-all cursor-pointer"
+                >
+                  <RotateCcw size={11} />
+                  Review Revert
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Dependencies section */}
           {changesWithDeps.length > 0 && (
@@ -296,6 +348,19 @@ export function StatusView() {
                       <span>{change.deployedAt}</span>
                       <span>•</span>
                       <span className="text-foreground/80">{change.deployedBy}</span>
+                      <button
+                        type="button"
+                        title={`Revert to ${change.name} — it stays deployed, later changes are reverted`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          useProjectStore.getState().setLastTarget(confirmedTarget || target);
+                          requestRevertTo(change.name);
+                        }}
+                        className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-md border border-border/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-all cursor-pointer"
+                      >
+                        <RotateCcw size={10} />
+                        Revert to here
+                      </button>
                     </div>
                   </button>
                 ))

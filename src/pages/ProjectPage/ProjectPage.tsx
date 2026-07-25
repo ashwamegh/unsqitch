@@ -118,11 +118,12 @@ export function ProjectPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <StaleBanner />
+      {/* Spec: Progress UI sits at the top of the main panel during operations. */}
+      <ProgressUI />
       <div className="flex-1 p-6 overflow-y-auto">
         <h2 className="text-xl font-semibold mb-4 capitalize">{section ?? "Select a section"}</h2>
         {renderSection()}
       </div>
-      <ProgressUI />
       <TerminalPanel />
     </div>
   );

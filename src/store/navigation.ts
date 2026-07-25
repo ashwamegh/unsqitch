@@ -22,6 +22,11 @@ interface NavigationState {
   sidebarCollapsed: boolean;
   // Sections that received new data from the file watcher (show a pulse dot).
   pulsedSections: Section[];
+  /**
+   * Change (or tag) the user asked to revert to from another view, e.g. clicking
+   * "Revert to here" in Status or Plan. Consumed by the Revert view.
+   */
+  revertRequest: string | null;
 }
 
 interface NavigationActions {
@@ -36,6 +41,9 @@ interface NavigationActions {
   setSidebarCollapsed: (collapsed: boolean) => void;
   pulseSection: (section: Section) => void;
   clearPulse: (section: Section) => void;
+  /** Jump to the Revert view pre-targeted at a change or tag. */
+  requestRevertTo: (change: string) => void;
+  clearRevertRequest: () => void;
 }
 
 export const useNavigationStore = create<NavigationState & NavigationActions>((set) => ({
@@ -46,6 +54,7 @@ export const useNavigationStore = create<NavigationState & NavigationActions>((s
   commandTooltipDismissed: false,
   sidebarCollapsed: true,
   pulsedSections: [],
+  revertRequest: null,
 
   goHome: () => {
     // Keep the project store's active project in sync with navigation.
@@ -74,6 +83,15 @@ export const useNavigationStore = create<NavigationState & NavigationActions>((s
 
   clearPulse: (section) =>
     set((state) => ({ pulsedSections: state.pulsedSections.filter((s) => s !== section) })),
+
+  requestRevertTo: (change) =>
+    set((state) => ({
+      revertRequest: change,
+      section: "revert",
+      pulsedSections: state.pulsedSections.filter((s) => s !== "revert"),
+    })),
+
+  clearRevertRequest: () => set({ revertRequest: null }),
 
   toggleShowCommands: () => set((state) => ({ showCommands: !state.showCommands })),
 

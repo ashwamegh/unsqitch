@@ -6,11 +6,13 @@ import {
   ExternalLink,
   Eye,
   FileCode,
+  RotateCcw,
   Tag,
   X,
 } from "lucide-react";
 import { useState } from "react";
 import { useIpc } from "../../hooks/useIpc";
+import { useNavigationStore } from "../../store/navigation";
 import type { PlanEntry as PlanEntryType } from "../../types/plan";
 import { SqlBlock } from "../shared/SqlBlock";
 import { showToast } from "../shared/Toast";
@@ -46,6 +48,7 @@ export function PlanEntry({
   deployState,
 }: PlanEntryProps) {
   const ipc = useIpc();
+  const requestRevertTo = useNavigationStore((s) => s.requestRevertTo);
   const [copied, setCopied] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
   const [scriptKind, setScriptKind] = useState<ScriptKind>("deploy");
@@ -85,6 +88,15 @@ export function PlanEntry({
             — {entry.tag?.note}
           </span>
         )}
+        <button
+          type="button"
+          title={`Revert to @${entry.tag?.name} — the tag stays, later changes are reverted`}
+          onClick={() => requestRevertTo(`@${entry.tag?.name}`)}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-md border border-border/60 text-[10px] font-semibold text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-all cursor-pointer"
+        >
+          <RotateCcw size={10} />
+          Revert to here
+        </button>
         {showCommand && (
           <span className="text-[10px] font-mono bg-muted/40 px-2 py-0.5 rounded border border-border/50 text-muted-foreground ml-auto">
             sqitch tag {entry.tag?.name}
@@ -261,6 +273,16 @@ export function PlanEntry({
             <Eye size={12} />
             View
           </button>
+          {deployState === "deployed" && (
+            <button
+              onClick={() => requestRevertTo(change.name)}
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-muted/40 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded-lg transition-all cursor-pointer active:scale-[0.97]"
+              title={`Revert to ${change.name} — it stays deployed, later changes are reverted`}
+            >
+              <RotateCcw size={12} />
+              Revert to here
+            </button>
+          )}
           <button
             onClick={handleOpenInEditor}
             className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground rounded-lg transition-all cursor-pointer active:scale-[0.97]"

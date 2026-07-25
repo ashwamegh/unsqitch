@@ -1,5 +1,6 @@
 import { Cpu, Plus, RefreshCw, Settings, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useNavigationStore } from "../../store/navigation";
@@ -158,11 +159,9 @@ export function EngineView() {
           </div>
 
           {showCommands && (
-            <div className="p-2.5 bg-black/40 border border-border/60 rounded-lg text-[10px] font-mono text-muted-foreground">
-              sqitch engine add {name || "<key>"} --target {uri || "<uri>"}
-              {client ? ` --client ${client}` : ""}
-              {registry ? ` --registry ${registry}` : ""}
-            </div>
+            <CommandPreview
+              command={`sqitch engine add ${name || "<key>"} --target ${uri || "<uri>"}${client ? ` --client ${client}` : ""}${registry ? ` --registry ${registry}` : ""}`}
+            />
           )}
 
           <div className="flex gap-2 pt-2">

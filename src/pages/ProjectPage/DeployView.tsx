@@ -1,4 +1,4 @@
-import { Play, Zap } from "lucide-react";
+import { Check, Play, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CommandErrorPanel } from "../../components/progress/CommandErrorPanel";
 import { DeployPreview } from "../../components/progress/DeployPreview";
@@ -21,11 +21,19 @@ export function DeployView() {
   const [confirmedTarget, setConfirmedTarget] = useState("");
   const [toChange, setToChange] = useState("");
   const [deployError, setDeployError] = useState<AppError | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  // The target the cached status was actually fetched for. Sqitch echoes the URI
+  // with credentials stripped, so the reported target cannot be compared to what
+  // the user typed — we record the request instead.
+  const [statusFor, setStatusFor] = useState<string | null>(null);
 
   const project = projects.find((p) => p.id === currentProjectId);
-  // Preview is a LOCAL plan-vs-status diff (no DB call); a fresh status is still
-  // fetched below as the pre-deploy safety refresh.
-  const pending = pendingChanges(plan, status);
+  // The cached status only describes the target it was fetched for; using it for a
+  // different target would report deployed changes as pending.
+  const knownStatus = status && statusFor && statusFor === target ? status : null;
+  // Preview is a LOCAL plan-vs-status diff (no DB call).
+  const pending = pendingChanges(plan, knownStatus);
+  const upToDate = !!knownStatus && pending.length === 0;
 
   // Load the plan (for the local diff) once a project is active.
   useEffect(() => {
@@ -37,15 +45,27 @@ export function DeployView() {
     }
   }, [project, ipc, setPlan]);
 
-  // Force a fresh status against the target before showing/executing a deploy.
+  // Fetch status for whichever target is entered so the preview reflects reality
+  // as soon as the view is opened, not only after a deploy.
   useEffect(() => {
-    if (project && confirmedTarget) {
-      ipc
-        .sqitchStatus(project.path, confirmedTarget)
-        .then((result) => setStatus(result as DeploymentStatus))
-        .catch(console.error);
-    }
-  }, [project, confirmedTarget, ipc, setStatus]);
+    if (!project || !target) return;
+    let cancelled = false;
+    setPreviewLoading(true);
+    ipc
+      .sqitchStatus(project.path, target)
+      .then((result) => {
+        if (cancelled) return;
+        setStatus(result as DeploymentStatus);
+        setStatusFor(target);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [project, target, ipc, setStatus]);
 
   // Capture structured errors (with type + raw output) for the recovery panel.
   useEffect(() => {
@@ -65,11 +85,23 @@ export function DeployView() {
     setDeployError(null);
     useProjectStore.getState().setLastTarget(target);
     try {
-      useProjectStore.getState().startRun(pending);
+      // Spec: force a fresh status against the target before a destructive action,
+      // and use it (not a cached preview) to decide what will be deployed.
+      let expected = pending;
+      try {
+        const fresh = (await ipc.sqitchStatus(project.path, target)) as DeploymentStatus;
+        setStatus(fresh);
+        setStatusFor(target);
+        expected = pendingChanges(plan, fresh);
+      } catch {
+        // Status is advisory here; the deploy itself re-checks state atomically.
+      }
+      useProjectStore.getState().startRun(expected);
       showToast("Starting deployment...");
       await ipc.sqitchDeploy(project.path, target, toChange || undefined);
       const result = await ipc.sqitchStatus(project.path, target);
       setStatus(result as DeploymentStatus);
+      setStatusFor(target);
       showToast("Deployment completed successfully!", "success");
     } catch (err: any) {
       console.error("Deploy failed:", err);
@@ -129,12 +161,30 @@ export function DeployView() {
           </div>
         </div>
 
+        {target && previewLoading && !knownStatus && (
+          <p className="text-xs text-muted-foreground font-medium mb-6">
+            Checking what is deployed on "{target}"…
+          </p>
+        )}
+
+        {target && !previewLoading && upToDate && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+            <Check size={14} className="text-emerald-400 shrink-0" />
+            <p className="text-xs text-emerald-300 font-medium">
+              "{target}" is already up to date — nothing to deploy.
+            </p>
+          </div>
+        )}
+
         {pending.length > 0 && target && (
           <DeployPreview
             pendingChanges={pending}
             target={target}
             showCommand={showCommands}
             toChange={toChange || undefined}
+            // Without a status for this target the diff cannot know what is
+            // already deployed, so say so rather than implying it is verified.
+            stateKnown={!!knownStatus}
           />
         )}
 

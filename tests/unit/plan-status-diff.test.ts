@@ -64,3 +64,18 @@ describe("deployedNotInPlan (drift)", () => {
     expect(deployedNotInPlan(plan(["a"]), status(["a", "ghost"]))).toEqual(["ghost"]);
   });
 });
+
+describe("preview honesty (regression)", () => {
+  it("treats an unknown status as unknown, not as nothing-deployed", () => {
+    // Regression: the Deploy view used a null status on first visit, so every
+    // plan change — including already deployed ones — was listed as pending.
+    // The view now only trusts a status fetched for the entered target; this
+    // asserts the diff's contract that null means "assume nothing known".
+    expect(pendingChanges(plan(["a", "b"]), null)).toEqual(["a", "b"]);
+    expect(pendingChanges(plan(["a", "b"]), status(["a"]))).toEqual(["b"]);
+  });
+
+  it("reports an empty pending list when the target is up to date", () => {
+    expect(pendingChanges(plan(["a", "b"]), status(["a", "b"]))).toEqual([]);
+  });
+});

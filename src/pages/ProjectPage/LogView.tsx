@@ -1,5 +1,6 @@
 import { Clock, History, MessageSquare, Tag, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
 import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
@@ -70,9 +71,7 @@ export function LogView() {
         </div>
 
         {showCommands && target && (
-          <div className="mt-4 p-2 bg-black/40 border border-border/50 rounded-lg text-[10px] font-mono text-muted-foreground">
-            sqitch log {target}
-          </div>
+          <CommandPreview command={`sqitch log ${target}`} className="mt-4" />
         )}
       </div>
 

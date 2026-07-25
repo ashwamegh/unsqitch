@@ -25,6 +25,7 @@ const TYPE_LABELS: Record<string, string> = {
   binary_not_found: "Sqitch not found",
   partial_deployment: "Partial deployment",
   command_timeout: "Command timed out",
+  command_cancelled: "Command cancelled",
   unknown: "Unexpected error",
 };
 
@@ -58,13 +59,25 @@ export function CommandErrorPanel({ error, onRetry, onRevert, onDismiss }: Comma
     showToast("Error details copied");
   };
 
+  // A cancel is a user decision, so it is presented as a neutral notice.
+  const cancelled = error.type === "command_cancelled";
+
   return (
-    <div className="border border-destructive/30 bg-destructive/5 rounded-2xl p-5 shadow-md space-y-3">
+    <div
+      className={`rounded-2xl p-5 shadow-md space-y-3 border ${
+        cancelled ? "border-border bg-muted/20" : "border-destructive/30 bg-destructive/5"
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <AlertOctagon size={18} className="text-destructive shrink-0 mt-0.5" />
+          <AlertOctagon
+            size={18}
+            className={`shrink-0 mt-0.5 ${cancelled ? "text-muted-foreground" : "text-destructive"}`}
+          />
           <div>
-            <p className="text-sm font-bold text-destructive">
+            <p
+              className={`text-sm font-bold ${cancelled ? "text-foreground/80" : "text-destructive"}`}
+            >
               {TYPE_LABELS[error.type] ?? "Error"}
             </p>
             <p className="text-xs text-foreground/80 mt-1 leading-relaxed">{error.message}</p>

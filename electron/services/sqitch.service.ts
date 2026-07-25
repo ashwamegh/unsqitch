@@ -15,6 +15,8 @@ export interface StreamCallbacks {
 export class SqitchService {
   private _binaryPath: string;
   private activeProcess: ChildProcess | null = null;
+  /** Set when cancel() kills the child, so the close handler can say so. */
+  private cancelled = false;
   private _spawn: typeof defaultSpawn;
 
   constructor(binaryPath: string, spawnImpl: typeof defaultSpawn = defaultSpawn) {
@@ -49,6 +51,7 @@ export class SqitchService {
       const fullArgs = ["--chdir", cwd, ...args];
       const child = this._spawn(this._binaryPath, fullArgs, { cwd });
       this.activeProcess = child;
+      this.cancelled = false;
 
       let stdout = "";
       let stderr = "";
@@ -80,6 +83,16 @@ export class SqitchService {
 
         if (code === 0 || allowExitCodes.includes(code)) {
           resolve({ stdout, stderr, exitCode: code });
+        } else if (this.cancelled) {
+          // A user-initiated cancel is not a failure; report it as its own type so
+          // the UI does not show a crash panel for something the user asked for.
+          this.cancelled = false;
+          reject({
+            ...createAppError("command_cancelled", "Command cancelled", stderr || stdout),
+            exitCode: code,
+            stdout,
+            stderr,
+          });
         } else {
           const error: AppError & {
             exitCode: number;
@@ -181,6 +194,7 @@ export class SqitchService {
 
   cancel(): void {
     if (this.activeProcess) {
+      this.cancelled = true;
       this.activeProcess.kill();
       this.activeProcess = null;
     }

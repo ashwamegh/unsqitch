@@ -5,6 +5,7 @@ export type ErrorType =
   | "binary_not_found"
   | "partial_deployment"
   | "command_timeout"
+  | "command_cancelled"
   | "unknown";
 
 export interface ErrorAction {
@@ -70,6 +71,7 @@ export function classifyError(
 }
 
 const ERROR_TYPES: ErrorType[] = [
+  "command_cancelled",
   "sqitch_crash",
   "db_connection",
   "file_permission",
@@ -124,6 +126,8 @@ export function createAppError(type: ErrorType, message: string, sqitchOutput?: 
       { label: "Retry", action: "retry" },
       { label: "Open Settings", action: "open_settings" },
     ],
+    // Cancelling is a user decision, not an error state to recover from.
+    command_cancelled: [{ label: "Retry", action: "retry" }],
     unknown: [{ label: "Refresh", action: "refresh" }],
   };
 

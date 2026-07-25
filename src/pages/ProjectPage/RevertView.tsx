@@ -1,5 +1,6 @@
 import { AlertOctagon, AlertTriangle, Check, History, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
 import { TargetPicker } from "../../components/shared/TargetPicker";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
@@ -18,11 +19,25 @@ export function RevertView() {
   const [confirmText, setConfirmText] = useState("");
   const [productionLabel, setProductionLabel] = useState<string | undefined>(undefined);
 
+  const revertRequest = useNavigationStore((s) => s.revertRequest);
+  const clearRevertRequest = useNavigationStore((s) => s.clearRevertRequest);
   const [revertThreshold, setRevertThreshold] = useState(5);
   const [revertAll, setRevertAll] = useState(false);
 
   const project = projects.find((p) => p.id === currentProjectId);
   const deployed = status?.deployed ?? [];
+
+  // Honor a "Revert to here" click from Status or Plan (a change name or @tag).
+  useEffect(() => {
+    if (!revertRequest) return;
+    setRevertAll(false);
+    setRevertTo(revertRequest);
+    if (!target) {
+      const fromStore = useProjectStore.getState().lastTarget;
+      if (fromStore) setTarget(fromStore);
+    }
+    clearRevertRequest();
+  }, [revertRequest, clearRevertRequest, target]);
 
   // Large-revert threshold is user-configurable (Settings > Large revert warning).
   useEffect(() => {
@@ -289,15 +304,11 @@ export function RevertView() {
             </div>
 
             {showCommands && (
-              <div className="p-2.5 bg-black/40 border border-border/60 rounded-lg text-[10px] font-mono text-muted-foreground flex items-center justify-between gap-3">
-                <span className="truncate">
-                  sqitch revert {target}
-                  {revertAll
-                    ? ""
-                    : ` --to ${revertTo || deployed[deployed.length - 2]?.name || ""}`}{" "}
-                  -y
-                </span>
-              </div>
+              <CommandPreview
+                command={`sqitch revert ${target}${
+                  revertAll ? "" : ` --to ${revertTo || deployed[deployed.length - 2]?.name || ""}`
+                } -y`}
+              />
             )}
           </div>
         )}

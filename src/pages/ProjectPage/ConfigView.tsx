@@ -1,5 +1,6 @@
 import { RefreshCw, Sliders, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CommandPreview } from "../../components/shared/CommandPreview";
 import { showToast } from "../../components/shared/Toast";
 import { useIpc } from "../../hooks/useIpc";
 import { useNavigationStore } from "../../store/navigation";
@@ -140,9 +141,7 @@ export function ConfigView() {
           </button>
         </div>
         {showCommands && (newKey || newValue) && (
-          <div className="p-2 bg-black/40 border border-border/50 rounded-lg text-[10px] font-mono text-muted-foreground">
-            sqitch config {newKey || "<key>"} {newValue || "<value>"}
-          </div>
+          <CommandPreview command={`sqitch config ${newKey || "<key>"} ${newValue || "<value>"}`} />
         )}
       </div>
 

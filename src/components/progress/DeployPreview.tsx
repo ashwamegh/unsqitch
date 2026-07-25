@@ -7,6 +7,8 @@ interface DeployPreviewProps {
   target: string;
   showCommand: boolean;
   toChange?: string;
+  /** False when no status for this target is known yet, so the diff is a guess. */
+  stateKnown?: boolean;
 }
 
 export function DeployPreview({
@@ -14,13 +16,22 @@ export function DeployPreview({
   target,
   showCommand,
   toChange,
+  stateKnown = true,
 }: DeployPreviewProps) {
   const [copied, setCopied] = useState(false);
-  const count = pendingChanges.length;
 
-  const summary = toChange
-    ? `You're about to deploy ${count} changes to "${target}", up to change "${toChange}".`
-    : `You're about to deploy ${count} pending change${count > 1 ? "s" : ""} to target "${target}".`;
+  // With --to, sqitch stops at that change, so only list/count up to it.
+  const stopAt = toChange ? pendingChanges.indexOf(toChange) : -1;
+  const changes = stopAt >= 0 ? pendingChanges.slice(0, stopAt + 1) : pendingChanges;
+  const count = changes.length;
+  const plural = count === 1 ? "" : "s";
+
+  const summary =
+    toChange && stopAt >= 0
+      ? `You're about to deploy ${count} change${plural} to "${target}", up to and including "${toChange}".`
+      : toChange
+        ? `You're about to deploy up to change "${toChange}" on "${target}". It is not in the pending list — sqitch will decide what to apply.`
+        : `You're about to deploy ${count} pending change${plural} to target "${target}".`;
 
   const command = `sqitch deploy ${target}${toChange ? ` --to ${toChange}` : ""} --verify`;
 
@@ -38,10 +49,16 @@ export function DeployPreview({
         <span>Deployment Plan Preview</span>
       </div>
 
-      <p className="text-xs text-foreground/80 mb-4 leading-relaxed font-medium">{summary}</p>
+      <p className="text-xs text-foreground/80 mb-2 leading-relaxed font-medium">{summary}</p>
+
+      <p className="text-[10px] text-muted-foreground mb-4 leading-relaxed">
+        {stateKnown
+          ? "Informational — computed from your plan and the last known status; verified against the database before execution."
+          : "Informational — no status has been read from this target yet, so changes already deployed may be listed. It is verified against the database before execution."}
+      </p>
 
       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 bg-black/20 rounded-lg p-3 border border-border/40">
-        {pendingChanges.map((change, i) => (
+        {changes.map((change, i) => (
           <div key={i} className="text-[11px] font-mono flex items-center gap-2 text-emerald-300">
             <Plus size={10} className="stroke-[3]" />
             <span>{change}</span>

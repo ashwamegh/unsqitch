@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight, Database, Info, Plus } from "lucide-react";
 import { useState } from "react";
 import { useProjectStore } from "../../store/project";
 import type { PlanFile } from "../../types/plan";
+import { CommandPreview } from "../shared/CommandPreview";
 import { AddChangeForm } from "./AddChangeForm";
 import { PlanEntry } from "./PlanEntry";
 import { UnparseableWarning } from "./UnparseableWarning";
@@ -99,6 +100,8 @@ export function PlanTimeline({ plan, showCommand, projectPath }: PlanTimelinePro
           </div>
         )}
       </div>
+
+      {showCommand && <CommandPreview command="sqitch plan" className="mb-4" />}
 
       <div className="space-y-0.5">
         {timelineEntries.map((entry) => {

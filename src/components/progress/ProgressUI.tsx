@@ -32,7 +32,7 @@ export function ProgressUI() {
   };
 
   return (
-    <div className="border-t border-border bg-card/40 backdrop-blur-md p-4 animate-in slide-in-from-bottom duration-300">
+    <div className="border-b border-border bg-card/40 backdrop-blur-md p-4 animate-in slide-in-from-top duration-300">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {isRunning ? (
