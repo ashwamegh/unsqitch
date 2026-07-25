@@ -58,20 +58,41 @@ What still covers that gap:
 The remaining cost is that applying a security fix is a manual step. Revisit if GitHub
 adds bun to the security-updates column.
 
-Alerts depend on GitHub parsing `bun.lock` into the dependency graph, and the graph is
-built from the **default branch** only. Confirm it after the bun change lands on `main`
-— the versions reported should match `bun.lock`, not the deleted `package-lock.json`:
+### Confirmed: the dependency graph does not read `bun.lock`
+
+Measured on `main` immediately before and after the bun migration landed:
+
+| | with `package-lock.json` | with `bun.lock` |
+| --- | --- | --- |
+| packages in the graph | 883 | **47** |
+| transitive packages (`brace-expansion`, `minimatch`, `postcss`, `undici`, `tar`) | present | **absent** |
+| versions reported | exact (`2.4.16`) | semver ranges (`^2.4.16`) |
+| open Dependabot alerts | 27 | **0** |
+
+Those ranges come from `package.json`, so GitHub is parsing the *manifest* and ignoring
+the lockfile. The alert count did not drop to zero because everything was fixed — the bun
+migration did patch several advisories — but because the packages the remaining advisories
+live in are no longer visible to the graph at all. Alerts now cover only the 37 declared
+dependencies, not the 733 packages actually resolved.
+
+Reproduce with:
 
 ```bash
+gh api repos/ashwamegh/unsqitch/dependency-graph/sbom --jq '.sbom.packages | length'
 gh api repos/ashwamegh/unsqitch/dependency-graph/sbom \
-  --jq '.sbom.packages[] | select(.name == "@biomejs/biome") | "\(.name) \(.versionInfo)"'
+  --jq '[.sbom.packages[] | select(.name == "brace-expansion")] | length'   # 0 = transitives missing
 ```
 
-If the graph still reports the old versions well after the merge, it is not reading
-`bun.lock`; in that case alerts would only see the direct dependencies declared in
-`package.json`, and transitive advisories (the majority) would go unreported. The
-fallback is to submit the dependency graph explicitly from CI via the
-[dependency submission API][submission].
+What is *not* affected: the blocking `Audit dependencies` job reads `bun.lock` directly and
+walks the real closure (295 shipped packages at the time of writing), so a high or critical
+advisory in anything that ships still fails CI. The loss is the alerting layer — passive
+notification of new advisories in transitive dependencies, and the Security tab view.
+
+To restore it, submit the graph from CI via the [dependency submission API][submission]:
+convert `bun.lock` into a snapshot of `pkg:npm/<name>@<version>` identifiers and POST it to
+`/repos/{owner}/{repo}/dependency-graph/snapshots`. The lockfile walk in
+[`scripts/lib/audit-core.mjs`](../scripts/lib/audit-core.mjs) already produces exactly that
+name/version set and is unit-tested, so the snapshot job can reuse it.
 
 [submission]: https://docs.github.com/en/rest/dependency-graph/dependency-submission
 
