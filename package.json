@@ -2,8 +2,34 @@
   "name": "unsqitch",
   "version": "1.0.0",
   "description": "Visual sqitch deployment manager",
+  "license": "MIT",
+  "author": {
+    "name": "ashwamegh",
+    "url": "https://github.com/ashwamegh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashwamegh/unsqitch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ashwamegh/unsqitch/issues"
+  },
+  "keywords": [
+    "sqitch",
+    "database",
+    "migrations",
+    "electron",
+    "gui",
+    "postgresql",
+    "mysql",
+    "sqlite",
+    "cockroachdb",
+    "schema"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "main": "./out/main/index.js",
-  "author": "unsqitch",
   "homepage": "https://github.com/ashwamegh/unsqitch",
   "scripts": {
     "format": "biome format --write .",

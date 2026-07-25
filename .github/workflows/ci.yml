@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # postinstall builds better-sqlite3 for Electron; the unit tests need the
+      # Node ABI instead, which the pretest hook takes care of.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Typechecks then bundles main, preload and renderer. Does not package
+      # installers — that happens in the release workflow.
+      - run: npm run build
+
+  integration:
+    name: Integration tests (PostgreSQL + Sqitch)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sqitch
+          POSTGRES_PASSWORD: sqitch
+          POSTGRES_DB: sqitch_test
+        ports:
+          - 54231:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # sqitch-pg pulls in the Perl driver and the psql client that Sqitch needs
+      # to run deploy scripts.
+      - name: Install Sqitch
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends sqitch libdbd-pg-perl postgresql-client
+          sqitch --version
+
+      - run: npm ci
+
+      - name: Run integration tests
+        env:
+          RUN_INTEGRATION: "1"
+          TEST_PROJECT_PATH: ${{ github.workspace }}/tests/fixtures/test-project
+        run: npm run test:integration
+
+  e2e:
+    name: E2E (Electron)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Electron needs a display; xvfb-run provides a virtual one.
+      - name: Run Playwright E2E
+        run: xvfb-run --auto-servernum npm run test:e2e
