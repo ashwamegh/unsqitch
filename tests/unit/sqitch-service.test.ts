@@ -176,3 +176,39 @@ describe("SqitchService", () => {
     expect(child.kill).toHaveBeenCalled();
   }, 10000);
 });
+
+describe("SqitchService exit-code handling", () => {
+  let service: SqitchService;
+  let spawnMock: ReturnType<typeof createMockSpawn>;
+
+  beforeEach(() => {
+    spawnMock = createMockSpawn();
+    service = new SqitchService("/usr/local/bin/sqitch", spawnMock);
+  });
+
+  it("treats status exit 1 as an empty status, not a failure", async () => {
+    // Real sqitch exits 1 with "No changes deployed" for a project that has
+    // nothing deployed yet — a normal state the UI must render as 0 deployed.
+    mockSpawn(spawnMock, false, "# On database db:pg://h/d\nNo changes deployed\n", "", 1);
+    const result = await service.status("/project", "mydb");
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain("No changes deployed");
+  });
+
+  it("still rejects when status fails for real (exit 2)", async () => {
+    mockSpawn(spawnMock, false, "", 'database "nope" does not exist', 2);
+    await expect(service.status("/project", "mydb")).rejects.toMatchObject({ exitCode: 2 });
+  });
+
+  it("does not tolerate exit 1 for deploy", async () => {
+    mockSpawn(spawnMock, false, "", "boom", 1);
+    await expect(service.deploy("/project", "mydb")).rejects.toMatchObject({ exitCode: 1 });
+  });
+
+  it("falls back to stdout for the error output when stderr is empty", async () => {
+    mockSpawn(spawnMock, false, "connection to server failed", "", 2);
+    await expect(service.deploy("/project", "mydb")).rejects.toMatchObject({
+      sqitchOutput: "connection to server failed",
+    });
+  });
+});

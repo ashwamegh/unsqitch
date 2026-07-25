@@ -35,6 +35,12 @@ export class SqitchService {
     cwd: string,
     timeout?: number,
     streams?: StreamCallbacks,
+    /**
+     * Exit codes to treat as success in addition to 0. `sqitch status` exits 1
+     * when a project simply has nothing deployed yet, which is a normal state
+     * rather than a failure (a real failure, e.g. an unreachable database, exits 2).
+     */
+    allowExitCodes: number[] = [],
   ): Promise<SqitchResult> {
     return new Promise((resolve, reject) => {
       // `--chdir` is a top-level sqitch option; passing it (in addition to the
@@ -72,7 +78,7 @@ export class SqitchService {
         if (timeoutId) clearTimeout(timeoutId);
         this.activeProcess = null;
 
-        if (code === 0) {
+        if (code === 0 || allowExitCodes.includes(code)) {
           resolve({ stdout, stderr, exitCode: code });
         } else {
           const error: AppError & {
@@ -80,7 +86,7 @@ export class SqitchService {
             stdout: string;
             stderr: string;
           } = {
-            ...createAppError("sqitch_crash", `sqitch exited with code ${code}`, stderr),
+            ...createAppError("sqitch_crash", `sqitch exited with code ${code}`, stderr || stdout),
             exitCode: code,
             stdout,
             stderr,
@@ -131,6 +137,9 @@ export class SqitchService {
       ["status", target, "--show-changes", "--show-tags", "--date-format", "raw"],
       projectPath,
       timeout,
+      undefined,
+      // Exit 1 means "no changes deployed" — an empty status, not an error.
+      [1],
     );
   }
 

@@ -22,11 +22,30 @@ export function defaultPort(engine: EngineType): string {
 }
 
 /**
- * The engine name sqitch itself understands. CockroachDB and YugabyteDB speak
- * the Postgres wire protocol and use sqitch's `pg` engine, not their own name.
+ * The engine name sqitch itself understands.
+ *
+ * Verified against sqitch 1.6.1: `cockroach` is a first-class engine (its
+ * registry needs Cockroach-specific DDL, so deploying it through the `pg` engine
+ * fails), whereas there is no `yugabyte` engine — YugabyteDB is driven through
+ * `pg`.
  */
 export function sqitchEngine(engine: EngineType): string {
-  return engine === "cockroach" || engine === "yugabyte" ? "pg" : engine;
+  return engine === "yugabyte" ? "pg" : engine;
+}
+
+/** URI scheme sqitch expects for an engine (`db:<scheme>://…`). */
+export function uriScheme(engine: EngineType): string {
+  switch (engine) {
+    case "mysql":
+      return "mysql";
+    case "sqlite":
+      return "sqlite";
+    case "cockroach":
+      return "cockroach";
+    default:
+      // pg and yugabyte both use the pg scheme.
+      return "pg";
+  }
 }
 
 /** Suggested client executable per engine (used as a placeholder default). */
@@ -52,27 +71,27 @@ export function parseUri(uri: string): { engine: EngineType; fields: UriFields }
     return { engine: "sqlite", fields: { path: uri.slice("db:sqlite:".length) } };
   }
   const match = uri.match(
-    /^db:(pg|mysql):\/\/(?:([^:@/]+)(?::[^@/]+)?@)?([^:/]+)(?::(\d+))?\/(.+)$/,
+    /^db:(pg|mysql|cockroach):\/\/(?:([^:@/]+)(?::[^@/]+)?@)?([^:/]+)(?::(\d+))?\/(.+)$/,
   );
   if (!match) return { engine: "pg", fields: {} };
   const [, scheme, user, host, port, database] = match;
-  return {
-    engine: scheme === "mysql" ? "mysql" : "pg",
-    fields: { host, port, database, user },
-  };
+  const engine: EngineType =
+    scheme === "mysql" ? "mysql" : scheme === "cockroach" ? "cockroach" : "pg";
+  return { engine, fields: { host, port, database, user } };
 }
 
 /**
- * Construct a sqitch target URI for the given engine. Postgres-family engines
- * (pg / cockroach / yugabyte) share the db:pg:// scheme; mysql uses db:mysql://;
- * sqlite uses a file path. Credentials are only included when a user is given
- * (users are advised to prefer .pgpass / env vars over embedding passwords).
+ * Construct a sqitch target URI for the given engine. CockroachDB has its own
+ * scheme (db:cockroach://); YugabyteDB is driven through pg (db:pg://); mysql
+ * uses db:mysql://; sqlite uses a file path. Credentials are only included when a
+ * user is given (users are advised to prefer .pgpass / env vars over embedding
+ * passwords).
  */
 export function buildUri(engine: EngineType, fields: UriFields): string {
   if (engine === "sqlite") {
     return `db:sqlite:${fields.path || "/path/to/db.sqlite"}`;
   }
-  const scheme = engine === "mysql" ? "mysql" : "pg";
+  const scheme = uriScheme(engine);
   const port = fields.port || defaultPort(engine);
   const host = fields.host || "localhost";
   const database = fields.database || "mydb";

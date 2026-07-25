@@ -26,8 +26,13 @@ describe("buildUri", () => {
     );
   });
 
-  it("uses the pg scheme with cockroach/yugabyte default ports", () => {
-    expect(buildUri("cockroach", { database: "app" })).toBe("db:pg://localhost:26257/app");
+  // Verified against sqitch 1.6.1: cockroach is its own engine/scheme, while
+  // YugabyteDB is driven through pg.
+  it("uses the cockroach scheme for CockroachDB", () => {
+    expect(buildUri("cockroach", { database: "app" })).toBe("db:cockroach://localhost:26257/app");
+  });
+
+  it("uses the pg scheme for YugabyteDB", () => {
     expect(buildUri("yugabyte", { database: "app" })).toBe("db:pg://localhost:5433/app");
   });
 
@@ -49,11 +54,12 @@ describe("defaultPort", () => {
 });
 
 describe("sqitchEngine", () => {
-  it("maps cockroach/yugabyte to pg and leaves others unchanged", () => {
-    expect(sqitchEngine("cockroach")).toBe("pg");
+  it("keeps cockroach (a real sqitch engine) and maps only yugabyte to pg", () => {
+    expect(sqitchEngine("cockroach")).toBe("cockroach");
     expect(sqitchEngine("yugabyte")).toBe("pg");
     expect(sqitchEngine("mysql")).toBe("mysql");
     expect(sqitchEngine("sqlite")).toBe("sqlite");
+    expect(sqitchEngine("pg")).toBe("pg");
   });
 });
 
@@ -83,6 +89,13 @@ describe("parseUri", () => {
     expect(parseUri("db:mysql://root@localhost:3306/app")).toMatchObject({
       engine: "mysql",
       fields: { host: "localhost", port: "3306", database: "app", user: "root" },
+    });
+  });
+
+  it("parses a cockroach URI back to the cockroach engine", () => {
+    expect(parseUri("db:cockroach://root@127.0.0.1:36257/defaultdb")).toMatchObject({
+      engine: "cockroach",
+      fields: { host: "127.0.0.1", port: "36257", database: "defaultdb", user: "root" },
     });
   });
 
