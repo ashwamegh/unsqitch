@@ -66,6 +66,10 @@ export const IPC_CHANNELS = {
 
   // Target discovery (works without the CLI by reading sqitch.conf)
   PROJECT_TARGETS: "project:targets",
+
+  // Opens the user guide in the default browser. Deliberately takes no arguments —
+  // see DOCS_URL in electron/main.ts.
+  DOCS_OPEN: "docs:open",
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

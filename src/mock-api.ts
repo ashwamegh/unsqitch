@@ -530,6 +530,12 @@ export const mockUnsqitchAPI: any = {
   },
 
   // Settings
+  // Browser mode has no main process; open the guide directly.
+  openDocs: async () => {
+    window.open("https://github.com/ashwamegh/unsqitch/wiki", "_blank", "noopener,noreferrer");
+    return { success: true };
+  },
+
   settingsGet: async (key: string) => {
     const value = getStorage<string | null>(`unsqitch_setting_${key}`, null);
     return { value };

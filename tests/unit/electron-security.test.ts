@@ -95,6 +95,39 @@ describe("Command execution", () => {
   });
 });
 
+describe("Opening external URLs", () => {
+  // The renderer must never be able to choose what gets opened in the user's browser: that
+  // would turn a docs link into "open any URL, or any local file, from a compromised
+  // renderer". The design is a fixed constant rather than a validated parameter.
+  const mainCode = codeOnly(main);
+
+  it("opens external URLs only through a hardcoded constant", () => {
+    const calls = mainCode.match(/shell\.openExternal\(([^)]*)\)/g) ?? [];
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) {
+      expect(call).toBe("shell.openExternal(DOCS_URL)");
+    }
+    expect(mainCode).toMatch(/const DOCS_URL = "https:\/\/[^"]+"/);
+  });
+
+  it("never passes a renderer-supplied value to openExternal", () => {
+    expect(mainCode).not.toMatch(/openExternal\(\s*(request|event|args|url|_event)/);
+  });
+
+  it("exposes the docs channel without any argument", () => {
+    expect(codeOnly(preload)).toMatch(
+      /openDocs:\s*\(\)\s*=>\s*ipcRenderer\.invoke\(IPC_CHANNELS\.DOCS_OPEN\)/,
+    );
+  });
+
+  it("is the only external-opening surface in the main process", () => {
+    const offenders = mainProcessSources.filter(
+      ([file, source]) => file !== "electron/main.ts" && /openExternal|openPath/.test(source),
+    );
+    expect(offenders.map(([file]) => file)).toEqual([]);
+  });
+});
+
 describe("Credential handling", () => {
   it("redacts user:password from a URI before storing a command", () => {
     expect(redactCommand("sqitch deploy db:pg://joe:s3cret@host/db --verify")).toBe(
