@@ -4,6 +4,11 @@ Thanks for your interest in improving UnSqitch. This document covers everything 
 need to get productive: how to run the app, how the code is organised, the quirks
 worth knowing about, and what a good pull request looks like.
 
+> Looking for how to **use** the app rather than change it? That is the
+> [user guide in the wiki](https://github.com/ashwamegh/unsqitch/wiki) — a walkthrough of
+> every view with screenshots, per-engine notes, and troubleshooting. Worth skimming before
+> working on a view, so your change matches what the docs promise.
+
 By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ---

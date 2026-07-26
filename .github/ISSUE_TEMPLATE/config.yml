@@ -1,5 +1,10 @@
 blank_issues_enabled: true
 contact_links:
+  # First, because a good share of "issues" are really "how do I do X" — and this chooser
+  # is the screen people see immediately before filing one.
+  - name: User guide (wiki)
+    url: https://github.com/ashwamegh/unsqitch/wiki
+    about: How to use the app, view by view, with screenshots — plus per-engine notes and troubleshooting.
   - name: Security vulnerability
     url: https://github.com/ashwamegh/unsqitch/security/advisories/new
     about: Report security issues privately — never in a public issue.
