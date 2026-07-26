@@ -8,6 +8,15 @@
 [![Sqitch](https://img.shields.io/badge/sqitch-%E2%89%A51.0-orange.svg)](https://sqitch.org/)
 [![Security audit](https://github.com/ashwamegh/unsqitch/actions/workflows/security.yml/badge.svg)](https://github.com/ashwamegh/unsqitch/actions/workflows/security.yml)
 [![CodeQL](https://github.com/ashwamegh/unsqitch/actions/workflows/codeql.yml/badge.svg)](https://github.com/ashwamegh/unsqitch/actions/workflows/codeql.yml)
+[![User guide](https://img.shields.io/badge/user%20guide-wiki-8A63D2.svg)](https://github.com/ashwamegh/unsqitch/wiki)
+
+### 📖 [Read the user guide →](https://github.com/ashwamegh/unsqitch/wiki)
+
+Screenshot-led walkthrough of every view, per-engine notes for PostgreSQL, SQLite, MySQL,
+CockroachDB and YugabyteDB, and troubleshooting. **Start there if you want to *use* UnSqitch**
+— the rest of this README is about building and developing it.
+
+---
 
 UnSqitch brings the power of [Sqitch](https://sqitch.org/) database migrations to a premium, cross-platform desktop application. Built with Electron, React, TypeScript, and modern glassmorphic aesthetics, it provides database engineers with real-time migration tracking, step-by-step deploy/revert execution, and interactive configuration management.
 
