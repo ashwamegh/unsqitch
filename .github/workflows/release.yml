@@ -55,18 +55,47 @@ jobs:
       # out/renderer/index.html at runtime.
       - run: bun run build
 
+      # Signing variables are forwarded ONLY when they hold a value. Setting them from a
+      # missing secret yields an empty string, and an empty CSC_LINK is not the same as an
+      # absent one: electron-builder takes it as "a certificate path was provided", resolves
+      # "" to the working directory, and dies with `<repo path> not a file`. So each is
+      # exported to the job environment only if non-empty, and the unsigned path is chosen
+      # explicitly rather than by accident.
+      - name: Configure signing if certificates are available
+        shell: bash
+        env:
+          IN_CSC_LINK: ${{ secrets.CSC_LINK }}
+          IN_CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          IN_WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          IN_WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          IN_APPLE_ID: ${{ secrets.APPLE_ID }}
+          IN_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          IN_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          forward() {
+            local name="$1" value="$2"
+            if [ -n "$value" ]; then
+              echo "::add-mask::$value"
+              echo "$name=$value" >> "$GITHUB_ENV"
+              echo "$name is set"
+            fi
+          }
+          forward CSC_LINK "${IN_CSC_LINK:-}"
+          forward CSC_KEY_PASSWORD "${IN_CSC_KEY_PASSWORD:-}"
+          forward WIN_CSC_LINK "${IN_WIN_CSC_LINK:-}"
+          forward WIN_CSC_KEY_PASSWORD "${IN_WIN_CSC_KEY_PASSWORD:-}"
+          forward APPLE_ID "${IN_APPLE_ID:-}"
+          forward APPLE_APP_SPECIFIC_PASSWORD "${IN_APPLE_APP_SPECIFIC_PASSWORD:-}"
+          forward APPLE_TEAM_ID "${IN_APPLE_TEAM_ID:-}"
+
+          if [ -z "${IN_CSC_LINK:-}" ] && [ -z "${IN_WIN_CSC_LINK:-}" ]; then
+            echo "No signing certificates configured — building unsigned."
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Package installers
         run: bunx --no-install electron-builder ${{ matrix.args }} --publish never
-        env:
-          # Present only once the certificates are added as repository secrets;
-          # electron-builder builds unsigned when they are absent.
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       # Confirms the packaged app actually contains its renderer and its native module,
       # rather than shipping an installer that opens a blank window. Both of those were
