@@ -171,9 +171,14 @@ jobs:
       - name: Extract the release notes for this version
         id: notes
         shell: bash
+        env:
+          # Resolved from the input on a manual run, where GITHUB_REF_NAME is the branch
+          # the workflow was dispatched on ("main") rather than the tag being released —
+          # which would look up a changelog section named "main" and find nothing.
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           # Pull just this version's section out of the changelog.
           awk -v v="$version" '
             $0 ~ "^## \\[" v "\\]" { found = 1; next }
