@@ -68,15 +68,25 @@ built the file, not that an OS vendor trusts it — but it is checkable by anyon
 
 | Runner | Produces |
 | ------ | -------- |
-| `macos-latest` | macOS arm64 (`.dmg`, `.zip`) |
-| `macos-13` | macOS x64 (`.dmg`, `.zip`) |
+| `macos-latest` | macOS **arm64** (`.dmg`, `.zip`) |
 | `ubuntu-latest` | Linux x64 (`.AppImage`, `.deb`) |
 | `windows-latest` | Windows x64 (`.exe` installer) |
 
-Two separate macOS jobs rather than one universal binary: a universal build has to contain
-both architectures of the native module, and building each on its own runner is simpler to
-keep working than cross-compiling. Windows arm64 and Linux arm64 are not built — say so
-plainly rather than shipping an x64 binary under an arm64 name.
+**There is no Intel macOS build**, and that is deliberate. Two things were tried:
+
+- The `macos-13` Intel runner queued indefinitely without starting — it has been retired.
+- Cross-building with `electron-builder --mac --x64` on an arm64 runner *succeeds*, and
+  produces an x64 app containing an **arm64** `better-sqlite3`
+  (`Mach-O 64-bit bundle arm64` under `bin/darwin-arm64-148/`). That app would crash on an
+  Intel Mac as soon as it opened its database.
+
+Shipping nothing is better than shipping that, so Intel users build from source for now.
+Wiring up a current Intel runner is the fix; the release workflow already asserts on macOS
+that the bundled native module's architecture matches the target, so a future Intel job
+cannot quietly reintroduce the mismatch.
+
+Windows arm64 and Linux arm64 are also not built — stated plainly rather than shipping an
+x64 binary under an arm64 name.
 
 ## After publishing
 
