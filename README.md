@@ -163,6 +163,7 @@ of `.my.cnf`.
 
 | Document | What it covers |
 | -------- | -------------- |
+| [Wiki: user guide](https://github.com/ashwamegh/unsqitch/wiki) | How to use the app, view by view, with screenshots. Start here if you are using UnSqitch rather than developing it. |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Setup, architecture tour, the quirks that bite, testing, commit and PR conventions. |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the renderer, IPC layer, services and stores fit together, and how to add a capability. |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability, and the credential-handling guarantees. |
