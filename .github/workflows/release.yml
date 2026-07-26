@@ -29,10 +29,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macos-latest is arm64; macos-13 is the Intel runner, so Intel Macs get a
-          # native build rather than relying on Rosetta.
+          # macOS is Apple Silicon only for now. The macos-13 Intel runner queues
+          # indefinitely (retired), and cross-building x64 from an arm64 runner produces an
+          # x64 app bundling an *arm64* better-sqlite3 — verified locally — which would
+          # crash on an Intel Mac the moment it opened its database. Shipping nothing beats
+          # shipping that; Intel users can run from source until an Intel runner is wired up.
           - { os: macos-latest, name: macOS arm64, args: --mac }
-          - { os: macos-13, name: macOS x64, args: --mac }
           - { os: ubuntu-latest, name: Linux x64, args: --linux }
           - { os: windows-latest, name: Windows x64, args: --win }
     steps:
@@ -110,13 +112,32 @@ jobs:
             exit 1
           fi
           asar=$(find dist -name 'app.asar' | head -1)
-          if ! bunx --no-install asar list "$asar" | grep -q 'renderer/index.html'; then
+          # asar list prints backslash-separated paths on Windows, so normalise before
+          # matching — otherwise this reports a missing renderer on a perfectly good package.
+          if ! bunx --no-install asar list "$asar" | tr '\\' '/' | grep -q 'renderer/index.html'; then
             echo "::error::the packaged app.asar has no renderer — it would open blank"
             missing=1
           fi
-          if ! find dist -path '*app.asar.unpacked*' -name '*better*sqlite3*.node' | grep -q .; then
+          native=$(find dist -path '*app.asar.unpacked*' -name '*better*sqlite3*.node' | head -1)
+          if [ -z "$native" ]; then
             echo "::error::better-sqlite3 was not unpacked; the app cannot open its database"
             missing=1
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            # A cross-built package can carry the host's architecture instead of the
+            # target's, which only fails once a user opens the app. Check it here instead.
+            arch=$(file "$native")
+            case "$arch" in
+              *arm64*) got=arm64 ;;
+              *x86_64*) got=x64 ;;
+              *) got=unknown ;;
+            esac
+            want=$(node -p process.arch)
+            if [ "$got" != "$want" ]; then
+              echo "::error::native module is $got but this runner targets $want: $arch"
+              missing=1
+            else
+              echo "native module architecture matches the target ($got)"
+            fi
           fi
           exit $missing
 
