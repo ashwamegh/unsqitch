@@ -10,6 +10,18 @@
 [![CodeQL](https://github.com/ashwamegh/unsqitch/actions/workflows/codeql.yml/badge.svg)](https://github.com/ashwamegh/unsqitch/actions/workflows/codeql.yml)
 [![User guide](https://img.shields.io/badge/user%20guide-wiki-8A63D2.svg)](https://github.com/ashwamegh/unsqitch/wiki)
 
+## Download
+
+Installers for macOS, Windows and Linux are on the
+[Releases page](https://github.com/ashwamegh/unsqitch/releases). They are **unsigned**, so
+the OS will warn the first time you open one — the release notes give the exact steps per
+platform, and every artifact carries verifiable build provenance.
+
+UnSqitch drives your local [Sqitch CLI](https://sqitch.org/download/) and does not bundle
+one, so install Sqitch too.
+
+---
+
 ### 📖 [Read the user guide →](https://github.com/ashwamegh/unsqitch/wiki)
 
 Screenshot-led walkthrough of every view, per-engine notes for PostgreSQL, SQLite, MySQL,
@@ -176,6 +188,7 @@ of `.my.cnf`.
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Setup, architecture tour, the quirks that bite, testing, commit and PR conventions. |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the renderer, IPC layer, services and stores fit together, and how to add a capability. |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability, and the credential-handling guarantees. |
+| [docs/RELEASING.md](docs/RELEASING.md) | How releases are built and published, and what the pipeline checks before publishing. |
 | [docs/REPOSITORY-HARDENING.md](docs/REPOSITORY-HARDENING.md) | The automated security checks, and the repository settings to enable. |
 | [CHANGELOG.md](CHANGELOG.md) | Notable changes per release. |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Expected conduct in the project's spaces. |
