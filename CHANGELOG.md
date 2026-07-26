@@ -5,9 +5,18 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-07-26
+
+First released build. Earlier versions of this file described a 1.0.0 release, but no tag
+or release ever existed, so the initial implementation is folded in here.
 
 ### Added
+
+- Initial implementation: plan timeline, deploy, revert, status, verify and log views, the
+  engine/target/config setup views, and a typed IPC layer between the renderer and the
+  Sqitch CLI.
+- Installers for macOS (arm64 and x64), Windows and Linux, built and published by the
+  release workflow with signed build provenance for every artifact.
 
 - Onboarding that makes the app explain itself on first open: a project header
   summarising engine, target and how much of the plan is deployed, with the plan
@@ -71,13 +80,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The Progress UI moved to the top of the main panel, and the output panel is labelled
   "Sqitch Output" and only appears when a command runs.
 
-## [1.0.0] - 2026-05-31
-
-### Added
-
-- Initial implementation: plan timeline, deploy, revert, status, verify, log, and the
-  engine/target/config setup views, with a typed IPC layer between the renderer and the
-  Sqitch CLI.
-
-[Unreleased]: https://github.com/ashwamegh/unsqitch/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/ashwamegh/unsqitch/releases/tag/v1.0.0
+[unreleased]: https://github.com/ashwamegh/unsqitch/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ashwamegh/unsqitch/releases/tag/v0.1.0

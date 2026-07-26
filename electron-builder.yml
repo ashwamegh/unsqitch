@@ -3,23 +3,31 @@ productName: UnSqitch
 directories:
   buildResources: build
   output: dist
+
+# out/ is the electron-vite build output: main, preload and renderer. The renderer must be
+# included — electron/main.ts loads out/renderer/index.html at runtime, so excluding it
+# packages cleanly and then shows a blank window. (It was excluded here until the first
+# real packaging attempt, which is also when the invalid mac.universalBuild option below
+# was found: this configuration had never successfully produced an installer.)
 files:
   - out/**/*
-  - "!out/renderer/**/*"
-asarUnpack:
-  - resources/**"
+  - package.json
+
 mac:
   category: public.app-category.developer-tools
   target:
     - dmg
     - zip
-  universalBuild: true
+
 linux:
   target:
     - AppImage
     - deb
   category: Development
+
 win:
   target:
     - nsis
+
+# better-sqlite3 is native and has to match the packaged Electron's ABI.
 npmRebuild: true

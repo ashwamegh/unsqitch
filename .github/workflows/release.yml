@@ -1,0 +1,194 @@
+name: Release
+
+# Builds installers for every platform on a version tag and publishes them as a
+# pre-release. Nothing here runs on ordinary pushes.
+#
+# Signing: the macOS and Windows secrets are passed straight through to
+# electron-builder, which signs when they are present and builds unsigned when they are
+# not — so adding the certificates later turns signing on with no workflow change. Until
+# then, users see Gatekeeper and SmartScreen warnings; see docs/RELEASING.md.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Package (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macos-latest is arm64; macos-13 is the Intel runner, so Intel Macs get a
+          # native build rather than relying on Rosetta.
+          - { os: macos-latest, name: macOS arm64, args: --mac }
+          - { os: macos-13, name: macOS x64, args: --mac }
+          - { os: ubuntu-latest, name: Linux x64, args: --linux }
+          - { os: windows-latest, name: Windows x64, args: --win }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - run: bun install --frozen-lockfile
+
+      # Bundles main, preload and renderer. All three are packaged — the app loads
+      # out/renderer/index.html at runtime.
+      - run: bun run build
+
+      - name: Package installers
+        run: bunx --no-install electron-builder ${{ matrix.args }} --publish never
+        env:
+          # Present only once the certificates are added as repository secrets;
+          # electron-builder builds unsigned when they are absent.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      # Confirms the packaged app actually contains its renderer and its native module,
+      # rather than shipping an installer that opens a blank window. Both of those were
+      # real defects in this configuration before the first release.
+      - name: Verify the package contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          if ! find dist -name 'app.asar' | head -1 | grep -q .; then
+            echo "::error::no app.asar was produced"
+            exit 1
+          fi
+          asar=$(find dist -name 'app.asar' | head -1)
+          if ! bunx --no-install asar list "$asar" | grep -q 'renderer/index.html'; then
+            echo "::error::the packaged app.asar has no renderer — it would open blank"
+            missing=1
+          fi
+          if ! find dist -path '*app.asar.unpacked*' -name '*better*sqlite3*.node' | grep -q .; then
+            echo "::error::better-sqlite3 was not unpacked; the app cannot open its database"
+            missing=1
+          fi
+          exit $missing
+
+      - name: Collect installers
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          # Installers and archives only — not the unpacked build trees.
+          find dist -maxdepth 1 -type f \
+            \( -name '*.dmg' -o -name '*.zip' -o -name '*.AppImage' -o -name '*.deb' \
+               -o -name '*.exe' -o -name '*.blockmap' -o -name 'latest*.yml' \) \
+            -exec cp {} artifacts/ \;
+          ls -la artifacts
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: installers-${{ matrix.os }}
+          path: artifacts/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish pre-release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # create the release and upload assets
+      id-token: write # provenance attestation
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: downloaded
+          merge-multiple: true
+
+      - name: List what will be published
+        run: ls -la downloaded
+
+      # Signed provenance for every artifact, verifiable with:
+      #   gh attestation verify <file> --repo ashwamegh/unsqitch
+      # This is what an unsigned installer can still offer: proof of which workflow,
+      # commit and runner produced the file.
+      - uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: downloaded/*
+
+      - name: Extract the release notes for this version
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          # Pull just this version's section out of the changelog.
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "No changelog section for $version; falling back to a generated list."
+            printf 'See the commit history for changes in this release.\n' > notes.md
+          fi
+          cat >> notes.md <<'FOOTER'
+
+          ---
+
+          ### Installing
+
+          These builds are **not code-signed**, so the OS will warn about them:
+
+          - **macOS** — "UnSqitch cannot be opened because the developer cannot be
+            verified". Right-click the app → **Open**, then confirm; or run
+            `xattr -dr com.apple.quarantine /Applications/UnSqitch.app`.
+          - **Windows** — SmartScreen shows "Windows protected your PC". Choose
+            **More info** → **Run anyway**.
+          - **Linux** — mark the AppImage executable: `chmod +x UnSqitch-*.AppImage`.
+
+          Every artifact carries signed build provenance. Verify what produced it:
+
+          ```bash
+          gh attestation verify <file> --repo ashwamegh/unsqitch
+          ```
+
+          **UnSqitch needs the [Sqitch CLI](https://sqitch.org/download/) installed
+          separately** — it drives your local `sqitch`, it does not bundle one. See the
+          [user guide](https://github.com/ashwamegh/unsqitch/wiki).
+          FOOTER
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" downloaded/* \
+            --title "UnSqitch $TAG" \
+            --notes-file notes.md \
+            --prerelease \
+            --verify-tag
