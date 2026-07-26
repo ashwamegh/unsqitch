@@ -188,6 +188,10 @@ const api = {
   },
 
   // Settings
+  // No parameter by design: the main process opens a fixed URL, so the renderer cannot
+  // choose what gets opened in the user's browser.
+  openDocs: () => ipcRenderer.invoke(IPC_CHANNELS.DOCS_OPEN),
+
   settingsGet: (key: string) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET, { key }),
 
   settingsSet: (key: string, value: string) =>

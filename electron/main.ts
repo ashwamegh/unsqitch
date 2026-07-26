@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { parseConfigList } from "../src/lib/config-parser";
 import { parseLogOutput } from "../src/lib/log-parser";
 import { parsePlanFile } from "../src/lib/plan-parser";
@@ -18,6 +18,12 @@ import { SqitchService } from "./services/sqitch.service";
 import { TargetService } from "./services/target.service";
 import { resolveTargets, resolveTargetsFromDisk } from "./services/target-resolver";
 import { IPC_CHANNELS } from "./shared/ipc-types";
+
+/**
+ * The only URL this app ever opens in the user's browser. A constant rather than a
+ * parameter, so the renderer has no say in the destination.
+ */
+const DOCS_URL = "https://github.com/ashwamegh/unsqitch/wiki";
 
 let mainWindow: BrowserWindow | null = null;
 let sqitchService: SqitchService;
@@ -602,6 +608,17 @@ function registerIpcHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, async (_event, request) => {
     projectService.setSetting(request.key, request.value);
+    return { success: true };
+  });
+
+  /**
+   * Opens the user guide. The channel accepts no arguments on purpose: the renderer cannot
+   * name a destination, so a compromised or buggy renderer cannot turn this into
+   * "open any URL, or any local file, in the user's browser". An allowlist would also work,
+   * but having nothing to validate is stronger than validating correctly.
+   */
+  ipcMain.handle(IPC_CHANNELS.DOCS_OPEN, async () => {
+    await shell.openExternal(DOCS_URL);
     return { success: true };
   });
 

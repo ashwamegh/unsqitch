@@ -1,6 +1,7 @@
 import {
   Activity,
   ArrowLeft,
+  BookOpen,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -135,6 +136,20 @@ export function Sidebar() {
           >
             {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
             {!sidebarCollapsed && "Collapse Sidebar"}
+          </button>
+
+          {/* User guide — opens the wiki in the default browser */}
+          <button
+            onClick={() => window.unsqitch.openDocs()}
+            title={sidebarCollapsed ? "User guide" : undefined}
+            className={`flex items-center transition-all cursor-pointer ${
+              sidebarCollapsed
+                ? "w-10 h-10 justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                : "w-full gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-accent/30"
+            }`}
+          >
+            <BookOpen size={14} />
+            {!sidebarCollapsed && "User guide"}
           </button>
 
           {/* Settings */}
@@ -365,6 +380,20 @@ export function Sidebar() {
         >
           {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           {!sidebarCollapsed && "Collapse Sidebar"}
+        </button>
+
+        {/* User guide — opens the wiki in the default browser */}
+        <button
+          onClick={() => window.unsqitch.openDocs()}
+          title={sidebarCollapsed ? "User guide" : undefined}
+          className={`flex items-center transition-all cursor-pointer ${
+            sidebarCollapsed
+              ? "w-10 h-10 justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              : "w-full gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-accent/30"
+          }`}
+        >
+          <BookOpen size={14} />
+          {!sidebarCollapsed && "User guide"}
         </button>
 
         {/* Settings Button */}
